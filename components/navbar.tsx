@@ -103,12 +103,12 @@ export function Navbar() {
       id="main-nav"
       className="sticky top-0 z-50"
       style={{
-        background: "#FFFFFF",
-        borderBottom: "1px solid #E0DEFB",
+        background: "var(--bg-surface)",
+        borderBottom: "1px solid var(--border-default)",
       }}
     >
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-[64px] gap-4">
+        <div className="flex items-center h-[72px] gap-4">
           {/* Logo */}
           <Link
             href="/"
@@ -116,18 +116,13 @@ export function Navbar() {
             className="flex items-center shrink-0"
             style={{ textDecoration: "none" }}
           >
-            <Image
-              src="/logo.png"
-              alt="MarketFlow Logo"
-              width={160}
-              height={45}
-              className="object-contain"
-              priority
-            />
+            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "24px", color: "var(--brand-primary)", letterSpacing: "0.02em", fontWeight: "normal" }}>
+              MarketFlow
+            </h2>
           </Link>
 
           {/* Category Dropdown */}
-          <div className="relative hidden lg:block">
+          <div className="relative hidden lg:block ml-4">
             <button
               id="category-menu-btn"
               onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
@@ -135,25 +130,23 @@ export function Navbar() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
               style={{
                 fontFamily: "var(--font-body)",
-                fontSize: "14px",
+                fontSize: "16px",
                 fontWeight: 500,
-                color: "#3D3D4E",
+                color: "var(--text-primary)",
                 transition: "color .2s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#4F46E5")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#3D3D4E")}
             >
-              <Menu className="w-4 h-4" />
+              <Menu className="w-5 h-5" />
               Categories
-              <ChevronDown className="w-3.5 h-3.5" />
+              <ChevronDown className="w-4 h-4" />
             </button>
 
             {categoryMenuOpen && (
               <div
-                className="absolute left-0 mt-1 w-56 rounded-xl py-2 z-50"
+                className="absolute left-0 mt-1 w-56 rounded-xl py-2 z-50 shadow-lg"
                 style={{
-                  background: "#FFFFFF",
-                  border: "1px solid #C7C4F6",
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-default)",
                   animation: "fadeInUp .15s ease",
                 }}
               >
@@ -166,21 +159,21 @@ export function Navbar() {
                       className="flex items-center gap-3 px-4 py-2.5"
                       style={{
                         fontFamily: "var(--font-body)",
-                        fontSize: "14px",
+                        fontSize: "16px",
                         fontWeight: 500,
-                        color: "#3D3D4E",
+                        color: "var(--text-secondary)",
                         transition: "color .15s, background .15s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.color = "#4F46E5";
-                        e.currentTarget.style.background = "#F6F5FF";
+                        e.currentTarget.style.color = "var(--text-primary)";
+                        e.currentTarget.style.background = "var(--bg-sunken)";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.color = "#3D3D4E";
+                        e.currentTarget.style.color = "var(--text-secondary)";
                         e.currentTarget.style.background = "transparent";
                       }}
                     >
-                      <Icon className="w-4 h-4" style={{ color: "#4F46E5" }} />
+                      <Icon className="w-4 h-4" />
                       {cat.name}
                     </Link>
                   );
@@ -190,7 +183,7 @@ export function Navbar() {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-4">
+          <div className="hidden md:flex flex-1 max-w-xl mx-8">
             <div className="w-full relative">
               <input
                 id="search-input"
@@ -199,55 +192,34 @@ export function Navbar() {
                 className="w-full pl-11 pr-4 py-2.5 outline-none"
                 style={{
                   fontFamily: "var(--font-body)",
-                  fontSize: "14px",
+                  fontSize: "16px",
                   fontWeight: 400,
-                  background: "#F6F5FF",
-                  border: "1px solid #E0DEFB",
-                  borderRadius: "8px",
-                  color: "#1A1A2E",
+                  background: "var(--bg-sunken)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "99px",
+                  color: "var(--text-primary)",
                   transition: "border-color .2s",
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = "#4F46E5";
-                  e.currentTarget.style.outline = "2px solid #4F46E5";
-                  e.currentTarget.style.outlineOffset = "2px";
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = "#E0DEFB";
-                  e.currentTarget.style.outline = "none";
                 }}
               />
               <Search
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4"
-                style={{ color: "#9CA3AF" }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
+                style={{ color: "var(--text-muted)" }}
               />
             </div>
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-4 sm:gap-6 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Notifications */}
             {user && (
               <button
                 id="notifications-btn"
-                className="p-2.5 rounded-lg relative"
-                style={{ transition: "color .15s" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.querySelector("svg")!.style.color =
-                    "#4F46E5")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.querySelector("svg")!.style.color =
-                    "#3D3D4E")
-                }
+                className="p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
               >
-                <Bell
-                  className="w-5 h-5"
-                  style={{ color: "#3D3D4E", transition: "color .15s" }}
-                />
+                <Bell className="w-5 h-5" />
                 <span
-                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-                  style={{ background: "#DC2626" }}
+                  className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                  style={{ background: "var(--brand-accent)" }}
                 />
               </button>
             )}
@@ -257,25 +229,13 @@ export function Navbar() {
               <Link
                 href="/customer/cart"
                 id="cart-btn"
-                className="p-2.5 rounded-lg relative"
-                style={{ transition: "color .15s" }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.querySelector("svg")!.style.color =
-                    "#4F46E5")
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.querySelector("svg")!.style.color =
-                    "#3D3D4E")
-                }
+                className="p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
               >
-                <ShoppingCart
-                  className="w-5 h-5"
-                  style={{ color: "#3D3D4E", transition: "color .15s" }}
-                />
+                <ShoppingCart className="w-5 h-5" />
                 {cartItems > 0 && (
                   <span
-                    className="absolute -top-0.5 -right-0.5 w-5 h-5 text-xs rounded-full flex items-center justify-center font-bold"
-                    style={{ background: "#4F46E5", color: "#fff" }}
+                    className="absolute -top-0.5 -right-0.5 w-5 h-5 text-[10px] rounded-full flex items-center justify-center font-bold"
+                    style={{ background: "var(--brand-primary)", color: "var(--text-inverse)" }}
                   >
                     {cartItems}
                   </span>
@@ -290,75 +250,47 @@ export function Navbar() {
                   <button
                     id="user-menu-btn"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="p-2.5 rounded-lg flex items-center gap-2"
-                    style={{ transition: "color .15s" }}
+                    className="p-1 rounded-full flex items-center gap-2 border border-[var(--border-default)]"
                   >
-                    <User className="w-5 h-5" style={{ color: "#3D3D4E" }} />
+                    <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden">
+                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" />
+                    </div>
                   </button>
 
                   {userMenuOpen && (
                     <div
-                      className="absolute right-0 mt-1 w-52 rounded-xl py-2"
+                      className="absolute right-0 mt-2 w-52 rounded-xl py-2 shadow-lg z-50"
                       style={{
-                        background: "#FFFFFF",
-                        border: "1px solid #C7C4F6",
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border-default)",
                         animation: "fadeInUp .15s ease",
                       }}
                     >
                       <Link
                         href={getDashboardLink()}
-                        className="block px-4 py-2.5"
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#3D3D4E",
-                        }}
+                        className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         Dashboard
                       </Link>
                       <Link
                         href="/profile"
-                        className="block px-4 py-2.5"
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#3D3D4E",
-                        }}
+                        className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         Profile
                       </Link>
                       <Link
                         href="/orders"
-                        className="block px-4 py-2.5"
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#3D3D4E",
-                        }}
+                        className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
                         onClick={() => setUserMenuOpen(false)}
                       >
                         My Orders
                       </Link>
-                      <div
-                        style={{
-                          borderTop: "1px solid #E0DEFB",
-                          margin: ".25rem 0",
-                        }}
-                      />
+                      <div className="h-px bg-[var(--border-default)] my-1" />
                       <button
                         onClick={handleLogout}
-                        className="w-full text-left px-4 py-2.5"
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: "14px",
-                          fontWeight: 500,
-                          color: "#DC2626",
-                        }}
+                        className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--status-error)] hover:bg-[var(--status-error-bg)]"
                       >
                         Logout
                       </button>
@@ -370,43 +302,14 @@ export function Navbar() {
                   <Link
                     href="/login"
                     id="login-btn"
-                    className="px-4 py-2 hidden sm:inline-flex"
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      color: "#3D3D4E",
-                      transition: "color .15s",
-                    }}
-                    onMouseEnter={(e) =>
-                      (e.currentTarget.style.color = "#4F46E5")
-                    }
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "#3D3D4E")
-                    }
+                    className="px-4 py-2 hidden sm:inline-flex text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   >
                     Login
                   </Link>
                   <Link
                     href="/vendor/apply"
                     id="become-vendor-btn"
-                    className="px-4 py-2 inline-flex items-center gap-1.5"
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "14px",
-                      fontWeight: 500,
-                      background: "transparent",
-                      color: "#4F46E5",
-                      border: "2px solid #4F46E5",
-                      borderRadius: "10px",
-                      transition: "background .15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#EDEDFD";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
+                    className="px-4 py-2 inline-flex items-center gap-1.5 text-sm font-medium bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-lg hover:opacity-90 transition-opacity"
                   >
                     Become a Vendor
                   </Link>
@@ -417,13 +320,9 @@ export function Navbar() {
             <button
               id="mobile-menu-btn"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2.5 rounded-lg"
+              className="md:hidden p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]"
             >
-              {mobileMenuOpen ? (
-                <X className="w-5 h-5" style={{ color: "#3D3D4E" }} />
-              ) : (
-                <Menu className="w-5 h-5" style={{ color: "#3D3D4E" }} />
-              )}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -437,7 +336,7 @@ export function Navbar() {
               className="w-full pl-10 pr-4 py-2.5 outline-none"
               style={{
                 fontFamily: "var(--font-body)",
-                fontSize: "14px",
+                fontSize: "16px",
                 background: "#F6F5FF",
                 border: "1px solid #E0DEFB",
                 borderRadius: "8px",
@@ -462,7 +361,7 @@ export function Navbar() {
               className="block px-4 py-2.5 rounded-lg"
               style={{
                 fontFamily: "var(--font-body)",
-                fontSize: "14px",
+                fontSize: "16px",
                 fontWeight: 500,
                 color: "#3D3D4E",
               }}
@@ -476,7 +375,7 @@ export function Navbar() {
                 className="block px-4 py-2.5 rounded-lg"
                 style={{
                   fontFamily: "var(--font-body)",
-                  fontSize: "14px",
+                  fontSize: "16px",
                   fontWeight: 500,
                   color: "#6B7280",
                 }}
@@ -490,7 +389,7 @@ export function Navbar() {
                 className="block px-4 py-2.5 rounded-lg"
                 style={{
                   fontFamily: "var(--font-body)",
-                  fontSize: "14px",
+                  fontSize: "16px",
                   fontWeight: 500,
                   color: "#4F46E5",
                 }}

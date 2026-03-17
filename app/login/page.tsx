@@ -40,10 +40,7 @@ export default function LoginPage() {
       };
 
       if (actualRole === "vendor") {
-        const accessToken = localStorage.getItem("accessToken");
-        const vendorProfile = await fetchVendorProfile(accessToken).catch(
-          () => null,
-        );
+        const vendorProfile = await fetchVendorProfile().catch(() => null);
         const hasVendorProfile = Boolean(vendorProfile);
         router.push(hasVendorProfile ? "/vendor/dashboard" : "/vendor/apply");
         return;
@@ -58,161 +55,135 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-lg p-8 shadow-sm animate-fade-in">
+    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center px-4" style={{ fontFamily: "var(--font-dm-sans)" }}>
+      <div className="mb-8 text-center">
+        <Link href="/">
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "32px", color: "var(--brand-primary)", letterSpacing: "0.02em", fontWeight: "normal" }}>
+            MarketFlow
+          </h2>
+        </Link>
+      </div>
+
+      <div className="w-full max-w-[420px]">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8 shadow-sm">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-xl font-bold">
-                M
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold">Welcome to MarketFlow</h1>
-            <p className="text-muted-foreground text-sm mt-2">
-              Sign in to your account
+          <div className="mb-8">
+            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)" }}>
+              Welcome back
+            </h1>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
+              Enter your credentials to access your account
             </p>
           </div>
 
           {/* Role Selection */}
-          <div className="mb-6 p-4 bg-secondary rounded-lg">
-            <p className="text-sm font-medium mb-3">Login as:</p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                {
-                  value: "customer" as UserRole,
-                  label: "Customer",
-                  icon: "🛍️",
-                },
-                { value: "vendor" as UserRole, label: "Vendor", icon: "🏪" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => setRole(option.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    role === option.value
-                      ? "bg-primary text-primary-foreground shadow-md"
-                      : "bg-card border border-border hover:bg-secondary"
-                  }`}
-                >
-                  <span className="mr-2">{option.icon}</span>
-                  {option.label}
-                </button>
-              ))}
-            </div>
+          <div className="mb-8 grid grid-cols-2 gap-2 p-1 bg-[var(--bg-sunken)] rounded-xl border border-[var(--border-default)]">
+            {[
+              { value: "customer" as UserRole, label: "Customer" },
+              { value: "vendor" as UserRole, label: "Vendor" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setRole(option.value)}
+                className={`py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                  role === option.value
+                    ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm border border-[var(--border-default)]"
+                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="name@example.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
                   required
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  Password
+                </label>
+                <Link href="#" className="text-[11px] font-bold uppercase tracking-widest text-[var(--brand-primary)] hover:underline">
+                  Forgot?
+                </Link>
+              </div>
               <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+              <div className="p-3 bg-[var(--status-error-bg)] text-[var(--status-error)] rounded-xl text-xs font-medium border border-[var(--status-error)]/10">
                 {error}
               </div>
             )}
-
-            {/* Remember & Forgot */}
-            <div className="flex justify-between items-center text-sm">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="rounded" />
-                <span>Remember me</span>
-              </label>
-              <Link href="#" className="text-primary hover:underline">
-                Forgot password?
-              </Link>
-            </div>
 
             {/* Sign In Button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="w-full py-3 bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign In"}
             </button>
           </form>
 
-          {/* Demo Credentials Info */}
-          <div className="mt-6 p-4 bg-accent/10 rounded-lg text-sm">
-            <p className="font-medium text-foreground mb-2">
-              Demo Credentials:
-            </p>
-            <p className="text-muted-foreground">Email: demo@example.com</p>
-            <p className="text-muted-foreground">Password: demo123</p>
-          </div>
-
           {/* Sign Up Link */}
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-8 text-center text-sm text-[var(--text-secondary)]">
             Don't have an account?{" "}
             <Link
               href="/register"
-              className="text-primary hover:underline font-medium"
+              className="text-[var(--brand-primary)] hover:underline font-bold"
             >
-              Create one now
+              Sign up
             </Link>
           </div>
+        </div>
 
-          {/* Additional Links */}
-          <div className="mt-6 pt-6 border-t border-border space-y-2 text-center text-sm">
-            <p className="text-muted-foreground">New to MarketFlow?</p>
-            <Link
-              href="/vendor/apply"
-              className="block text-primary hover:underline font-medium"
-            >
-              Become a Vendor
-            </Link>
-            <Link
-              href="/delivery/apply"
-              className="block text-primary hover:underline font-medium"
-            >
-              Join as Delivery Partner
-            </Link>
-          </div>
+        {/* Footer Links */}
+        <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <Link href="/vendor/apply" className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors">
+            Become a Vendor
+          </Link>
+          <Link href="/delivery/apply" className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors">
+            Delivery Partner
+          </Link>
         </div>
       </div>
     </div>

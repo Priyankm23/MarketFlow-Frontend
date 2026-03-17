@@ -12,6 +12,7 @@ import {
   normalizeVendorStatus,
 } from "@/lib/vendor-profile";
 import { VendorProfileData } from "@/lib/types";
+import { authFetch } from "@/lib/auth-fetch";
 
 type VendorFormState = {
   businessName: string;
@@ -87,8 +88,7 @@ export default function VendorApplyPage() {
       }
 
       try {
-        const token = localStorage.getItem("accessToken");
-        const profile = await fetchVendorProfile(token);
+        const profile = await fetchVendorProfile();
         if (active) {
           setExistingProfile(profile);
         }
@@ -196,7 +196,6 @@ export default function VendorApplyPage() {
     setIsSubmitting(true);
 
     try {
-      const token = localStorage.getItem("accessToken");
       const payload = new FormData();
 
       payload.append("businessName", form.businessName.trim());
@@ -219,12 +218,9 @@ export default function VendorApplyPage() {
       for (let i = 0; i < registerEndpoints.length; i += 1) {
         const endpoint = registerEndpoints[i];
 
-        const response = await fetch(endpoint, {
+        const response = await authFetch(endpoint, {
           method: "POST",
           credentials: "include",
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
           body: payload,
         });
 
@@ -269,7 +265,10 @@ export default function VendorApplyPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: "#F6F5FF" }}>
+    <div
+      className="min-h-screen font-body [&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body"
+      style={{ background: "#F6F5FF" }}
+    >
       <Navbar />
 
       <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10">

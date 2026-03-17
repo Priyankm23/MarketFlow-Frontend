@@ -261,6 +261,10 @@ const trustBenefits = [
 /*  Product Card Component                                             */
 /* ================================================================== */
 
+/* ================================================================== */
+/*  Product Card Component                                             */
+/* ================================================================== */
+
 function ProductCardSection({
   product,
 }: {
@@ -273,60 +277,51 @@ function ProductCardSection({
     : 0;
 
   return (
-    <Link href={`/products/${product.id}`} className="block">
-      <div className="mf-product-card group">
-        <div className="mf-product-image">
+    <Link href={`/products/${product.id}`} className="block h-full">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col group">
+        <div className="aspect-square relative bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden">
           <span style={{ fontSize: "3.5rem" }}>{product.emoji}</span>
           {product.badge && (
-            <span className="mf-product-badge">{product.badge}</span>
+            <span className="absolute top-3 left-3 bg-[var(--bg-surface)] text-[var(--text-primary)] text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-[var(--border-default)] shadow-sm">
+              {product.badge}
+            </span>
           )}
           {discount > 0 && (
-            <span className="mf-product-discount-badge">-{discount}%</span>
+            <span className="absolute top-3 right-3 bg-[var(--brand-accent)] text-white text-[10px] font-bold px-2 py-1 rounded-md">
+              -{discount}%
+            </span>
           )}
-          <div className="mf-product-actions">
-            <button
-              className="mf-product-action-btn"
-              style={{ background: "#4F46E5", color: "#fff" }}
-              onClick={(e) => e.preventDefault()}
-            >
-              <ShoppingCart className="w-4 h-4" />
-            </button>
-            <button
-              className="mf-product-action-btn"
-              style={{
-                background: "#fff",
-                color: "#3D3D4E",
-                border: "1px solid #E0DEFB",
-              }}
-              onClick={(e) => e.preventDefault()}
-            >
-              <Heart className="w-4 h-4" />
-            </button>
-          </div>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
         </div>
-        <div className="mf-product-info">
+        <div className="p-5 flex-1 flex flex-col gap-3">
           <div>
-            <p className="mf-product-vendor">{product.vendor}</p>
-            <h3 className="mf-product-title">{product.name}</h3>
-            <div className="mf-product-rating">
-              <span className="mf-product-stars">
-                {"★".repeat(Math.floor(product.rating))}
-                {"☆".repeat(5 - Math.floor(product.rating))}
+            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
+              {product.vendor}
+            </p>
+            <h3 className="text-xl font-normal text-[var(--text-primary)] line-clamp-2 leading-tight font-body">
+              {product.name}
+            </h3>
+          </div>
+          <div className="mt-auto">
+            <div className="flex items-center gap-1.5 mb-3">
+              <Star className="w-4 h-4 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
+              <span className="text-sm font-bold text-[var(--text-primary)]">
+                {product.rating}
               </span>
-              <span className="mf-product-review-count">
-                {product.rating} ({product.reviews})
+              <span className="text-xs text-[var(--text-muted)]">
+                ({product.reviews} reviews)
               </span>
             </div>
-          </div>
-          <div className="mf-product-price-row">
-            <span className="mf-product-price">
-              ₹{product.price.toLocaleString()}
-            </span>
-            {product.originalPrice && (
-              <span className="mf-product-original-price">
-                ₹{product.originalPrice.toLocaleString()}
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-xl font-bold text-[var(--text-primary)]">
+                ₹{product.price.toLocaleString()}
               </span>
-            )}
+              {product.originalPrice && (
+                <span className="text-sm text-[var(--text-muted)] line-through">
+                  ₹{product.originalPrice.toLocaleString()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -340,789 +335,420 @@ function ProductCardSection({
 
 export default function HomePage() {
   return (
-    <div style={{ background: "#F6F5FF" }}>
+    <div
+      className="font-body"
+      style={{
+        backgroundColor: "var(--bg-base)",
+        fontFamily: "var(--font-dm-sans)",
+      }}
+    >
       <Navbar />
 
       {/* ── HERO ── */}
-      <section id="hero" className="hero-section">
-        <div className="hero-container">
-          <div className="hero-left hero-left-visible">
-            <div
-              className="hero-eyebrow !bg-transparent !border-indigo-100 !px-4 !py-1.5"
-              style={{
-                color: "#4F46E5",
-                fontWeight: 600,
-                letterSpacing: "0.04em",
-              }}
-            >
-              <Sparkles className="w-4 h-4 text-indigo-500 mr-1" />
-              TRUSTED BY 50,000+ CUSTOMERS
-            </div>
-
-            <h1
-              className="hero-headline !text-[3.15rem] sm:!text-[4.45rem] !leading-[0.98]"
-              style={{
-                fontFamily: "'Fraunces', Georgia, serif",
-                fontWeight: 200,
-                letterSpacing: "-0.03em",
-              }}
-            >
-              Where Local Shops
-              <br />
-              <span
-                className="hero-headline-accent block !italic"
-                style={{
-                  color: "#4F46E5",
-                  fontFamily: "'Fraunces', Georgia, serif",
-                  fontWeight: 200,
-                }}
-              >
-                Become Global
-                <br className="hidden sm:block" />
-                Brand
-              </span>
-            </h1>
-
-            <p className="hero-subheadline !text-lg sm:!text-[1.15rem] !max-w-[500px] !leading-relaxed">
-              Empowering India's local vendors by bringing their authentic
-              products to your doorstep. Experience the charm of local markets
-              from the comfort of your home.
-            </p>
-
-            <div className="hero-cta-group !mt-2">
-              <Link
-                href="/products"
-                className="hero-btn-primary !px-8 !py-4 rounded-xl !text-[16px]"
-              >
-                Start Shopping
-                <ArrowRight className="hero-btn-icon ml-1" />
-              </Link>
-              <Link
-                href="/vendor/apply"
-                className="hero-btn-secondary !px-8 !py-4 rounded-xl !text-[16px]"
-              >
-                Become a Vendor
-              </Link>
-            </div>
-
-            <div className="hero-trust-badges !mt-4 !gap-6">
-              <div className="hero-trust-item !text-[13px] !text-slate-600">
-                <div className="hero-trust-check !w-4 !h-4 !text-[8px] bg-green-50 text-green-600 border border-green-200">
-                  ✓
-                </div>
-                Verified Shops
-              </div>
-              <div className="hero-trust-item !text-[13px] !text-slate-600">
-                <div className="hero-trust-check !w-4 !h-4 !text-[8px] bg-green-50 text-green-600 border border-green-200">
-                  ✓
-                </div>
-                Secure Payments
-              </div>
-              <div className="hero-trust-item !text-[13px] !text-slate-600">
-                <div className="hero-trust-check !w-4 !h-4 !text-[8px] bg-green-50 text-green-600 border border-green-200">
-                  ✓
-                </div>
-                Fast Local Delivery
-              </div>
-            </div>
-          </div>
-
-          <div className="hero-right hero-right-visible hero-right-fade">
-            <HeroCarousel />
-            <div className="hero-stats hero-right-stats !gap-8 w-full border-t border-slate-200/60">
-              <div className="hero-stat">
-                <span className="hero-stat-value !text-2xl">
-                  10k+{" "}
-                  <span className="text-slate-500 font-body text-base font-normal">
-                    Products
-                  </span>
-                </span>
-              </div>
-              <div className="hero-stat-divider !h-8" />
-              <div className="hero-stat">
-                <span className="hero-stat-value !text-2xl">
-                  2k+{" "}
-                  <span className="text-slate-500 font-body text-base font-normal">
-                    Vendors
-                  </span>
-                </span>
-              </div>
-              <div className="hero-stat-divider !h-8" />
-              <div className="hero-stat">
-                <span className="hero-stat-value !text-2xl">
-                  <Star
-                    className="w-5 h-5 inline text-yellow-500 mb-1"
-                    fill="currentColor"
-                  />{" "}
-                  4.9/5{" "}
-                  <span className="text-slate-500 font-body text-base font-normal">
-                    Rating
-                  </span>
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── SHOP BY CATEGORY ── */}
       <section
-        id="categories"
-        style={{ padding: "40px 0 80px", background: "#F5F3EE" }}
+        id="hero"
+        className="relative px-4 sm:px-6 lg:px-8 pt-4 pb-10 sm:pt-10 sm:pb-14 max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
       >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="section-heading">Shop by Category</h2>
-              <p className="section-subheading">
-                Explore curated collections from verified vendors
-              </p>
-            </div>
+        <div className="space-y-6 animate-in fade-in slide-in-from-left-8 duration-700 text-center lg:text-left flex flex-col items-center lg:items-start">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-[var(--brand-accent)]" />
+            Empowering 2,000+ Local Vendors
+          </div>
+
+          <h1 className="text-6xl sm:text-8xl lg:text-9xl !leading-[1.02] !tracking-tight">
+            Local Shops <br />
+            <span className="italic text-[var(--brand-accent)]">Go Global</span>
+          </h1>
+
+          <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
+            MarketFlow bridges the gap between your favorite local boutiques and
+            the convenience of global e-commerce. Discover authenticity,
+            delivered.
+          </p>
+
+          <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
             <Link
               href="/products"
-              className="hidden sm:inline-flex items-center gap-1"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#4F46E5",
-              }}
+              className="px-8 py-4 bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-full text-base font-semibold hover:opacity-90 transition-all flex items-center gap-2 group"
             >
-              View All <ChevronRight className="w-4 h-4" />
+              Start Shopping
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-            {categories.map((cat) => (
-              <Link
-                key={cat.name}
-                href={`/products?category=${encodeURIComponent(cat.name)}`}
-                className="category-card"
-                style={{ border: "1px solid #E8E4DC" }}
-              >
-                <div
-                  className="category-card-image"
-                  style={{
-                    height: "140px",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={cat.image}
-                    alt={cat.name}
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                      transition: "transform .4s ease",
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      background:
-                        "linear-gradient(to top, rgba(0,0,0,.15) 0%, transparent 50%)",
-                      pointerEvents: "none",
-                    }}
-                  />
-                </div>
-                <div className="category-card-info">
-                  <div className="category-card-name">{cat.name}</div>
-                  <div className="category-card-desc">{cat.desc}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TRENDING PRODUCTS ── */}
-      <section
-        id="trending-products"
-        style={{ padding: "80px 0", background: "#FFFFFF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="section-heading">Trending Products</h2>
-              <p className="section-subheading">
-                Most loved by our community this week
-              </p>
-            </div>
             <Link
-              href="/products?sort=trending"
-              className="hidden sm:inline-flex items-center gap-1"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#4F46E5",
-              }}
+              href="/vendor/apply"
+              className="px-8 py-4 bg-transparent text-[var(--text-primary)] border-2 border-[var(--border-default)] rounded-full text-base font-semibold hover:bg-[var(--bg-sunken)] transition-all"
             >
-              View All <ChevronRight className="w-4 h-4" />
+              Become a Vendor
             </Link>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {trendingProducts.map((product) => (
-              <ProductCardSection key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* ── VENDOR SPOTLIGHT ── */}
-      <section
-        id="featured-vendors"
-        style={{ padding: "80px 0", background: "#F6F5FF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="section-heading">Vendor Spotlight</h2>
-              <p className="section-subheading">
-                Trusted vendors bringing local shops online
-              </p>
-            </div>
-            <Link
-              href="/vendors"
-              className="hidden sm:inline-flex items-center gap-1"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#4F46E5",
-              }}
-            >
-              All Vendors <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {featuredVendors.map((vendor) => (
-              <div key={vendor.name} className="vendor-card">
-                <div className="vendor-logo">{vendor.initials}</div>
-                <div className="vendor-name">{vendor.name}</div>
-                <div className="vendor-rating">
-                  <Star
-                    className="w-4 h-4"
-                    style={{ fill: "#CA8A04", color: "#CA8A04" }}
-                  />
-                  <span style={{ fontWeight: 600, color: "#1A1A2E" }}>
-                    {vendor.rating}
-                  </span>
-                </div>
-                <div className="vendor-products-count">
-                  {vendor.products} products
-                </div>
-                {vendor.verified && (
-                  <div className="vendor-verified">
-                    <BadgeCheck className="w-3.5 h-3.5" />
-                    Verified Vendor
-                  </div>
-                )}
+          <div className="flex flex-wrap items-center gap-6 pt-2 justify-center lg:justify-start">
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
+                ✓
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── NEW ARRIVALS ── */}
-      <section
-        id="new-arrivals"
-        style={{ padding: "80px 0", background: "#FFFFFF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="section-heading">New Arrivals</h2>
-              <p className="section-subheading">
-                Fresh picks just added to the marketplace
-              </p>
-            </div>
-            <Link
-              href="/products?sort=newest"
-              className="hidden sm:inline-flex items-center gap-1"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "14px",
-                fontWeight: 500,
-                color: "#4F46E5",
-              }}
-            >
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-            {newArrivals.map((product) => (
-              <ProductCardSection key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── POPULAR COLLECTIONS ── */}
-      <section
-        id="collections"
-        style={{ padding: "80px 0", background: "#F6F5FF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="section-heading text-center mb-10">
-            Popular Collections
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <div
-              className="rounded-2xl p-8 flex flex-col justify-end min-h-[240px] relative overflow-hidden cursor-pointer group"
-              style={{ background: "#4F46E5" }}
-            >
-              <div
-                className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-15"
-                style={{
-                  background:
-                    "radial-gradient(circle, #fff 0%, transparent 70%)",
-                  transform: "translate(30%, -30%)",
-                }}
-              />
-              <span
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium mb-3 w-fit"
-                style={{
-                  background: "rgba(255,255,255,.15)",
-                  color: "#fff",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "10px",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                🔥 Hot Deals
+              <span className="text-sm font-semibold text-[var(--text-secondary)]">
+                Verified Sellers
               </span>
-              <h3
-                className="text-2xl font-bold text-white mb-2"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                Tech Essentials
-              </h3>
-              <p
-                className="text-white/70 mb-4 max-w-xs"
-                style={{ fontFamily: "var(--font-body)", fontSize: "15px" }}
-              >
-                Up to 40% off on headphones, smartwatches, and accessories
-              </p>
-              <Link
-                href={`/products?category=${encodeURIComponent("Electronics")}`}
-                className="inline-flex items-center gap-1 text-white font-medium group-hover:gap-2 transition-all"
-                style={{ fontFamily: "var(--font-body)", fontSize: "14px" }}
-              >
-                Shop Now <ArrowUpRight className="w-4 h-4" />
-              </Link>
             </div>
-
-            <div
-              className="rounded-2xl p-8 flex flex-col justify-end min-h-[240px] relative overflow-hidden cursor-pointer group"
-              style={{ background: "#3730A3" }}
-            >
-              <div
-                className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-15"
-                style={{
-                  background:
-                    "radial-gradient(circle, #fff 0%, transparent 70%)",
-                  transform: "translate(30%, -30%)",
-                }}
-              />
-              <span
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium mb-3 w-fit"
-                style={{
-                  background: "rgba(255,255,255,.15)",
-                  color: "#fff",
-                  fontFamily: "var(--font-body)",
-                  fontSize: "10px",
-                  fontWeight: 500,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.04em",
-                }}
-              >
-                ✨ Trending
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
+                ✓
+              </div>
+              <span className="text-sm font-semibold text-[var(--text-secondary)]">
+                Zero Upfront Cost
               </span>
-              <h3
-                className="text-2xl font-bold text-white mb-2"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                Fashion Forward
-              </h3>
-              <p
-                className="text-white/70 mb-4 max-w-xs"
-                style={{ fontFamily: "var(--font-body)", fontSize: "15px" }}
-              >
-                Latest styles from local designers and fashion vendors
-              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
+                ✓
+              </div>
+              <span className="text-sm font-semibold text-[var(--text-secondary)]">
+                Instant Setup
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative animate-in fade-in slide-in-from-right-8 duration-700 delay-150">
+          <HeroCarousel />
+        </div>
+      </section>
+
+      <div className="[&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body">
+        {/* ── SHOP BY CATEGORY ── */}
+        <section id="categories" className="py-24 bg-[var(--bg-sunken)]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl sm:text-5xl">Shop by Category</h2>
+                <p className="text-[var(--text-secondary)] mt-2">
+                  Curated collections from across the country
+                </p>
+              </div>
               <Link
-                href={`/products?category=${encodeURIComponent("Fashion")}`}
-                className="inline-flex items-center gap-1 text-white font-medium group-hover:gap-2 transition-all"
-                style={{ fontFamily: "var(--font-body)", fontSize: "14px" }}
+                href="/products"
+                className="text-sm font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1"
               >
-                Explore <ArrowUpRight className="w-4 h-4" />
+                Browse All <ChevronRight size={16} />
               </Link>
             </div>
-          </div>
-        </div>
-      </section>
 
-      {/* ── TRUST BENEFITS ── */}
-      <section
-        id="trust-benefits"
-        style={{ padding: "80px 0", background: "#FFFFFF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="section-heading text-center mb-3">
-            Why Choose MarketFlow?
-          </h2>
-          <p className="section-subheading text-center mb-12 max-w-lg mx-auto">
-            We bridge offline commerce and online convenience with trust at the
-            core
-          </p>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {trustBenefits.map((benefit) => {
-              const Icon = benefit.icon;
-              return (
-                <div key={benefit.title} className="trust-benefit">
-                  <div className="trust-benefit-icon">
-                    <Icon className="w-7 h-7" style={{ color: "#4F46E5" }} />
-                  </div>
-                  <div className="trust-benefit-title">{benefit.title}</div>
-                  <div className="trust-benefit-desc">{benefit.desc}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* ── TESTIMONIALS ── */}
-      <section
-        id="testimonials"
-        style={{ padding: "80px 0", background: "#F6F5FF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="section-heading text-center mb-3">
-            What Our Community Says
-          </h2>
-          <p className="section-subheading text-center mb-12 max-w-lg mx-auto">
-            Real stories from customers and vendors on MarketFlow
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="testimonial-card">
-                <div className="testimonial-stars">★★★★★</div>
-                <p className="testimonial-text">{t.text}</p>
-                <div className="testimonial-author">
-                  <div className="testimonial-avatar">{t.initials}</div>
-                  <div className="testimonial-author-info">
-                    <div className="name">{t.name}</div>
-                    <div className="role">{t.role}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── VENDOR CTA ── */}
-      <section
-        id="vendor-cta"
-        style={{ padding: "80px 0", background: "#4F46E5" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2
-                className="text-3xl sm:text-4xl font-bold text-white mb-4"
-                style={{
-                  fontFamily: "var(--font-heading)",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Ready to Bring Your Shop Online?
-              </h2>
-              <p
-                className="text-white/70 text-lg mb-6 max-w-lg"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  lineHeight: 1.7,
-                  maxWidth: "480px",
-                }}
-              >
-                Join thousands of successful vendors on MarketFlow. Get access
-                to millions of customers, powerful analytics, and grow your
-                revenue — all without any upfront costs.
-              </p>
-              <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {categories.map((cat) => (
                 <Link
-                  href="/vendor/apply"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    background: "#fff",
-                    color: "#4F46E5",
-                    transition: "transform .2s",
-                  }}
+                  key={cat.name}
+                  href={`/products?category=${encodeURIComponent(cat.name)}`}
+                  className="group bg-[var(--bg-surface)] rounded-2xl overflow-hidden border border-[var(--border-default)] hover:shadow-lg transition-all"
                 >
-                  Apply as a Vendor
-                </Link>
-                <Link
-                  href="/vendor/learn-more"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "15px",
-                    fontWeight: 500,
-                    background: "transparent",
-                    color: "#fff",
-                    border: "1.5px solid rgba(255,255,255,.3)",
-                    transition: "background .2s",
-                  }}
-                >
-                  Learn More <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-6">
-              {[
-                { value: "2,000+", label: "Active Vendors", icon: Store },
-                { value: "50k+", label: "Happy Customers", icon: Users },
-                { value: "3x", label: "Revenue Growth", icon: ArrowUpRight },
-                { value: "₹0", label: "Setup Cost", icon: CreditCard },
-              ].map((stat) => {
-                const StatIcon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="rounded-xl p-5"
-                    style={{
-                      background: "rgba(255,255,255,.08)",
-                      border: "1px solid rgba(255,255,255,.12)",
-                    }}
-                  >
-                    <StatIcon className="w-5 h-5 text-white/50 mb-2" />
-                    <div
-                      className="text-2xl font-bold text-white"
-                      style={{
-                        fontFamily: "var(--font-heading)",
-                        letterSpacing: "-0.02em",
-                      }}
-                    >
-                      {stat.value}
+                  <div className="aspect-[16/9] relative overflow-hidden bg-[var(--bg-sunken)]">
+                    <img
+                      src={cat.image}
+                      alt={cat.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-5 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-normal text-[var(--text-primary)] font-body">
+                        {cat.name}
+                      </h3>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                        {cat.desc}
+                      </p>
                     </div>
-                    <div
-                      className="text-sm text-white/50"
-                      style={{ fontFamily: "var(--font-body)" }}
-                    >
-                      {stat.label}
+                    <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-[var(--text-primary)] group-hover:bg-[var(--brand-primary)] group-hover:text-[var(--text-inverse)] transition-colors">
+                      <ArrowRight size={14} />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── TRENDING PRODUCTS ── */}
+        <section id="trending" className="py-24">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl sm:text-5xl">Trending Now</h2>
+                <p className="text-[var(--text-secondary)] mt-2">
+                  The most popular picks this week
+                </p>
+              </div>
+              <Link
+                href="/products"
+                className="text-sm font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1"
+              >
+                View Store <ChevronRight size={16} />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {trendingProducts.map((product) => (
+                <ProductCardSection key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── VENDOR SPOTLIGHT ── */}
+        <section
+          id="vendors"
+          className="py-24 bg-[var(--bg-surface)] border-y border-[var(--border-default)]"
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-4xl sm:text-5xl">Vendor Spotlight</h2>
+                <p className="text-[var(--text-secondary)] mt-2">
+                  Trusted shops bringing their legacy online
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredVendors.map((vendor) => (
+                <div
+                  key={vendor.name}
+                  className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] text-center group hover:border-[var(--brand-primary)] transition-colors"
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] text-[var(--text-inverse)] flex items-center justify-center mx-auto text-xl font-bold mb-4 shadow-sm">
+                    {vendor.initials}
+                  </div>
+                  <h3 className="text-lg font-normal text-[var(--text-primary)] font-body">
+                    {vendor.name}
+                  </h3>
+                  <div className="flex items-center justify-center gap-1 mt-2 mb-4">
+                    <Star
+                      size={14}
+                      className="fill-[var(--brand-primary)] text-[var(--brand-primary)]"
+                    />
+                    <span className="text-sm font-bold text-[var(--text-primary)]">
+                      {vendor.rating}
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] ml-1">
+                      Rating
+                    </span>
+                  </div>
+                  {vendor.verified && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] text-[10px] font-bold uppercase tracking-wider">
+                      <BadgeCheck size={12} />
+                      Verified Vendor
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── TRUST BENEFITS ── */}
+        <section className="py-24">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
+              {trustBenefits.map((benefit) => {
+                const Icon = benefit.icon;
+                return (
+                  <div key={benefit.title} className="text-center space-y-4">
+                    <div className="w-16 h-16 rounded-2xl bg-[var(--bg-sunken)] flex items-center justify-center mx-auto text-[var(--brand-primary)]">
+                      <Icon size={32} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-[var(--text-primary)] font-body">
+                        {benefit.title}
+                      </h3>
+                      <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed max-w-[200px] mx-auto">
+                        {benefit.desc}
+                      </p>
                     </div>
                   </div>
                 );
               })}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── NEWSLETTER ── */}
-      <section
-        id="newsletter"
-        style={{ padding: "80px 0", background: "#F6F5FF" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div
-            className="rounded-2xl p-8 sm:p-12 text-center"
-            style={{ background: "#FFFFFF", border: "1px solid #E0DEFB" }}
-          >
-            <div
-              className="w-14 h-14 rounded-2xl mx-auto mb-5 flex items-center justify-center"
-              style={{ background: "#EDEDFD" }}
-            >
-              <Mail className="w-7 h-7" style={{ color: "#4F46E5" }} />
-            </div>
-            <h2
-              className="text-2xl sm:text-3xl font-bold mb-3"
-              style={{
-                fontFamily: "var(--font-heading)",
-                color: "#1A1A2E",
-                letterSpacing: "-0.02em",
-              }}
-            >
-              Join the MarketFlow Community
-            </h2>
-            <p
-              className="mb-6 max-w-md mx-auto"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "15px",
-                color: "#6B7280",
-              }}
-            >
-              Get exclusive deals, new vendor announcements, and weekly curated
-              picks delivered to your inbox.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <input
-                type="email"
-                placeholder="Enter your email address..."
-                className="newsletter-input"
-              />
-              <button className="newsletter-btn">Subscribe</button>
-            </div>
-            <p className="text-xs mt-4" style={{ color: "#9CA3AF" }}>
-              No spam, unsubscribe anytime. Join 20,000+ subscribers.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ── FOOTER ── */}
-      <footer
-        id="footer"
-        style={{ background: "#1A1A2E", color: "#fff", padding: "64px 0 32px" }}
-      >
-        <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
-            <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center mb-4">
-                <Image
-                  src="/logo.png"
-                  alt="MarketFlow Logo"
-                  width={140}
-                  height={40}
-                  className="object-contain"
-                />
-              </div>
-              <p
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: "14px",
-                  lineHeight: 1.6,
-                  color: "#6B7280",
-                }}
-              >
-                Connecting offline vendors with online buyers. Discover products
-                you&apos;ll love.
+        {/* ── CTA ── */}
+        <section className="py-24 bg-[var(--brand-primary)] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 translate-x-1/2" />
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="space-y-8">
+              <h2 className="text-4xl sm:text-6xl text-[var(--text-inverse)] !leading-[1.1]">
+                Join the Digital <br />
+                <span className="italic opacity-80">Market Revolution</span>
+              </h2>
+              <p className="text-lg text-white/70 leading-relaxed max-w-lg">
+                Scale your business with MarketFlow. Reach more customers,
+                manage inventory seamlessly, and grow your brand beyond borders.
               </p>
-            </div>
-
-            {[
-              {
-                title: "About",
-                items: ["About Us", "Careers", "Blog", "Press"],
-              },
-              {
-                title: "For Customers",
-                items: ["Help Center", "Track Order", "Returns", "Gift Cards"],
-              },
-              {
-                title: "For Vendors",
-                items: [
-                  "Vendor Portal",
-                  "Seller Guidelines",
-                  "Vendor Support",
-                  "Success Stories",
-                ],
-              },
-              {
-                title: "Legal",
-                items: [
-                  "Privacy Policy",
-                  "Terms of Service",
-                  "Cookie Policy",
-                  "Contact Us",
-                ],
-              },
-            ].map((col) => (
-              <div key={col.title}>
-                <h4
-                  className="mb-4"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    color: "#9CA3AF",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                  }}
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/vendor/apply"
+                  className="px-8 py-4 bg-white text-[var(--brand-primary)] rounded-full font-bold hover:bg-white/90 transition-all"
                 >
-                  {col.title}
+                  Apply Now
+                </Link>
+                <Link
+                  href="/vendor/apply"
+                  className="px-8 py-4 bg-transparent text-white border-2 border-white/30 rounded-full font-bold hover:bg-white/10 transition-all"
+                >
+                  Learn More
+                </Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Active Vendors", value: "2,000+" },
+                { label: "Avg Growth", value: "3.5x" },
+                { label: "Active Cities", value: "150+" },
+                { label: "Zero Fees", value: "90 Days" },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="p-6 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm"
+                >
+                  <p className="text-3xl font-bold text-white mb-1">
+                    {stat.value}
+                  </p>
+                  <p className="text-xs font-medium text-white/50 uppercase tracking-widest">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── FOOTER ── */}
+        <footer className="bg-[var(--bg-surface)] pt-24 pb-12 border-t border-[var(--border-default)]">
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-20">
+              <div className="col-span-2">
+                <h2
+                  style={{
+                    fontFamily: "var(--font-dm-sans)",
+                    fontSize: "28px",
+                    color: "var(--brand-primary)",
+                    letterSpacing: "0.02em",
+                    fontWeight: "normal",
+                  }}
+                  className="mb-6"
+                >
+                  MarketFlow
+                </h2>
+                <p className="text-[var(--text-secondary)] leading-relaxed max-w-xs">
+                  The most trusted bridge between offline commerce and digital
+                  convenience in India.
+                </p>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-6">
+                  Explore
                 </h4>
-                <ul className="space-y-2.5">
-                  {col.items.map((item) => (
-                    <li key={item}>
-                      <Link
-                        href="#"
-                        style={{
-                          fontFamily: "var(--font-body)",
-                          fontSize: "14px",
-                          color: "#6B7280",
-                          transition: "color .15s",
-                        }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.color = "#fff")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.color = "#6B7280")
-                        }
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
+                <ul className="space-y-4">
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Products
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Categories
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Vendors
+                    </Link>
+                  </li>
                 </ul>
               </div>
-            ))}
-          </div>
-
-          <div
-            className="pt-6 flex flex-col sm:flex-row justify-between items-center gap-4"
-            style={{ borderTop: "1px solid #2A2A3E" }}
-          >
-            <p
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "13px",
-                color: "#6B7280",
-              }}
-            >
-              © 2026 MarketFlow. All rights reserved.
-            </p>
-            <div className="flex gap-5">
-              {["Twitter", "Instagram", "Facebook", "LinkedIn"].map(
-                (social) => (
-                  <button
-                    key={social}
-                    style={{
-                      fontFamily: "var(--font-body)",
-                      fontSize: "13px",
-                      color: "#6B7280",
-                      transition: "color .15s",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = "#fff")}
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.color = "#6B7280")
-                    }
-                  >
-                    {social}
-                  </button>
-                ),
-              )}
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-6">
+                  Partners
+                </h4>
+                <ul className="space-y-4">
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Become a Vendor
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Vendor Guidelines
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Support
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-6">
+                  Legal
+                </h4>
+                <ul className="space-y-4">
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Privacy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="#"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      Terms
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <div className="pt-8 border-t border-[var(--border-default)] flex flex-col sm:flex-row justify-between items-center gap-4">
+              <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+                © 2026 MarketFlow. All rights reserved. Built for India.
+              </p>
+              <div className="flex gap-6">
+                <Link
+                  href="#"
+                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                >
+                  Twitter
+                </Link>
+                <Link
+                  href="#"
+                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                >
+                  Instagram
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </footer>
+        </footer>
+      </div>
     </div>
   );
 }

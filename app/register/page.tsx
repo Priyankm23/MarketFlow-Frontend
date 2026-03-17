@@ -78,31 +78,36 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        <div className="bg-card border border-border rounded-lg p-8 shadow-sm animate-fade-in">
+    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center px-4 py-12" style={{ fontFamily: "var(--font-dm-sans)" }}>
+      <div className="mb-8 text-center">
+        <Link href="/">
+          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "32px", color: "var(--brand-primary)", letterSpacing: "0.02em", fontWeight: "normal" }}>
+            MarketFlow
+          </h2>
+        </Link>
+      </div>
+
+      <div className="w-full max-w-[460px]">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8 shadow-sm">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center text-primary-foreground text-xl font-bold">
-                M
-              </div>
-            </div>
-            <h1 className="text-2xl font-bold">Join MarketFlow</h1>
-            <p className="text-muted-foreground text-sm mt-2">
-              Create your account and start shopping
+          <div className="mb-8">
+            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)" }}>
+              Create an account
+            </h1>
+            <p className="text-[var(--text-secondary)] text-sm mt-1">
+              Join our community of vendors and shoppers
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Full Name */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 Full Name
               </label>
               <div className="relative">
-                <User className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                   type="text"
                   value={formData.fullName}
@@ -110,98 +115,95 @@ export default function RegisterPage() {
                     setFormData({ ...formData, fullName: e.target.value })
                   }
                   placeholder="John Doe"
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
                   required
                 />
               </div>
             </div>
 
             {/* Email */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 Email Address
               </label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  placeholder="you@example.com"
-                  className="w-full pl-10 pr-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                  placeholder="name@example.com"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
                   required
                 />
               </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+            {/* Passwords Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Password */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  Password
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 w-5 h-5 text-muted-foreground" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+                  Confirm
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm transition-colors"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium mb-2">
+            <div className="space-y-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
                 Account Type
               </label>
               <select
@@ -209,42 +211,34 @@ export default function RegisterPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, role: e.target.value })
                 }
-                className="w-full px-4 py-2.5 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+                className="w-full px-4 py-2.5 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl focus:outline-none focus:border-[var(--brand-primary)] text-sm appearance-none cursor-pointer"
                 required
               >
-                <option value="CUSTOMER">Customer</option>
-                <option value="VENDOR">Vendor</option>
+                <option value="CUSTOMER">Customer (Shopping)</option>
+                <option value="VENDOR">Vendor (Selling)</option>
                 <option value="DELIVERY_PARTNER">Delivery Partner</option>
-                <option value="ADMIN">Admin</option>
               </select>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+              <div className="p-3 bg-[var(--status-error-bg)] text-[var(--status-error)] rounded-xl text-xs font-medium border border-[var(--status-error)]/10">
                 {error}
               </div>
             )}
 
             {/* Terms & Conditions */}
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label className="flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={formData.agreeToTerms}
                 onChange={(e) =>
                   setFormData({ ...formData, agreeToTerms: e.target.checked })
                 }
-                className="mt-1 rounded"
+                className="mt-1 rounded border-[var(--border-default)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
               />
-              <span className="text-sm text-muted-foreground">
-                I agree to the{" "}
-                <Link href="#" className="text-primary hover:underline">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="#" className="text-primary hover:underline">
-                  Privacy Policy
-                </Link>
+              <span className="text-xs text-[var(--text-secondary)] leading-normal">
+                I agree to the <Link href="#" className="text-[var(--brand-primary)] font-bold hover:underline">Terms of Service</Link> and <Link href="#" className="text-[var(--brand-primary)] font-bold hover:underline">Privacy Policy</Link>
               </span>
             </label>
 
@@ -252,31 +246,20 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              className="w-full py-3 bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
             </button>
           </form>
 
           {/* Sign In Link */}
-          <div className="mt-6 text-center text-sm">
+          <div className="mt-8 text-center text-sm text-[var(--text-secondary)]">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="text-primary hover:underline font-medium"
+              className="text-[var(--brand-primary)] hover:underline font-bold"
             >
-              Sign in here
-            </Link>
-          </div>
-
-          {/* Additional Info */}
-          <div className="mt-6 pt-6 border-t border-border space-y-2 text-center text-sm text-muted-foreground">
-            <p>Looking to sell on MarketFlow?</p>
-            <Link
-              href="/vendor/apply"
-              className="block text-primary hover:underline font-medium"
-            >
-              Apply as a Vendor
+              Sign in
             </Link>
           </div>
         </div>

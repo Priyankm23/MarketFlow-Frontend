@@ -1,4 +1,5 @@
 import { VendorProfileData } from "./types";
+import { authFetch } from "./auth-fetch";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
@@ -14,18 +15,13 @@ export const normalizeVendorStatus = (status?: string) =>
 export const isVendorApproved = (status?: string) =>
   normalizeVendorStatus(status) === "APPROVED";
 
-export async function fetchVendorProfile(
-  accessToken?: string | null,
-): Promise<VendorProfileData | null> {
+export async function fetchVendorProfile(): Promise<VendorProfileData | null> {
   for (let i = 0; i < profileEndpoints.length; i += 1) {
     const endpoint = profileEndpoints[i];
 
-    const response = await fetch(endpoint, {
+    const response = await authFetch(endpoint, {
       method: "GET",
       credentials: "include",
-      headers: {
-        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      },
     });
 
     if (response.status === 404 && i < profileEndpoints.length - 1) {

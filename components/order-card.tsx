@@ -50,35 +50,35 @@ export function OrderCard({ order, onTrack }: OrderCardProps) {
   return (
     <Link href={`/order/${order.id}`}>
       <div className="bg-card border border-border rounded-lg p-4 hover:shadow-md transition-shadow duration-300 cursor-pointer group">
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start mb-4">
           <div>
-            <p className="text-xs text-muted-foreground">Order ID</p>
-            <p className="font-mono font-semibold text-sm">{order.id}</p>
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-1">Order ID</p>
+            <p className="font-mono font-bold text-base">{order.id}</p>
           </div>
-          <span className={`${getStatusColor(order.status)}`}>
+          <span className={`${getStatusColor(order.status)} text-sm font-bold`}>
             {getStatusIcon(order.status)} {statusLabel}
           </span>
         </div>
 
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center gap-2 text-sm">
-            <Package className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
+        <div className="space-y-3 mb-5">
+          <div className="flex items-center gap-2 text-base">
+            <Package className="w-5 h-5 text-muted-foreground" />
+            <span className="text-muted-foreground font-medium">{order.items.length} item{order.items.length !== 1 ? 's' : ''}</span>
             <span className="text-muted-foreground">•</span>
-            <span className="font-medium">₹{order.totalAmount}</span>
+            <span className="font-bold text-[var(--text-primary)]">₹{order.totalAmount}</span>
           </div>
-          <div className="flex items-center gap-2 text-sm">
-            <MapPin className="w-4 h-4 text-muted-foreground" />
-            <span className="text-muted-foreground truncate">{order.shippingAddress.city}</span>
+          <div className="flex items-center gap-2 text-base">
+            <MapPin className="w-5 h-5 text-muted-foreground" />
+            <span className="text-muted-foreground font-medium truncate">{order.shippingAddress.city}</span>
           </div>
         </div>
 
-        <div className="flex justify-between items-center text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="w-3 h-3" />
+        <div className="flex justify-between items-center text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5 font-medium">
+            <Clock className="w-4 h-4" />
             {new Date(order.createdAt).toLocaleDateString()}
           </div>
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
         </div>
       </div>
     </Link>

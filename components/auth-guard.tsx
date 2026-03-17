@@ -12,7 +12,7 @@ const protectedPrefixes: string[] = [
   '/products'
 ]
 
-// Paths that might star with protected prefix but should remain public
+// Paths that might start with protected prefix but should remain public
 const publicExclusions = [
   '/vendor/apply',
   '/vendor/learn-more',
@@ -36,11 +36,22 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const isExcluded = publicExclusions.includes(pathname || '')
 
     if (requiresAuth && !isExcluded) {
-      const token = localStorage.getItem('accessToken')
+      const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
       
       if (!user && !token) {
-        // Redirect to login if user is not in state and no token is present
         router.push('/login')
+        return
+      }
+
+      // Role-based protection
+      if (user) {
+        if (pathname?.startsWith('/admin') && user.role?.toUpperCase() !== 'ADMIN') {
+          router.push('/login') // Or a forbidden page
+        } else if (pathname?.startsWith('/vendor') && user.role?.toUpperCase() !== 'VENDOR' && !isExcluded) {
+          router.push('/login')
+        } else if (pathname?.startsWith('/delivery') && user.role?.toUpperCase() !== 'DELIVERY' && !isExcluded) {
+          router.push('/login')
+        }
       }
     }
   }, [mounted, user, pathname, router])

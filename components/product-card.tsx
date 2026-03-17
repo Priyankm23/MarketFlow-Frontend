@@ -56,15 +56,15 @@ export function ProductCard({
               </div>
             )}
           </div>
-          <div className="p-3 flex-1 flex flex-col justify-between">
-            <h3 className="font-medium text-sm line-clamp-2">{product.name}</h3>
+          <div className="p-4 flex-1 flex flex-col justify-between gap-2">
+            <h3 className="font-normal text-lg line-clamp-2 leading-tight" style={{ fontFamily: "var(--font-instrument-serif)" }}>{product.name}</h3>
             <div>
               <div className="flex items-center gap-1 mt-1">
                 <div className="flex items-center">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-3 h-3 ${
+                      className={`w-3.5 h-3.5 ${
                         i < Math.floor(product.rating)
                           ? "fill-primary text-primary"
                           : "text-muted-foreground"
@@ -77,9 +77,9 @@ export function ProductCard({
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <span className="font-bold text-lg">₹{product.price}</span>
+                <span className="font-bold text-xl text-primary">₹{product.price}</span>
                 {product.originalPrice && (
-                  <span className="line-through text-xs text-muted-foreground">
+                  <span className="line-through text-sm text-muted-foreground">
                     ₹{product.originalPrice}
                   </span>
                 )}
@@ -139,30 +139,30 @@ export function ProductCard({
           {/* Stock Info */}
           {product.stock === 0 && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">Out of Stock</span>
+              <span className="text-white font-bold text-xl">Out of Stock</span>
             </div>
           )}
         </div>
 
         {/* Content Section */}
-        <div className="p-4 flex-1 flex flex-col justify-between">
+        <div className="p-5 flex-1 flex flex-col justify-between gap-3">
           {/* Vendor Info */}
-          <div className="text-xs text-muted-foreground mb-2 font-medium">
+          <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
             {product.vendorName}
           </div>
 
           {/* Product Name */}
-          <h3 className="font-semibold text-sm line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+          <h3 className="font-normal text-xl line-clamp-2 leading-tight group-hover:text-primary transition-colors" style={{ fontFamily: "var(--font-instrument-serif)" }}>
             {product.name}
           </h3>
 
           {/* Rating */}
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}
-                  className={`w-3.5 h-3.5 ${
+                  className={`w-4 h-4 ${
                     i < Math.floor(product.rating)
                       ? "fill-primary text-primary"
                       : "text-muted-foreground"
@@ -170,18 +170,21 @@ export function ProductCard({
                 />
               ))}
             </div>
+            <span className="text-sm font-bold text-foreground">
+              {product.rating.toFixed(1)}
+            </span>
             <span className="text-xs text-muted-foreground">
-              {product.rating.toFixed(1)} ({product.reviewCount})
+              ({product.reviewCount} reviews)
             </span>
           </div>
 
           {/* Price */}
-          <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-primary">
+          <div className="flex items-baseline gap-2.5">
+            <span className="text-xl font-bold text-primary">
               ₹{product.price}
             </span>
             {product.originalPrice && (
-              <span className="line-through text-xs text-muted-foreground">
+              <span className="line-through text-sm text-muted-foreground">
                 ₹{product.originalPrice}
               </span>
             )}

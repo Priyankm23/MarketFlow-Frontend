@@ -39,8 +39,7 @@ export default function VendorOrdersPage() {
       }
 
       try {
-        const token = localStorage.getItem("accessToken");
-        const vendorProfile = await fetchVendorProfile(token);
+        const vendorProfile = await fetchVendorProfile();
         if (!active) return;
         setProfile(vendorProfile);
       } catch (err: unknown) {
@@ -101,7 +100,7 @@ export default function VendorOrdersPage() {
   ];
 
   return (
-    <div className="flex bg-background min-h-screen">
+    <div className="flex bg-background min-h-screen font-body [&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body">
       <Sidebar
         items={navItems}
         title="Vendor Hub"

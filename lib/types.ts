@@ -177,11 +177,13 @@ export interface RegisterVendorData {
 
 export interface VendorProfileData extends RegisterVendorData {
   id: string;
-  name: string;
-  email: string;
-  phone?: string;
   userId: string;
   status?: string;
+  user: {
+    name: string;
+    email: string;
+    phone?: string | null;
+  };
 }
 
 // Review types
