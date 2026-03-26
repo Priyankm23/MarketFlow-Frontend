@@ -7,10 +7,10 @@ import { Navbar } from "@/components/navbar";
 import { useAuthStore } from "@/lib/store";
 import { CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
 import {
-  API_BASE_URL,
   fetchVendorProfile,
   normalizeVendorStatus,
 } from "@/lib/vendor-profile";
+import { API_BASE_URL } from "@/lib/config";
 import { VendorProfileData } from "@/lib/types";
 import { authFetch } from "@/lib/auth-fetch";
 

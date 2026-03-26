@@ -9,8 +9,8 @@ import {
   fetchVendorProfile,
   isVendorApproved,
   normalizeVendorStatus,
-  API_BASE_URL,
 } from "@/lib/vendor-profile";
+import { API_BASE_URL } from "@/lib/config";
 import { authFetch } from "@/lib/auth-fetch";
 import {
   LayoutDashboard,
