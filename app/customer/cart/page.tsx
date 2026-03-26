@@ -1,58 +1,75 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import Link from 'next/link'
-import { Navbar } from '@/components/navbar'
-import { useCartStore } from '@/lib/store'
-import { Trash2, Plus, Minus, ArrowLeft } from 'lucide-react'
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import { Navbar } from "@/components/navbar";
+import { useCartStore } from "@/lib/store";
+import { Trash2, Plus, Minus, ArrowLeft, Loader2 } from "lucide-react";
 
 export default function CartPage() {
-  const items = useCartStore((state) => state.items)
-  const removeItem = useCartStore((state) => state.removeItem)
-  const updateQuantity = useCartStore((state) => state.updateQuantity)
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice)
-  const [promoCode, setPromoCode] = useState('')
-  const [discount, setDiscount] = useState(0)
+  const items = useCartStore((state) => state.items);
+  const cartLoading = useCartStore((state) => state.isLoading);
+  const fetchCart = useCartStore((state) => state.fetchCart);
+  const removeItem = useCartStore((state) => state.removeItem);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
+  const [promoCode, setPromoCode] = useState("");
+  const [discount, setDiscount] = useState(0);
 
-  const totalPrice = getTotalPrice()
-  const discountAmount = (totalPrice * discount) / 100
-  const finalTotal = totalPrice - discountAmount
+  useEffect(() => {
+    void fetchCart();
+  }, [fetchCart]);
+
+  const totalPrice = getTotalPrice();
+  const discountAmount = (totalPrice * discount) / 100;
+  const finalTotal = totalPrice - discountAmount;
 
   const handleApplyPromo = () => {
     // Mock promo code validation
-    if (promoCode === 'SAVE10') {
-      setDiscount(10)
-    } else if (promoCode === 'WELCOME20') {
-      setDiscount(20)
+    if (promoCode === "SAVE10") {
+      setDiscount(10);
+    } else if (promoCode === "WELCOME20") {
+      setDiscount(20);
     } else {
-      setDiscount(0)
+      setDiscount(0);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background font-body text-muted-foreground">
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <Link
           href="/products"
-          className="flex items-center gap-2 text-primary hover:underline mb-6"
+          className="inline-flex items-center gap-2 text-sm font-medium tracking-wide text-primary hover:underline mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Continue Shopping
         </Link>
 
-        <h1 className="text-3xl font-bold mb-8">Shopping Cart</h1>
+        <h1 className="font-heading text-4xl sm:text-5xl leading-[1.05] tracking-[0.015em] text-foreground mb-8">
+          Shopping Cart
+        </h1>
 
-        {items.length === 0 ? (
+        {cartLoading && items.length === 0 ? (
+          <div className="text-center py-16 bg-card border border-border rounded-lg">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-primary" />
+            <p className="text-muted-foreground">Loading your cart...</p>
+          </div>
+        ) : items.length === 0 ? (
           <div className="text-center py-16 bg-card border border-border rounded-lg">
             <div className="text-6xl mb-4">🛒</div>
-            <h2 className="text-2xl font-semibold mb-2">Your cart is empty</h2>
-            <p className="text-muted-foreground mb-6">Start shopping to add items to your cart</p>
+            <h2 className="font-body text-2xl font-semibold text-foreground mb-2">
+              Your cart is empty
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Start shopping to add items to your cart
+            </p>
             <Link
               href="/products"
-              className="inline-block px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+              className="inline-block px-6 py-2 bg-primary text-white rounded-lg hover:opacity-90"
             >
               Browse Products
             </Link>
@@ -65,33 +82,59 @@ export default function CartPage() {
                 {items.map((item, index) => (
                   <div key={item.productId}>
                     <div className="p-4 flex gap-4 hover:bg-secondary/30 transition-colors">
-                      {/* Product Image Placeholder */}
-                      <div className="w-24 h-24 bg-secondary rounded-lg flex items-center justify-center text-2xl">
-                        📦
+                      {/* Product Image */}
+                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-secondary shrink-0">
+                        <img
+                          src={
+                            item.product?.images?.[0] ||
+                            "/placeholder-product-1.jpg"
+                          }
+                          alt={item.product?.name || "Product image"}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                          onError={(event) => {
+                            event.currentTarget.src =
+                              "/placeholder-product-1.jpg";
+                          }}
+                        />
                       </div>
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{item.product?.name || `Product ${item.productId}`}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">SKU: {item.productId}</p>
-                        <p className="text-sm font-medium mt-2">₹{item.price}</p>
+                        <h3 className="font-body text-lg sm:text-xl font-semibold leading-tight text-foreground truncate">
+                          {item.product?.name || `Product ${item.productId}`}
+                        </h3>
+                        <p className="text-sm font-medium text-muted-foreground mt-1">
+                          Vendor: {item.product?.vendorName || "Unknown Vendor"}
+                        </p>
+                        <p className="text-base font-semibold tabular-nums text-foreground mt-2">
+                          ₹{item.price}
+                        </p>
                       </div>
 
                       {/* Quantity Controls */}
                       <div className="flex items-center gap-2 bg-secondary rounded-lg p-1">
                         <button
-                          onClick={() =>
-                            updateQuantity(item.productId, Math.max(1, item.quantity - 1))
-                          }
+                          onClick={() => {
+                            void updateQuantity(
+                              item.productId,
+                              Math.max(1, item.quantity - 1),
+                            );
+                          }}
                           className="p-1 hover:bg-muted rounded"
                         >
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="px-3 py-1 font-medium text-sm min-w-8 text-center">
+                        <span className="px-3 py-1 font-semibold text-sm tabular-nums min-w-8 text-center text-foreground">
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => {
+                            void updateQuantity(
+                              item.productId,
+                              item.quantity + 1,
+                            );
+                          }}
                           className="p-1 hover:bg-muted rounded"
                         >
                           <Plus className="w-4 h-4" />
@@ -101,24 +144,32 @@ export default function CartPage() {
                       {/* Subtotal & Remove */}
                       <div className="text-right flex flex-col items-end justify-between">
                         <div>
-                          <p className="font-bold">₹{(item.price * item.quantity).toLocaleString()}</p>
+                          <p className="font-semibold text-lg tabular-nums text-foreground">
+                            ₹{(item.price * item.quantity).toLocaleString()}
+                          </p>
                         </div>
                         <button
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => {
+                            void removeItem(item.productId);
+                          }}
                           className="text-destructive hover:bg-destructive/10 p-2 rounded transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
-                    {index < items.length - 1 && <div className="border-t border-border"></div>}
+                    {index < items.length - 1 && (
+                      <div className="border-t border-border"></div>
+                    )}
                   </div>
                 ))}
               </div>
 
               {/* Promo Code */}
               <div className="mt-6 p-4 bg-secondary rounded-lg">
-                <label className="block text-sm font-medium mb-2">Promo Code</label>
+                <label className="block text-sm font-semibold tracking-wide text-foreground mb-2">
+                  Promo Code
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -129,7 +180,7 @@ export default function CartPage() {
                   />
                   <button
                     onClick={handleApplyPromo}
-                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 font-medium"
+                    className="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 font-semibold"
                   >
                     Apply
                   </button>
@@ -143,40 +194,53 @@ export default function CartPage() {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-card border border-border rounded-lg p-6 sticky top-24 space-y-4">
-                <h2 className="text-xl font-bold">Order Summary</h2>
+                <h2 className="font-heading text-3xl leading-tight text-foreground">
+                  Order Summary
+                </h2>
 
                 <div className="space-y-2 border-b border-border pb-4">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm font-medium">
                     <span>Subtotal</span>
-                    <span>₹{totalPrice.toLocaleString()}</span>
+                    <span className="tabular-nums text-foreground">
+                      ₹{totalPrice.toLocaleString()}
+                    </span>
                   </div>
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-sm font-medium">
                     <span>Shipping</span>
-                    <span className="text-green-600 dark:text-green-400">Free</span>
+                    <span className="text-green-600 dark:text-green-400">
+                      Free
+                    </span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
+                    <div className="flex justify-between text-sm font-medium text-green-600 dark:text-green-400">
                       <span>Discount ({discount}%)</span>
-                      <span>-₹{discountAmount.toFixed(0)}</span>
+                      <span className="tabular-nums">
+                        -₹{discountAmount.toFixed(0)}
+                      </span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex justify-between text-lg font-bold">
+                <div className="flex justify-between text-xl font-semibold text-foreground">
                   <span>Total</span>
-                  <span className="text-primary">₹{finalTotal.toFixed(0)}</span>
+                  <span className="text-primary tabular-nums">
+                    ₹{finalTotal.toFixed(0)}
+                  </span>
                 </div>
 
                 <Link
                   href="/customer/checkout"
-                  className="w-full block text-center px-4 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 font-medium transition-opacity"
+                  className="w-full block text-center px-4 py-3 bg-primary text-white rounded-lg hover:opacity-90 font-semibold transition-opacity"
                 >
                   Proceed to Checkout
                 </Link>
 
-                <button className="w-full px-4 py-2 border border-border rounded-lg hover:bg-secondary text-sm font-medium transition-colors">
+                <Link
+                  href="/products"
+                  className="w-full block text-center px-4 py-2 border border-border rounded-lg hover:bg-secondary text-sm font-medium transition-colors"
+                >
                   Continue Shopping
-                </button>
+                </Link>
 
                 {/* Trust Badges */}
                 <div className="pt-4 border-t border-border space-y-2 text-xs text-muted-foreground">
@@ -190,5 +254,5 @@ export default function CartPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

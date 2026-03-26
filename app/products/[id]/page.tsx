@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
   BadgePercent,
   CheckCircle2,
   CircleAlert,
@@ -17,6 +19,7 @@ import {
   Truck,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
+import { authFetch } from "@/lib/auth-fetch";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/lib/store";
 
@@ -37,6 +40,8 @@ type ApiProduct = {
   brand?: string | null;
   highlights?: string[] | null;
   specifications?: Record<string, string> | null;
+  returnPolicy?: string | null;
+  warranty?: string | null;
   returnWindowDays?: number | null;
   warrantyMonths?: number | null;
   dispatchInHours?: number | null;
@@ -64,8 +69,8 @@ type ProductDetailViewModel = Product & {
   brandName: string;
   highlights: string[];
   specifications: Array<{ label: string; value: string }>;
-  returnWindowDays: number;
-  warrantyMonths: number;
+  returnPolicy: string;
+  warranty: string;
   dispatchInHours: number;
   sku: string;
 };
@@ -84,6 +89,10 @@ export default function ProductDetailPage() {
     tone: "success" | "error";
     text: string;
   } | null>(null);
+
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [vendorProducts, setVendorProducts] = useState<Product[]>([]);
+  const [vendorProductsLoading, setVendorProductsLoading] = useState(false);
 
   const productId = useMemo(() => {
     const value = params?.id;
@@ -115,9 +124,22 @@ export default function ProductDetailPage() {
         ? Math.round(((originalPrice - safePrice) / originalPrice) * 100)
         : 0;
 
-    const returnWindowDays = Math.max(3, Number(item.returnWindowDays || 7));
-    const warrantyMonths = Math.max(1, Number(item.warrantyMonths || 6));
     const dispatchInHours = Math.max(12, Number(item.dispatchInHours || 24));
+
+    const returnPolicy =
+      item.returnPolicy && item.returnPolicy.trim().length > 0
+        ? item.returnPolicy.trim()
+        : Number.isFinite(Number(item.returnWindowDays))
+          ? `${Math.max(1, Number(item.returnWindowDays))}-day easy return`
+          : "Return policy available at checkout";
+
+    const warranty =
+      item.warranty && item.warranty.trim().length > 0
+        ? item.warranty.trim()
+        : Number.isFinite(Number(item.warrantyMonths))
+          ? `${Math.max(1, Number(item.warrantyMonths))} months`
+          : "Warranty details available at checkout";
+
     const sku =
       item.sku && item.sku.trim().length > 0
         ? item.sku.trim()
@@ -128,7 +150,7 @@ export default function ProductDetailPage() {
     const fallbackHighlights = [
       `Optimized for ${categoryName.toLowerCase()} shoppers with quality checks before dispatch.`,
       `Ships quickly from ${vendorName} with secure packaging and order tracking.`,
-      `${returnWindowDays}-day easy return support for damage or mismatch cases.`,
+      `Return policy: ${returnPolicy}.`,
     ];
 
     const highlights =
@@ -153,17 +175,25 @@ export default function ProductDetailPage() {
         : [
             { label: "Brand", value: brandName },
             { label: "Category", value: categoryName },
-            { label: "Warranty", value: `${warrantyMonths} months` },
+            { label: "Warranty", value: warranty },
             {
               label: "Return Policy",
-              value: `${returnWindowDays}-day easy return`,
+              value: returnPolicy,
             },
             { label: "Dispatch", value: `Within ${dispatchInHours} hours` },
             { label: "SKU", value: sku },
           ];
 
-    const rating = Number(item.rating || 4.2);
-    const reviewCount = Math.max(0, Number(item.reviewCount || 142));
+    const ratingValue = Number(item.rating);
+    const reviewCountValue = Number(item.reviewCount);
+
+    const rating = Number.isFinite(ratingValue)
+      ? Math.min(5, Math.max(0, ratingValue))
+      : 0;
+
+    const reviewCount = Number.isFinite(reviewCountValue)
+      ? Math.max(0, reviewCountValue)
+      : 0;
 
     return {
       id: item.id,
@@ -186,8 +216,8 @@ export default function ProductDetailPage() {
       brandName,
       highlights,
       specifications,
-      returnWindowDays,
-      warrantyMonths,
+      returnPolicy,
+      warranty,
       dispatchInHours,
       sku,
     };
@@ -246,6 +276,73 @@ export default function ProductDetailPage() {
     setDeliveryMessage(null);
     setPincode("");
   }, [product?.id]);
+
+  useEffect(() => {
+    if (!product?.vendorName) return;
+    let active = true;
+    const fetchVendorProducts = async () => {
+      setVendorProductsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/products?businessName=${encodeURIComponent(product.vendorName)}`);
+        const payload = await response.json();
+        if (response.ok && payload.status === "success" && active) {
+            const mapped = (payload.data || []).map((item: ApiProduct): Product => ({
+                id: item.id,
+                name: item.name,
+                description: item.description,
+                price: Number(item.price || 0),
+                images: item.imageUrl ? [item.imageUrl] : ["/placeholder-product-1.jpg"],
+                category: item.category?.name || "Uncategorized",
+                subcategory: item.category?.name || "General",
+                stock: Number(item.stock || 0),
+                vendorId: item.vendor?.id || "",
+                vendorName: item.vendor?.businessName || "Unknown Vendor",
+                rating: Number.isFinite(Number(item.rating)) ? Math.min(5, Math.max(0, Number(item.rating))) : 0,
+                reviewCount: Number.isFinite(Number(item.reviewCount)) ? Math.max(0, Number(item.reviewCount)) : 0,
+                createdAt: item.createdAt || new Date().toISOString(),
+                updatedAt: item.updatedAt || new Date().toISOString(),
+                featured: true,
+            }));
+            setVendorProducts(mapped.filter((p: Product) => p.id !== product.id));
+        }
+      } catch (err) {
+        console.error("Failed to fetch vendor products", err);
+      } finally {
+        if (active) setVendorProductsLoading(false);
+      }
+    };
+    fetchVendorProducts();
+    return () => { active = false; };
+  }, [product?.vendorName, product?.id]);
+
+  const handleRateProduct = async (newRating: number) => {
+    if (!product) return;
+    setSubmittingRating(true);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/products/${product.id}/rate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: newRating }),
+      });
+      if (response.ok) {
+        const payload = await response.json();
+        const updatedRating = payload?.rating ?? payload?.data?.rating;
+        const updatedReviewCount = payload?.reviewCount ?? payload?.data?.reviewCount;
+        
+        if (updatedRating !== undefined && updatedReviewCount !== undefined) {
+           setProduct((prev) => prev ? { ...prev, rating: updatedRating, reviewCount: updatedReviewCount } : prev);
+        }
+        alert("Thanks for rating!");
+      } else {
+        alert("Failed to rate product");
+      }
+    } catch (error) {
+       console.error(error);
+       alert("Error rating product");
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
 
   const handleAddToCart = () => {
     if (!product || quantity < 1 || product.stock === 0) {
@@ -324,7 +421,7 @@ export default function ProductDetailPage() {
         : "Best Price: Everyday value pricing from verified local sellers.",
       "Coupon code MARKET100: Flat Rs. 100 off on your first order.",
       "10% instant discount on prepaid orders above Rs. 999.",
-      `Easy ${product.returnWindowDays}-day returns with quick pickup support.`,
+      `Returns: ${product.returnPolicy}.`,
     ];
   }, [product]);
 
@@ -430,6 +527,23 @@ export default function ProductDetailPage() {
                     <span className="font-medium text-[var(--text-secondary)]">
                       {formatPrice(product.reviewCount)} ratings
                     </span>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-3">
+                    <p className="text-sm font-semibold text-[var(--text-secondary)]">Rate this product:</p>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                           key={star}
+                           disabled={submittingRating}
+                           onClick={() => handleRateProduct(star)}
+                           className="text-[var(--text-muted)] hover:text-[var(--status-success)] hover:scale-110 transition-all disabled:opacity-50"
+                           aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                        >
+                          <Star className={`h-5 w-5 ${product.rating >= star ? 'fill-[var(--status-success)] text-[var(--status-success)]' : ''}`} />
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-1">
@@ -643,8 +757,7 @@ export default function ProductDetailPage() {
                   Easy Returns
                 </p>
                 <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
-                  {product.returnWindowDays}-day return window for damaged or
-                  incorrect orders.
+                  {product.returnPolicy} for damaged or incorrect orders.
                 </p>
               </div>
 
@@ -665,11 +778,98 @@ export default function ProductDetailPage() {
                   Buyer Protection
                 </p>
                 <p className="mt-1.5 text-sm text-[var(--text-secondary)]">
-                  Secure payment flow, verified listings, and priority support
-                  for disputes.
+                  Secure payment flow, verified listings, and {product.warranty}
+                  warranty support.
                 </p>
               </div>
             </div>
+
+            {/* Vendor Products Section */}
+            {vendorProducts.length > 0 && (
+              <div className="pt-10 border-t border-[var(--border-default)] space-y-6">
+                <h2 className="text-2xl font-semibold text-[var(--text-primary)] font-body">
+                  More products from this vendor
+                </h2>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
+                  {vendorProducts.map((vp) => (
+                    <Link
+                      key={vp.id}
+                      href={`/products/${vp.id}`}
+                      className="group"
+                    >
+                      <article className="h-full overflow-hidden rounded-3xl border border-[var(--border-default)] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(26,26,46,0.12)]">
+                        <div className="relative aspect-square overflow-hidden bg-[var(--bg-sunken)]">
+                          <Image
+                            src={
+                              vp.images[0] || "/placeholder-product-1.jpg"
+                            }
+                            alt={vp.name}
+                            fill
+                            className="object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          {vp.stock < 5 && (
+                            <span className="absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-[var(--status-error-bg)] text-[var(--status-error)]">
+                              {vp.stock === 0
+                                ? "Out of Stock"
+                                : `Only ${vp.stock} left`}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="p-3 sm:p-4 flex flex-col gap-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                              <BadgeCheck
+                                size={13}
+                                className="text-[var(--brand-primary)]"
+                              />
+                              {vp.vendorName}
+                            </p>
+                            <div className="inline-flex items-center gap-1 rounded-md bg-[var(--bg-sunken)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
+                              <Star
+                                size={11}
+                                className="fill-[var(--brand-primary)] text-[var(--brand-primary)]"
+                              />
+                              {vp.rating.toFixed(1)}
+                            </div>
+                          </div>
+
+                          <h3 className="text-base sm:text-lg font-normal text-[var(--text-primary)] line-clamp-2 leading-tight min-h-10 font-body">
+                            {vp.name}
+                          </h3>
+
+                          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+                            <ShieldCheck
+                              size={13}
+                              className="text-[var(--brand-primary)]"
+                            />
+                            <span className="font-medium">
+                              Secure checkout eligible
+                            </span>
+                          </div>
+
+                          <div className="pt-3 border-t border-[var(--border-default)] flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-lg sm:text-xl font-bold text-[var(--text-primary)] leading-none">
+                                ₹{formatPrice(vp.price)}
+                              </p>
+                              <p className="mt-1 text-[11px] font-medium text-[var(--text-muted)]">
+                                Inclusive of all taxes
+                              </p>
+                            </div>
+
+                            <div className="inline-flex items-center gap-1 rounded-lg bg-[var(--bg-sunken)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:bg-[var(--brand-primary)] group-hover:text-[var(--text-inverse)] transition-colors">
+                              View
+                              <ArrowRight size={14} />
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : null}
       </div>

@@ -1,347 +1,459 @@
-'use client'
+"use client";
 
-import React, { useState } from 'react'
-import { Sidebar } from '@/components/sidebar'
-import { MapPin, Package, Phone, CheckCircle, Loader, Navigation } from 'lucide-react'
+import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { authFetch } from "@/lib/auth-fetch";
+import { DeliveryHeader } from "@/components/delivery-header";
+import { Loader2, MapPin, Plus, ShieldCheck, Truck, X } from "lucide-react";
 
-interface Task {
-  id: string
-  orderId: string
-  customerId: string
-  vendorName: string
-  pickupAddress: string
-  deliveryAddress: string
-  customerPhone: string
-  status: 'pending' | 'accepted' | 'picked_up' | 'in_transit' | 'delivered'
-  items: number
-  totalAmount: number
-  distance: string
-}
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+
+const toApiV1BaseUrl = (baseUrl: string) => {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
+};
+
+const DELIVERY_API_BASE_URL = `${toApiV1BaseUrl(API_BASE_URL)}/delivery`;
+
+type DeliveryCoverageResponse = {
+  success?: boolean;
+  status?: string;
+  message?: string;
+  data?: string[] | { coveragePincodes?: string[] };
+};
+
+const GUJARAT_COVERAGE: Record<
+  string,
+  Array<{ area: string; pincode: string }>
+> = {
+  Surat: [
+    { area: "Vesu", pincode: "395007" },
+    { area: "Athwa", pincode: "395001" },
+    { area: "Adajan", pincode: "395009" },
+    { area: "Katargam", pincode: "395004" },
+  ],
+  Ahmedabad: [
+    { area: "Navrangpura", pincode: "380009" },
+    { area: "Maninagar", pincode: "380008" },
+    { area: "Bopal", pincode: "380058" },
+    { area: "Satellite", pincode: "380015" },
+  ],
+  Vadodara: [
+    { area: "Alkapuri", pincode: "390007" },
+    { area: "Fatehgunj", pincode: "390002" },
+    { area: "Gotri", pincode: "390021" },
+    { area: "Manjalpur", pincode: "390011" },
+  ],
+  Rajkot: [
+    { area: "Kalawad Road", pincode: "360005" },
+    { area: "Yagnik Road", pincode: "360001" },
+    { area: "Kuvadva Road", pincode: "360003" },
+    { area: "Raiya Road", pincode: "360007" },
+  ],
+};
+
+type SelectedCoverageArea = {
+  city: string;
+  area: string;
+  pincode: string;
+};
 
 export default function DeliveryTasksPage() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: 'TASK-001',
-      orderId: 'ORD-001',
-      customerId: 'cust-1',
-      vendorName: 'TechHub',
-      pickupAddress: '123 Vendor Street, Bangalore',
-      deliveryAddress: '456 Customer Lane, Bangalore',
-      customerPhone: '9876543210',
-      status: 'pending',
-      items: 1,
-      totalAmount: 4999,
-      distance: '2.3 km',
-    },
-    {
-      id: 'TASK-002',
-      orderId: 'ORD-002',
-      customerId: 'cust-2',
-      vendorName: 'StyleWear',
-      pickupAddress: '789 Fashion Ave, Bangalore',
-      deliveryAddress: '321 Home Street, Bangalore',
-      customerPhone: '9876543211',
-      status: 'accepted',
-      items: 2,
-      totalAmount: 1198,
-      distance: '4.5 km',
-    },
-    {
-      id: 'TASK-003',
-      orderId: 'ORD-003',
-      customerId: 'cust-3',
-      vendorName: 'HomeEssentials',
-      pickupAddress: '555 Home Square, Bangalore',
-      deliveryAddress: '789 Delivery Road, Bangalore',
-      customerPhone: '9876543212',
-      status: 'picked_up',
-      items: 3,
-      totalAmount: 2599,
-      distance: '3.1 km',
-    },
-    {
-      id: 'TASK-004',
-      orderId: 'ORD-004',
-      customerId: 'cust-4',
-      vendorName: 'SportGear',
-      pickupAddress: '222 Sports Lane, Bangalore',
-      deliveryAddress: '444 Athletic Way, Bangalore',
-      customerPhone: '9876543213',
-      status: 'in_transit',
-      items: 1,
-      totalAmount: 3499,
-      distance: '5.8 km',
-    },
-  ])
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
+  const [existingCoveragePincodes, setExistingCoveragePincodes] = useState<
+    string[]
+  >([]);
+  const [selectedState] = useState("Gujarat");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [selectedCoverageAreas, setSelectedCoverageAreas] = useState<
+    SelectedCoverageArea[]
+  >([]);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [expandedTask, setExpandedTask] = useState<string | null>(null)
-  const [processingId, setProcessingId] = useState<string | null>(null)
+  const cityOptions = useMemo(() => Object.keys(GUJARAT_COVERAGE), []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return 'badge-success'
-      case 'in_transit':
-        return 'badge-info'
-      case 'accepted':
-      case 'picked_up':
-        return 'badge-warning'
-      case 'pending':
-        return 'badge-warning'
-      default:
-        return 'badge-warning'
+  const areaOptions = useMemo(() => {
+    if (!selectedCity) return [];
+    return GUJARAT_COVERAGE[selectedCity] || [];
+  }, [selectedCity]);
+
+  const coveragePincodes = useMemo(() => {
+    return Array.from(
+      new Set(
+        selectedCoverageAreas.map(
+          (item) => `${item.city} - ${item.area}(${item.pincode})`,
+        ),
+      ),
+    );
+  }, [selectedCoverageAreas]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadCoveragePincodes = async () => {
+      try {
+        const response = await authFetch(
+          `${DELIVERY_API_BASE_URL}/coverage-pincodes`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          },
+        );
+
+        if (!active) return;
+
+        if (!response.ok) {
+          if (response.status === 404) {
+            setExistingCoveragePincodes([]);
+            setShowForm(true);
+            setLoading(false);
+            return;
+          }
+
+          const payload = await response.json().catch(() => ({}));
+          setError(payload?.message || "Unable to fetch coverage pincodes.");
+          setLoading(false);
+          return;
+        }
+
+        const payload: DeliveryCoverageResponse = await response
+          .json()
+          .catch(() => ({}));
+
+        const coverageData = Array.isArray(payload?.data)
+          ? payload.data
+          : payload?.data?.coveragePincodes || [];
+
+        setExistingCoveragePincodes(coverageData);
+        setShowForm(coverageData.length === 0);
+        setLoading(false);
+      } catch {
+        if (!active) return;
+        setError("Unable to fetch coverage pincodes. Please try again.");
+        setLoading(false);
+      }
+    };
+
+    void loadCoveragePincodes();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSubmitCoverage = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (coveragePincodes.length === 0) {
+      setError("Please add at least one area to build coverage pincodes.");
+      return;
     }
-  }
 
-  const getStatusLabel = (status: string) => {
-    return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')
-  }
+    setError("");
+    setSubmitting(true);
 
-  const handleAcceptTask = async (taskId: string) => {
-    setProcessingId(taskId)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setTasks(tasks.map(t =>
-      t.id === taskId ? { ...t, status: 'accepted' as const } : t
-    ))
-    setProcessingId(null)
-  }
+    try {
+      const response = await authFetch(`${DELIVERY_API_BASE_URL}/profile`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ coveragePincodes }),
+      });
 
-  const handlePickup = async (taskId: string) => {
-    setProcessingId(taskId)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setTasks(tasks.map(t =>
-      t.id === taskId ? { ...t, status: 'picked_up' as const } : t
-    ))
-    setProcessingId(null)
-  }
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setError(payload?.message || "Could not save coverage locations.");
+        setSubmitting(false);
+        return;
+      }
 
-  const handleStartDelivery = async (taskId: string) => {
-    setProcessingId(taskId)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setTasks(tasks.map(t =>
-      t.id === taskId ? { ...t, status: 'in_transit' as const } : t
-    ))
-    setProcessingId(null)
-  }
+      router.push("/delivery/terms");
+    } catch {
+      setError("Could not save coverage locations.");
+      setSubmitting(false);
+    }
+  };
 
-  const handleDeliver = async (taskId: string) => {
-    setProcessingId(taskId)
-    await new Promise(resolve => setTimeout(resolve, 800))
-    setTasks(tasks.map(t =>
-      t.id === taskId ? { ...t, status: 'delivered' as const } : t
-    ))
-    setProcessingId(null)
-  }
+  const handleAddArea = () => {
+    if (!selectedCity || !selectedArea) {
+      setError("Please select both city and area.");
+      return;
+    }
 
-  const navItems = [
-    { href: '/delivery/tasks', label: 'Active Tasks', icon: '📦', badge: tasks.filter(t => t.status !== 'delivered').length },
-    { href: '/delivery/history', label: 'Completed', icon: '✓' },
-    { href: '/delivery/earnings', label: 'Earnings', icon: '💰' },
-    { href: '/delivery/profile', label: 'Profile', icon: '👤' },
-  ]
+    const mappedArea = areaOptions.find(
+      (option) => option.area === selectedArea,
+    );
+    if (!mappedArea) {
+      setError("Invalid area selected.");
+      return;
+    }
 
-  const activeTasks = tasks.filter(t => t.status !== 'delivered')
-  const completedTasks = tasks.filter(t => t.status === 'delivered')
+    const alreadyAdded = selectedCoverageAreas.some(
+      (item) => item.city === selectedCity && item.area === selectedArea,
+    );
 
-  return (
-    <div className="flex bg-background min-h-screen">
-      <Sidebar items={navItems} title="Delivery Partner" userRole="delivery" />
+    if (alreadyAdded) {
+      setError("This area is already added.");
+      return;
+    }
 
-      <div className="flex-1 overflow-auto">
-        {/* Header */}
-        <div className="bg-card border-b border-border p-6 sticky top-0 z-40">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold">Active Deliveries</h1>
-              <p className="text-muted-foreground mt-1">{activeTasks.length} task{activeTasks.length !== 1 ? 's' : ''} available</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-muted-foreground">Today's Earnings</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">₹{activeTasks.reduce((sum, t) => sum + Math.floor(t.totalAmount * 0.05), 0)}</p>
-            </div>
+    setSelectedCoverageAreas((prev) => [
+      ...prev,
+      {
+        city: selectedCity,
+        area: mappedArea.area,
+        pincode: mappedArea.pincode,
+      },
+    ]);
+    setSelectedArea("");
+    setError("");
+  };
+
+  const handleRemoveArea = (target: SelectedCoverageArea) => {
+    setSelectedCoverageAreas((prev) =>
+      prev.filter(
+        (item) => !(item.city === target.city && item.area === target.area),
+      ),
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DeliveryHeader
+          title="Coverage Setup"
+          subtitle="Configure serviceable areas before accepting deliveries."
+        />
+        <div className="grid place-items-center px-4 py-12">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
+            <p className="mt-3 text-sm text-muted-foreground">
+              Checking delivery coverage setup...
+            </p>
           </div>
         </div>
+      </div>
+    );
+  }
 
-        <div className="p-6">
-          {/* Task Cards - Mobile First */}
-          <div className="space-y-4">
-            {activeTasks.length === 0 ? (
-              <div className="text-center py-16 bg-card border border-border rounded-lg">
-                <Package className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No active deliveries</h3>
-                <p className="text-muted-foreground">Check back soon for new tasks!</p>
-              </div>
-            ) : (
-              activeTasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
-                  onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-                >
-                  {/* Card Header - Always Visible */}
-                  <div className="p-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-lg">{task.id}</h3>
-                        <p className="text-sm text-muted-foreground">{task.vendorName} → Delivery</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold">₹{task.totalAmount}</p>
-                        <span className={getStatusColor(task.status)}>
-                          {getStatusLabel(task.status)}
-                        </span>
-                      </div>
-                    </div>
+  return (
+    <div
+      className="min-h-screen bg-background px-4 py-8 sm:px-6 font-body"
+      style={{ fontFamily: "var(--font-dm-sans)" }}
+    >
+      <DeliveryHeader
+        title="Coverage Setup"
+        subtitle="Configure serviceable areas before accepting deliveries."
+      />
 
-                    {/* Quick Info */}
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {task.distance}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Package className="w-3 h-3" />
-                        {task.items} item{task.items !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Expanded Content */}
-                  {expandedTask === task.id && (
-                    <div className="p-4 border-t border-border space-y-4 bg-secondary/30 animate-slide-up">
-                      {/* Pickup & Delivery Addresses */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs text-muted-foreground font-medium mb-2">PICKUP FROM</p>
-                          <div className="flex gap-2">
-                            <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
-                            <p className="text-sm">{task.pickupAddress}</p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-xs text-muted-foreground font-medium mb-2">DELIVER TO</p>
-                          <div className="flex gap-2">
-                            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-1" />
-                            <p className="text-sm">{task.deliveryAddress}</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Customer Contact */}
-                      <div className="p-3 bg-card border border-border rounded-lg flex items-center justify-between">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Customer Contact</p>
-                          <p className="font-medium">{task.customerPhone}</p>
-                        </div>
-                        <button className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                          <Phone className="w-5 h-5 text-primary" />
-                        </button>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2 pt-4 border-t border-border">
-                        {task.status === 'pending' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleAcceptTask(task.id)
-                            }}
-                            disabled={processingId === task.id}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all"
-                          >
-                            {processingId === task.id ? (
-                              <Loader className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="w-4 h-4" />
-                            )}
-                            Accept Task
-                          </button>
-                        )}
-
-                        {task.status === 'accepted' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handlePickup(task.id)
-                            }}
-                            disabled={processingId === task.id}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all"
-                          >
-                            {processingId === task.id ? (
-                              <Loader className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Package className="w-4 h-4" />
-                            )}
-                            Confirm Pickup
-                          </button>
-                        )}
-
-                        {task.status === 'picked_up' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleStartDelivery(task.id)
-                            }}
-                            disabled={processingId === task.id}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all"
-                          >
-                            {processingId === task.id ? (
-                              <Loader className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Navigation className="w-4 h-4" />
-                            )}
-                            Start Delivery
-                          </button>
-                        )}
-
-                        {task.status === 'in_transit' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeliver(task.id)
-                            }}
-                            disabled={processingId === task.id}
-                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all"
-                          >
-                            {processingId === task.id ? (
-                              <Loader className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="w-4 h-4" />
-                            )}
-                            Mark Delivered
-                          </button>
-                        )}
-
-                        <button
-                          onClick={(e) => e.stopPropagation()}
-                          className="flex-1 px-4 py-2.5 border border-border rounded-lg hover:bg-secondary font-medium transition-colors"
-                        >
-                          View Map
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
+      <div className="mx-auto max-w-3xl mt-6">
+        <section className="rounded-2xl border border-border bg-card p-6 sm:p-8">
+          <div className="flex items-center gap-2 text-indigo-700">
+            <Truck className="h-5 w-5" />
+            <p className="text-sm font-semibold">Delivery Coverage Setup</p>
           </div>
 
-          {/* Completed Tasks */}
-          {completedTasks.length > 0 && (
-            <div className="mt-8">
-              <h2 className="text-2xl font-bold mb-4">Completed Today</h2>
-              <div className="space-y-2">
-                {completedTasks.map((task) => (
-                  <div key={task.id} className="p-3 bg-green-100 dark:bg-green-950/30 border border-green-300 dark:border-green-700 rounded-lg flex justify-between items-center">
-                    <p className="font-medium">{task.id}</p>
-                    <p className="text-sm text-green-700 dark:text-green-400 font-medium">Delivered ✓</p>
-                  </div>
+          <div className="mt-5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+            {existingCoveragePincodes.length === 0
+              ? "Your delivery profile does not have coverage locations yet."
+              : "Coverage pincodes loaded from your delivery profile."}
+          </div>
+
+          {existingCoveragePincodes.length > 0 ? (
+            <div className="mt-4">
+              <p className="text-xs font-medium text-foreground">
+                Current Coverage
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {existingCoveragePincodes.map((coverage) => (
+                  <span
+                    key={coverage}
+                    className="inline-flex items-center rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-foreground"
+                  >
+                    {coverage}
+                  </span>
                 ))}
               </div>
             </div>
+          ) : null}
+
+          {!showForm ? (
+            <button
+              type="button"
+              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+              onClick={() => setShowForm(true)}
+            >
+              <MapPin className="h-4 w-4" />
+              Add Or Update Coverage
+            </button>
+          ) : (
+            <form className="mt-5 space-y-4" onSubmit={handleSubmitCoverage}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-foreground">
+                    State
+                  </label>
+                  <select
+                    value={selectedState}
+                    disabled
+                    className="mt-2 w-full rounded-lg border border-border bg-secondary/30 px-3 py-2 text-sm"
+                  >
+                    <option value="Gujarat">Gujarat</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="city"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    City
+                  </label>
+                  <select
+                    id="city"
+                    value={selectedCity}
+                    onChange={(event) => {
+                      setSelectedCity(event.target.value);
+                      setSelectedArea("");
+                      setError("");
+                    }}
+                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                  >
+                    <option value="">Select city</option>
+                    {cityOptions.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2 items-end">
+                <div>
+                  <label
+                    htmlFor="area"
+                    className="text-sm font-medium text-foreground"
+                  >
+                    Area
+                  </label>
+                  <select
+                    id="area"
+                    value={selectedArea}
+                    onChange={(event) => {
+                      setSelectedArea(event.target.value);
+                      setError("");
+                    }}
+                    disabled={!selectedCity}
+                    className="mt-2 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-indigo-500 disabled:opacity-60"
+                  >
+                    <option value="">
+                      {selectedCity ? "Select area" : "Select city first"}
+                    </option>
+                    {areaOptions.map((area) => (
+                      <option
+                        key={`${selectedCity}-${area.area}`}
+                        value={area.area}
+                      >
+                        {area.area} ({area.pincode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAddArea}
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-100"
+                >
+                  <Plus className="h-4 w-4" /> Add Area
+                </button>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium text-foreground">
+                  Selected Areas
+                </p>
+                {selectedCoverageAreas.length === 0 ? (
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    No area selected yet.
+                  </p>
+                ) : (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedCoverageAreas.map((item) => (
+                      <span
+                        key={`${item.city}-${item.area}`}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-medium text-indigo-700"
+                      >
+                        {item.city} - {item.area}({item.pincode})
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveArea(item)}
+                          className="rounded-full p-0.5 hover:bg-indigo-200"
+                          aria-label={`Remove ${item.area}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center gap-2">
+                {existingCoveragePincodes.length > 0 ? (
+                  <button
+                    type="button"
+                    className="rounded-lg border border-border px-4 py-2.5 text-sm font-medium hover:bg-secondary"
+                    onClick={() => {
+                      setShowForm(false);
+                      setError("");
+                    }}
+                  >
+                    Cancel
+                  </button>
+                ) : null}
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4" /> Save And Continue
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
-        </div>
+        </section>
+
+        <p className="mt-4 text-xs text-muted-foreground">
+          Already configured? Go to{" "}
+          <Link
+            href="/delivery/dashboard"
+            className="text-indigo-700 hover:underline"
+          >
+            delivery dashboard
+          </Link>
+          .
+        </p>
       </div>
     </div>
-  )
+  );
 }

@@ -9,7 +9,7 @@ import { useAuthStore } from "@/lib/store";
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   badge?: number;
   disabled?: boolean;
 }

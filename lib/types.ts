@@ -173,6 +173,7 @@ export interface RegisterVendorData {
   pincode: string;
   govIdUrl: string;
   businessDocUrl: string;
+  logoUrl?: string;
 }
 
 export interface VendorProfileData extends RegisterVendorData {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,7 +9,9 @@ import {
   fetchVendorProfile,
   isVendorApproved,
   normalizeVendorStatus,
+  API_BASE_URL,
 } from "@/lib/vendor-profile";
+import { authFetch } from "@/lib/auth-fetch";
 import {
   LayoutDashboard,
   Package,
@@ -30,6 +32,7 @@ import {
   CheckCircle2,
   Clock,
   XCircle,
+  Camera,
 } from "lucide-react";
 
 // --- REUSABLE COMPONENTS ---
@@ -99,6 +102,8 @@ export default function VendorProfilePage() {
   const [profile, setProfile] = useState<VendorProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -134,6 +139,49 @@ export default function VendorProfilePage() {
       isMounted = false;
     };
   }, [router, user]);
+
+  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    try {
+      const formData = new FormData();
+      formData.append("logo", file);
+      
+      let response = await authFetch(`${API_BASE_URL}/vendor/profile/logo`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.status === 404) {
+         response = await authFetch(`${API_BASE_URL}/vendors/profile/logo`, {
+            method: "POST",
+            body: formData,
+         });
+      }
+      
+      if (!response.ok) {
+        throw new Error("Failed to upload logo");
+      }
+      
+      const payload = await response.json().catch(() => ({}));
+      
+      if (payload?.data && payload.data.logoUrl) {
+         setProfile(payload.data);
+      } else if (payload?.logoUrl && profile) {
+         setProfile({ ...profile, logoUrl: payload.logoUrl });
+      } else {
+         const updatedProfile = await fetchVendorProfile();
+         if (updatedProfile) setProfile(updatedProfile);
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Error uploading logo");
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const approved = isVendorApproved(profile?.status);
   const status = normalizeVendorStatus(profile?.status);
@@ -388,13 +436,51 @@ export default function VendorProfilePage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* BUSINESS DETAILS */}
                 <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-hidden shadow-sm lg:col-span-2">
-                  <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center gap-2 bg-[var(--bg-sunken)]">
-                    <Building2 className="w-5 h-5 text-[var(--text-muted)]" />
-                    <h3 className="font-semibold text-[var(--text-primary)]">
-                      Business Information
-                    </h3>
+                  <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-sunken)]">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-[var(--text-muted)]" />
+                      <h3 className="font-semibold text-[var(--text-primary)]">
+                        Business Information
+                      </h3>
+                    </div>
                   </div>
-                  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
+                  <div className="p-6">
+                    <div className="flex items-center gap-6 mb-8 pb-8 border-b border-[var(--border-default)]">
+                      <div className="relative group shrink-0">
+                        <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl border-2 border-[var(--border-default)] bg-[var(--bg-sunken)] overflow-hidden flex items-center justify-center relative shadow-sm">
+                          {profile?.logoUrl ? (
+                            <img src={profile.logoUrl} alt="Store Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <Building2 className="w-8 h-8 text-[var(--text-muted)] opacity-40" />
+                          )}
+                          
+                          <div 
+                            className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${isUploadingLogo ? 'opacity-100 bg-white/70' : ''}`} 
+                            onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                          >
+                            {isUploadingLogo ? (
+                              <div className="w-5 h-5 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin"></div>
+                            ) : (
+                              <>
+                                <Camera className="w-5 h-5 text-white mb-1" />
+                                <span className="text-[10px] text-white font-semibold uppercase tracking-wider">Change</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoChange} />
+                      </div>
+                      <div>
+                        <h4 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] font-body">
+                          {profile?.businessName}
+                        </h4>
+                        <p className="text-sm font-medium text-[var(--text-secondary)] mt-1">
+                          {profile?.storeCategory} Store
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
                     <div>
                       <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
                         Business Name
@@ -428,6 +514,7 @@ export default function VendorProfilePage() {
                       </p>
                     </div>
                   </div>
+                  </div>
                 </div>
 
                 {/* CONTACT DETAILS */}
@@ -448,7 +535,7 @@ export default function VendorProfilePage() {
                           Owner Name
                         </p>
                         <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {profile.user.name}
+                          {profile.user?.name || "Vendor"}
                         </p>
                       </div>
                     </div>
@@ -462,9 +549,9 @@ export default function VendorProfilePage() {
                         </p>
                         <p
                           className="text-sm font-medium text-[var(--text-primary)] truncate"
-                          title={profile.user.email}
+                          title={profile.user?.email || ""}
                         >
-                          {profile.user.email}
+                          {profile.user?.email || "Not Provided"}
                         </p>
                       </div>
                     </div>
@@ -477,7 +564,7 @@ export default function VendorProfilePage() {
                           Phone Number
                         </p>
                         <p className="text-sm font-medium text-[var(--text-primary)]">
-                          {profile.user.phone || "Not Provided"}
+                          {profile.user?.phone || "Not Provided"}
                         </p>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/navbar";
@@ -26,6 +26,7 @@ import {
   ArrowUpRight,
   Mail,
   ChevronRight,
+  MapPin,
 } from "lucide-react";
 import "./hero-illustration.css";
 
@@ -84,52 +85,83 @@ const categories = [
   },
 ];
 
-const trendingProducts = [
-  {
-    id: "1",
-    name: "Premium Wireless Headphones",
-    vendor: "TechHub",
-    price: 4999,
-    originalPrice: 7999,
-    rating: 4.5,
-    reviews: 328,
+const toApiV1BaseUrl = (baseUrl: string) => {
+  const trimmed = baseUrl.replace(/\/+$/, "");
+  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
+};
+
+const API_BASE_URL = toApiV1BaseUrl(
+  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1",
+);
+const TRENDING_PRODUCTS_ENDPOINT = `${API_BASE_URL}/products/trending`;
+const TRENDING_PRODUCTS_PER_SLIDE = 4;
+
+type ApiTrendingProduct = {
+  id: string;
+  name?: string;
+  price?: string | number;
+  reviewCount?: number;
+  rating?: number;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+  vendor?: {
+    businessName?: string;
+  } | null;
+};
+
+type ApiTrendingResponse = {
+  status?: string;
+  products?: ApiTrendingProduct[];
+};
+
+type TrendingProductCard = {
+  id: string;
+  name: string;
+  vendor: string;
+  price: number;
+  originalPrice: number | null;
+  rating: number;
+  reviews: number;
+  badge: string | null;
+  imageUrl: string;
+};
+
+const cleanBusinessName = (name?: string) => {
+  if (!name) {
+    return "Verified Vendor";
+  }
+  return name.replace(/^"+|"+$/g, "").trim() || "Verified Vendor";
+};
+
+const toTrendingProductCard = (
+  product: ApiTrendingProduct,
+): TrendingProductCard => {
+  const parsedPrice = Number(product.price || 0);
+  const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
+  const parsedRating = Number(product.rating || 0);
+  const safeRating = Number.isFinite(parsedRating)
+    ? Math.max(0, Math.min(5, parsedRating))
+    : 0;
+  const parsedReviews = Number(product.reviewCount || 0);
+  const safeReviews = Number.isFinite(parsedReviews)
+    ? Math.max(0, parsedReviews)
+    : 0;
+
+  return {
+    id: product.id,
+    name: product.name?.trim() || "Trending Product",
+    vendor: cleanBusinessName(product.vendor?.businessName),
+    price: safePrice,
+    originalPrice: null,
+    rating: safeRating,
+    reviews: safeReviews,
     badge: "Trending",
-    emoji: "🎧",
-  },
-  {
-    id: "2",
-    name: "Cotton Crew T-Shirt",
-    vendor: "StyleWear",
-    price: 599,
-    originalPrice: 999,
-    rating: 4.2,
-    reviews: 215,
-    badge: "Best Seller",
-    emoji: "👕",
-  },
-  {
-    id: "3",
-    name: "Stainless Steel Bottle",
-    vendor: "HomeEssentials",
-    price: 1299,
-    originalPrice: 1999,
-    rating: 4.7,
-    reviews: 456,
-    badge: null,
-    emoji: "🍶",
-  },
-  {
-    id: "4",
-    name: "Running Shoes Pro",
-    vendor: "SportGear",
-    price: 3499,
-    originalPrice: 5999,
-    rating: 4.4,
-    reviews: 289,
-    badge: "Hot Deal",
-    emoji: "👟",
-  },
-];
+    imageUrl:
+      product.imageUrls?.[0] ||
+      product.imageUrl ||
+      "/placeholder-product-1.jpg",
+  };
+};
 
 const newArrivals = [
   {
@@ -265,11 +297,7 @@ const trustBenefits = [
 /*  Product Card Component                                             */
 /* ================================================================== */
 
-function ProductCardSection({
-  product,
-}: {
-  product: (typeof trendingProducts)[0];
-}) {
+function ProductCardSection({ product }: { product: TrendingProductCard }) {
   const discount = product.originalPrice
     ? Math.round(
         ((product.originalPrice - product.price) / product.originalPrice) * 100,
@@ -280,7 +308,12 @@ function ProductCardSection({
     <Link href={`/products/${product.id}`} className="block h-full">
       <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col group">
         <div className="aspect-square relative bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden">
-          <span style={{ fontSize: "3.5rem" }}>{product.emoji}</span>
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
           {product.badge && (
             <span className="absolute top-3 left-3 bg-[var(--bg-surface)] text-[var(--text-primary)] text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-[var(--border-default)] shadow-sm">
               {product.badge}
@@ -334,6 +367,128 @@ function ProductCardSection({
 /* ================================================================== */
 
 export default function HomePage() {
+  const [trendingProducts, setTrendingProducts] = useState<
+    TrendingProductCard[]
+  >([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [currentTrendingSlide, setCurrentTrendingSlide] = useState(0);
+
+  const [spotlightVendors, setSpotlightVendors] = useState<any[]>([]);
+  const [spotlightLoading, setSpotlightLoading] = useState(true);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchTrendingProducts = async () => {
+      try {
+        const response = await fetch(TRENDING_PRODUCTS_ENDPOINT, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const payload: ApiTrendingResponse = await response
+          .json()
+          .catch(() => ({}));
+
+        if (!response.ok || payload.status !== "success") {
+          throw new Error("Failed to fetch trending products");
+        }
+
+        const mappedProducts = Array.isArray(payload.products)
+          ? payload.products.map(toTrendingProductCard)
+          : [];
+
+        setTrendingProducts(mappedProducts);
+      } catch {
+        setTrendingProducts([]);
+      } finally {
+        setTrendingLoading(false);
+      }
+    };
+
+    void fetchTrendingProducts();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
+    const fetchSpotlightVendors = async () => {
+      try {
+        const url = `${API_BASE_URL}/admin/vendors/approved`;
+        console.log("Fetching vendor spotlight from:", url);
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log("Vendor spotlight response status:", response.status);
+        const payload = await response.json().catch(() => ({}));
+        console.log("Vendor spotlight payload:", payload);
+        const vendorsList = payload.data || payload.vendors || [];
+
+        if (Array.isArray(vendorsList)) {
+          setSpotlightVendors(vendorsList.slice(0, 4));
+        } else {
+          setSpotlightVendors([]);
+        }
+      } catch (err) {
+        console.error("Vendor spotlight fetch error:", err);
+        setSpotlightVendors([]);
+      } finally {
+        setSpotlightLoading(false);
+      }
+    };
+    fetchSpotlightVendors();
+  }, []);
+
+  const trendingSlides = useMemo(() => {
+    if (trendingProducts.length === 0) {
+      return [] as TrendingProductCard[][];
+    }
+
+    const slideCount = Math.ceil(
+      trendingProducts.length / TRENDING_PRODUCTS_PER_SLIDE,
+    );
+
+    const slides = Array.from({ length: slideCount }, (_, slideIndex) =>
+      Array.from({ length: TRENDING_PRODUCTS_PER_SLIDE }, (_, itemIndex) => {
+        const index =
+          (slideIndex * TRENDING_PRODUCTS_PER_SLIDE + itemIndex) %
+          trendingProducts.length;
+        return trendingProducts[index];
+      }),
+    );
+
+    return slides.length === 1 ? [slides[0], slides[0]] : slides;
+  }, [trendingProducts]);
+
+  useEffect(() => {
+    setCurrentTrendingSlide(0);
+  }, [trendingSlides.length]);
+
+  useEffect(() => {
+    if (trendingSlides.length <= 1) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setCurrentTrendingSlide((current) =>
+        current + 1 >= trendingSlides.length ? 0 : current + 1,
+      );
+    }, 4500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [trendingSlides.length]);
+
   return (
     <div
       className="font-body"
@@ -351,8 +506,7 @@ export default function HomePage() {
       >
         <div className="space-y-6 animate-in fade-in slide-in-from-left-8 duration-700 text-center lg:text-left flex flex-col items-center lg:items-start">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-[var(--brand-accent)]" />
-            Empowering 2,000+ Local Vendors
+            Empowering 2,000+ Local Vendors 🛍️
           </div>
 
           <h1 className="text-6xl sm:text-8xl lg:text-9xl !leading-[1.02] !tracking-tight">
@@ -417,7 +571,10 @@ export default function HomePage() {
 
       <div className="[&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body">
         {/* ── SHOP BY CATEGORY ── */}
-        <section id="categories" className="py-24 bg-[var(--bg-sunken)]">
+        <section
+          id="categories"
+          className="pt-12 pb-10 sm:py-24 bg-[var(--bg-sunken)]"
+        >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
@@ -468,7 +625,7 @@ export default function HomePage() {
         </section>
 
         {/* ── TRENDING PRODUCTS ── */}
-        <section id="trending" className="py-24">
+        <section id="trending" className="pt-8 pb-24 sm:py-24">
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
@@ -484,11 +641,65 @@ export default function HomePage() {
                 View Store <ChevronRight size={16} />
               </Link>
             </div>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {trendingProducts.map((product) => (
-                <ProductCardSection key={product.id} product={product} />
-              ))}
-            </div>
+            {trendingLoading ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                {Array.from({ length: TRENDING_PRODUCTS_PER_SLIDE }).map(
+                  (_, index) => (
+                    <div
+                      key={`trending-skeleton-${index}`}
+                      className="h-[340px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
+                    />
+                  ),
+                )}
+              </div>
+            ) : trendingSlides.length === 0 ? (
+              <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-8 text-center text-sm text-[var(--text-secondary)]">
+                Trending products are unavailable right now.
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="overflow-hidden">
+                  <div
+                    className="flex transition-transform duration-700 ease-out"
+                    style={{
+                      transform: `translateX(-${currentTrendingSlide * 100}%)`,
+                    }}
+                  >
+                    {trendingSlides.map((slide, slideIndex) => (
+                      <div
+                        key={`trending-slide-${slideIndex}`}
+                        className="min-w-full grid grid-cols-2 lg:grid-cols-4 gap-6"
+                      >
+                        {slide.map((product, productIndex) => (
+                          <ProductCardSection
+                            key={`${product.id}-${slideIndex}-${productIndex}`}
+                            product={product}
+                          />
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {trendingSlides.length > 1 && (
+                  <div className="mt-6 flex items-center justify-center gap-2">
+                    {trendingSlides.map((_, index) => (
+                      <button
+                        key={`trending-dot-${index}`}
+                        type="button"
+                        onClick={() => setCurrentTrendingSlide(index)}
+                        aria-label={`Go to trending slide ${index + 1}`}
+                        className={`h-2.5 rounded-full transition-all ${
+                          index === currentTrendingSlide
+                            ? "w-8 bg-[var(--brand-primary)]"
+                            : "w-2.5 bg-[var(--border-strong)]"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -507,37 +718,72 @@ export default function HomePage() {
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredVendors.map((vendor) => (
-                <div
-                  key={vendor.name}
-                  className="p-8 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] text-center group hover:border-[var(--brand-primary)] transition-colors"
-                >
-                  <div className="w-16 h-16 rounded-2xl bg-[var(--brand-primary)] text-[var(--text-inverse)] flex items-center justify-center mx-auto text-xl font-bold mb-4 shadow-sm">
-                    {vendor.initials}
-                  </div>
-                  <h3 className="text-lg font-normal text-[var(--text-primary)] font-body">
-                    {vendor.name}
-                  </h3>
-                  <div className="flex items-center justify-center gap-1 mt-2 mb-4">
-                    <Star
-                      size={14}
-                      className="fill-[var(--brand-primary)] text-[var(--brand-primary)]"
-                    />
-                    <span className="text-sm font-bold text-[var(--text-primary)]">
-                      {vendor.rating}
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)] ml-1">
-                      Rating
-                    </span>
-                  </div>
-                  {vendor.verified && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] text-[10px] font-bold uppercase tracking-wider">
-                      <BadgeCheck size={12} />
-                      Verified Vendor
-                    </div>
-                  )}
+              {spotlightLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={`vendor-skeleton-${i}`}
+                    className="h-[280px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
+                  />
+                ))
+              ) : spotlightVendors.length === 0 ? (
+                <div className="lg:col-span-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] p-8 text-center text-sm text-[var(--text-secondary)]">
+                  No vendor spots available right now.
                 </div>
-              ))}
+              ) : (
+                spotlightVendors.map((vendor, index) => {
+                  const rawName = vendor.businessName || "Verified Vendor";
+                  const cleanName = rawName.replace(/^"+|"+$/g, "");
+                  const rawCity = vendor.city || "Local Area";
+                  const cleanCity = rawCity.replace(/^"+|"+$/g, "").toLowerCase();
+                  const rawCat = vendor.storeCategory || "";
+                  const cleanCat = rawCat.replace(/^"+|"+$/g, "").toUpperCase();
+
+                  return (
+                    <div
+                      key={vendor.id || index}
+                      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-xl hover:border-[var(--brand-primary)] transition-all duration-300 group flex flex-col"
+                    >
+                      <div className="w-full aspect-[4/3] bg-[var(--bg-sunken)] relative overflow-hidden flex items-center justify-center shrink-0">
+                        {vendor.logoUrl ? (
+                          <img
+                            src={vendor.logoUrl}
+                            alt={cleanName}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--bg-sunken)] group-hover:scale-105 transition-transform duration-700">
+                             <Store className="w-12 h-12 text-[var(--text-muted)] mb-3" />
+                             <span className="text-sm font-medium text-[var(--text-muted)] text-opacity-70">No Image</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 pointer-events-none" />
+                      </div>
+
+                      <div className="p-6 flex flex-col items-center text-center flex-1">
+                        <h3
+                          className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] font-body line-clamp-1 w-full"
+                          title={cleanName}
+                        >
+                          {cleanName}
+                        </h3>
+
+                        {cleanCat && (
+                          <div className="mt-4">
+                            <span className="text-[var(--brand-primary)] text-xs font-bold px-3 py-1 bg-[var(--brand-primary)]/10 rounded-full max-w-full truncate uppercase tracking-widest border border-[var(--brand-primary)]/20">
+                              {cleanCat}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="mt-auto pt-6 w-full flex items-center justify-center text-[var(--text-secondary)] text-sm md:text-base capitalize font-medium">
+                          <MapPin size={18} className="mr-1.5 shrink-0" />
+                          <span className="truncate">{cleanCity}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </section>

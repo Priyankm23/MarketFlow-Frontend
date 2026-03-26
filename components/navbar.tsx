@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import {
   Search,
   ShoppingCart,
@@ -69,6 +68,7 @@ const categories = [
 export function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const fetchCart = useCartStore((state) => state.fetchCart);
   const cartItems = useCartStore((state) => state.getTotalItems());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -79,10 +79,17 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
+  React.useEffect(() => {
+    void fetchCart();
+  }, [fetchCart, user?.id, user?.role]);
+
   const handleLogout = async () => {
     await logout();
     setUserMenuOpen(false);
+    setMobileMenuOpen(false);
   };
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
 
   const getDashboardLink = () => {
     if (!user) return "/login";
@@ -108,7 +115,7 @@ export function Navbar() {
       }}
     >
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-[72px] gap-4">
+        <div className="flex items-center h-16 sm:h-[72px] gap-2 sm:gap-4">
           {/* Logo */}
           <Link
             href="/"
@@ -116,7 +123,15 @@ export function Navbar() {
             className="flex items-center shrink-0"
             style={{ textDecoration: "none" }}
           >
-            <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "24px", color: "var(--brand-primary)", letterSpacing: "0.02em", fontWeight: "normal" }}>
+            <h2
+              className="!text-[2rem] sm:!text-[2.25rem] !leading-none"
+              style={{
+                fontFamily: "var(--font-instrument-serif)",
+                color: "var(--brand-primary)",
+                letterSpacing: "0.02em",
+                fontWeight: "normal",
+              }}
+            >
               MarketFlow
             </h2>
           </Link>
@@ -209,12 +224,12 @@ export function Navbar() {
           </div>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Notifications */}
             {user && (
               <button
                 id="notifications-btn"
-                className="p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+                className="hidden sm:inline-flex p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
               >
                 <Bell className="w-5 h-5" />
                 <span
@@ -229,13 +244,16 @@ export function Navbar() {
               <Link
                 href="/customer/cart"
                 id="cart-btn"
-                className="p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+                className="inline-flex p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {cartItems > 0 && (
                   <span
                     className="absolute -top-0.5 -right-0.5 w-5 h-5 text-[10px] rounded-full flex items-center justify-center font-bold"
-                    style={{ background: "var(--brand-primary)", color: "var(--text-inverse)" }}
+                    style={{
+                      background: "var(--brand-primary)",
+                      color: "var(--text-inverse)",
+                    }}
                   >
                     {cartItems}
                   </span>
@@ -247,19 +265,30 @@ export function Navbar() {
             {mounted &&
               (user ? (
                 <div className="relative">
+                  <Link
+                    href={getDashboardLink()}
+                    className="sm:hidden inline-flex p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+                    aria-label="Open dashboard"
+                  >
+                    <User className="w-5 h-5" />
+                  </Link>
+
                   <button
                     id="user-menu-btn"
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                    className="p-1 rounded-full flex items-center gap-2 border border-[var(--border-default)]"
+                    className="hidden sm:flex p-1 rounded-full items-center gap-2 border border-[var(--border-default)]"
                   >
                     <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden">
-                       <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} alt="avatar" />
+                      <img
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`}
+                        alt="avatar"
+                      />
                     </div>
                   </button>
 
                   {userMenuOpen && (
                     <div
-                      className="absolute right-0 mt-2 w-52 rounded-xl py-2 shadow-lg z-50"
+                      className="hidden sm:block absolute right-0 mt-2 w-52 rounded-xl py-2 shadow-lg z-50"
                       style={{
                         background: "var(--bg-surface)",
                         border: "1px solid var(--border-default)",
@@ -281,7 +310,7 @@ export function Navbar() {
                         Profile
                       </Link>
                       <Link
-                        href="/orders"
+                        href="/customer/orders"
                         className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
                         onClick={() => setUserMenuOpen(false)}
                       >
@@ -302,6 +331,13 @@ export function Navbar() {
                   <Link
                     href="/login"
                     id="login-btn"
+                    className="sm:hidden inline-flex p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+                    aria-label="Login"
+                  >
+                    <User className="w-5 h-5" />
+                  </Link>
+                  <Link
+                    href="/login"
                     className="px-4 py-2 hidden sm:inline-flex text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   >
                     Login
@@ -309,7 +345,7 @@ export function Navbar() {
                   <Link
                     href="/vendor/apply"
                     id="become-vendor-btn"
-                    className="px-4 py-2 inline-flex items-center gap-1.5 text-sm font-medium bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-lg hover:opacity-90 transition-opacity"
+                    className="px-4 py-2 hidden sm:inline-flex items-center gap-1.5 text-sm font-medium bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-lg hover:opacity-90 transition-opacity"
                   >
                     Become a Vendor
                   </Link>
@@ -322,33 +358,38 @@ export function Navbar() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="md:hidden p-2 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </button>
           </div>
         </div>
 
-        {/* Mobile Search */}
-        <div className="md:hidden pb-3">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search products..."
-              className="w-full pl-10 pr-4 py-2.5 outline-none"
-              style={{
-                fontFamily: "var(--font-body)",
-                fontSize: "16px",
-                background: "#F6F5FF",
-                border: "1px solid #E0DEFB",
-                borderRadius: "8px",
-                color: "#1A1A2E",
-              }}
-            />
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-              style={{ color: "#9CA3AF" }}
-            />
+        {mobileMenuOpen && (
+          <div className="md:hidden pb-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search products..."
+                className="w-full pl-10 pr-4 py-2.5 outline-none"
+                style={{
+                  fontFamily: "var(--font-body)",
+                  fontSize: "16px",
+                  background: "#F6F5FF",
+                  border: "1px solid #E0DEFB",
+                  borderRadius: "8px",
+                  color: "#1A1A2E",
+                }}
+              />
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+                style={{ color: "#9CA3AF" }}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
@@ -359,6 +400,7 @@ export function Navbar() {
             <Link
               href="/products"
               className="block px-4 py-2.5 rounded-lg"
+              onClick={closeMobileMenu}
               style={{
                 fontFamily: "var(--font-body)",
                 fontSize: "16px",
@@ -373,6 +415,7 @@ export function Navbar() {
                 key={cat.name}
                 href={cat.href}
                 className="block px-4 py-2.5 rounded-lg"
+                onClick={closeMobileMenu}
                 style={{
                   fontFamily: "var(--font-body)",
                   fontSize: "16px",
@@ -384,18 +427,91 @@ export function Navbar() {
               </Link>
             ))}
             {mounted && !user && (
-              <Link
-                href="/login"
-                className="block px-4 py-2.5 rounded-lg"
-                style={{
-                  fontFamily: "var(--font-body)",
-                  fontSize: "16px",
-                  fontWeight: 500,
-                  color: "#4F46E5",
-                }}
-              >
-                Login
-              </Link>
+              <>
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#4F46E5",
+                  }}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/vendor/apply"
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#3D3D4E",
+                  }}
+                >
+                  Become a Vendor
+                </Link>
+              </>
+            )}
+
+            {mounted && user && (
+              <>
+                <div className="h-px bg-[var(--border-default)] my-1" />
+                <Link
+                  href={getDashboardLink()}
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#3D3D4E",
+                  }}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/profile"
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#3D3D4E",
+                  }}
+                >
+                  Profile
+                </Link>
+                <Link
+                  href="/customer/orders"
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#3D3D4E",
+                  }}
+                >
+                  My Orders
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "var(--status-error)",
+                  }}
+                >
+                  Logout
+                </button>
+              </>
             )}
           </div>
         )}

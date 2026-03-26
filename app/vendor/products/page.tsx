@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,6 @@ import {
   ShoppingBag,
   BarChart2,
   Settings,
-  Bell,
   Search,
   Plus,
   MoreVertical,
@@ -24,6 +23,13 @@ import {
   Minus,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  Boxes,
+  CircleOff,
+  IndianRupee,
+  Menu,
+  Star,
+  X,
 } from "lucide-react";
 import {
   Dialog,
@@ -38,26 +44,141 @@ import { Textarea } from "@/components/ui/textarea";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
 
+type VendorCategory = {
+  id: string;
+  name: string;
+};
+
+type VendorProduct = {
+  id: string;
+  name: string;
+  description?: string | null;
+  price: number;
+  stock: number;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+  rating?: number | null;
+  reviewCount?: number | null;
+  warranty?: string | null;
+  returnPolicy?: string | null;
+  category?:
+    | {
+        id?: string;
+        name?: string;
+      }
+    | string
+    | null;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+type StockFilter = "all" | "in-stock" | "low-stock" | "out-of-stock";
+type SortOption =
+  | "newest"
+  | "name-asc"
+  | "price-high"
+  | "price-low"
+  | "stock-high"
+  | "stock-low";
+
+const STOCK_FILTER_OPTIONS: Array<{ label: string; value: StockFilter }> = [
+  { label: "All", value: "all" },
+  { label: "In Stock", value: "in-stock" },
+  { label: "Low Stock", value: "low-stock" },
+  { label: "Out of Stock", value: "out-of-stock" },
+];
+
+const getSafeNumber = (value: unknown) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const formatPrice = (value: number) =>
+  new Intl.NumberFormat("en-IN", {
+    maximumFractionDigits: 0,
+  }).format(value);
+
+const getCategoryName = (product: VendorProduct) => {
+  if (typeof product.category === "string") {
+    return product.category;
+  }
+  return product.category?.name || "General";
+};
+
+function StatCard({
+  title,
+  value,
+  detail,
+  icon: Icon,
+}: {
+  title: string;
+  value: string;
+  detail: string;
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+}) {
+  return (
+    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            {title}
+          </p>
+          <p className="mt-1 text-2xl font-semibold text-[var(--text-primary)]">
+            {value}
+          </p>
+          <p className="mt-1 text-xs text-[var(--text-secondary)]">{detail}</p>
+        </div>
+        <div className="h-10 w-10 rounded-lg bg-[var(--bg-sunken)] text-[var(--brand-primary)] flex items-center justify-center">
+          <Icon size={18} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- PRODUCT CARD COMPONENT ---
 
 function ProductCard({
   product,
   onUpdateStock,
 }: {
-  product: any;
+  product: VendorProduct;
   onUpdateStock: (id: string, newStock: number) => Promise<void>;
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [localStock, setLocalStock] = useState(product.stock);
+  const [localStock, setLocalStock] = useState(getSafeNumber(product.stock));
   const [updating, setUpdating] = useState(false);
   const router = useRouter();
 
   const images =
-    product.imageUrls && product.imageUrls.length > 0
+    Array.isArray(product.imageUrls) && product.imageUrls.length > 0
       ? product.imageUrls
       : [product.imageUrl || "/placeholder-product-1.jpg"];
 
+  const categoryName = getCategoryName(product);
+  const rating = getSafeNumber(product.rating);
+  const reviewCount = getSafeNumber(product.reviewCount);
+  const numericPrice = getSafeNumber(product.price);
+
+  const stockTone =
+    localStock === 0
+      ? "bg-[var(--status-error-bg)] text-[var(--status-error)]"
+      : localStock <= 10
+        ? "bg-[var(--bg-sunken)] text-[var(--text-primary)]"
+        : "bg-[var(--status-success-bg)] text-[var(--status-success)]";
+
+  const stockLabel =
+    localStock === 0
+      ? "Out of stock"
+      : localStock <= 10
+        ? "Low stock"
+        : "In stock";
+
   const hasMultipleImages = images.length > 1;
+
+  useEffect(() => {
+    setLocalStock(getSafeNumber(product.stock));
+  }, [product.stock]);
 
   useEffect(() => {
     if (!hasMultipleImages) return;
@@ -96,15 +217,25 @@ function ProductCard({
   return (
     <div
       onClick={() => router.push(`/vendor/products/${product.id}`)}
-      className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-hidden group hover:shadow-md transition-shadow cursor-pointer flex flex-col h-full"
+      className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer flex flex-col h-full"
     >
-      <div className="aspect-square relative bg-[var(--bg-sunken)] overflow-hidden">
+      <div className="aspect-[4/3] relative bg-[var(--bg-sunken)] overflow-hidden">
         <Image
           src={images[currentImageIndex]}
           alt={product.name}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+
+        <div className="absolute top-2 left-2 inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-primary)]">
+          {categoryName}
+        </div>
+
+        <div
+          className={`absolute top-2 right-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide ${stockTone}`}
+        >
+          {stockLabel}
+        </div>
 
         {hasMultipleImages && (
           <>
@@ -130,30 +261,52 @@ function ProductCard({
             </div>
           </>
         )}
+
+        <button
+          className="absolute bottom-2 right-2 h-8 w-8 rounded-full bg-white/90 text-[var(--text-primary)] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="More options"
+        >
+          <MoreVertical size={16} />
+        </button>
       </div>
 
       <div className="p-4 flex-1 flex flex-col">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-normal text-[var(--text-primary)] line-clamp-2 leading-tight min-h-[56px] flex-1 font-body pr-2">
-            {product.name}
-          </h3>
-          <button
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <MoreVertical size={16} />
-          </button>
+        <h3 className="text-xl font-normal text-[var(--text-primary)] line-clamp-2 leading-tight min-h-[56px] font-body">
+          {product.name}
+        </h3>
+
+        <div className="mt-3 flex items-center justify-between gap-2">
+          <p className="text-2xl font-semibold text-[var(--text-primary)]">
+            ₹{formatPrice(numericPrice)}
+          </p>
+          {rating > 0 ? (
+            <p className="inline-flex items-center gap-1 rounded-md border border-[var(--border-default)] bg-white px-2 py-1 text-xs font-semibold text-[var(--text-secondary)]">
+              <Star size={12} className="text-[var(--brand-primary)]" />
+              {rating.toFixed(1)} ({formatPrice(reviewCount)})
+            </p>
+          ) : (
+            <p className="text-xs font-medium text-[var(--text-muted)]">
+              No ratings yet
+            </p>
+          )}
         </div>
-        <p className="text-lg font-bold text-[var(--text-primary)] mb-4">
-          ₹{product.price}
-        </p>
+
+        <div className="mt-3 space-y-1.5 text-xs text-[var(--text-secondary)]">
+          <p className="line-clamp-1">
+            Warranty: {product.warranty || "Not specified"}
+          </p>
+          <p className="line-clamp-1">
+            Returns: {product.returnPolicy || "Not specified"}
+          </p>
+        </div>
 
         <div className="mt-auto space-y-3">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-[var(--bg-sunken)]">
-            <span className="text-xs font-medium text-[var(--text-muted)] uppercase">
+          <div className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--bg-sunken)]">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wide">
               Stock
             </span>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
                 onClick={(e) => handleStockChange(e, -1)}
                 className="w-6 h-6 rounded flex items-center justify-center bg-white border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-base)]"
@@ -176,7 +329,7 @@ function ProductCard({
             <button
               onClick={handleUpdateClick}
               disabled={updating}
-              className="w-full py-2 bg-[var(--brand-primary)] text-white text-xs font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              className="w-full py-2 bg-[var(--brand-primary)] text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
             >
               {updating ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -197,11 +350,15 @@ export default function VendorProductsPage() {
   const user = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<VendorProfileData | null>(null);
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [products, setProducts] = useState<VendorProduct[]>([]);
+  const [categories, setCategories] = useState<VendorCategory[]>([]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -209,6 +366,8 @@ export default function VendorProductsPage() {
     price: "",
     stock: "",
     categoryId: "",
+    warranty: "",
+    returnPolicy: "",
   });
 
   useEffect(() => {
@@ -238,7 +397,7 @@ export default function VendorProductsPage() {
       const response = await authFetch(`${API_BASE_URL}/products/categories`);
       if (response.ok) {
         const result = await response.json();
-        const cats = result.data || [];
+        const cats = Array.isArray(result.data) ? result.data : [];
         setCategories(cats);
         if (cats.length > 0) {
           setFormData((prev) => ({ ...prev, categoryId: cats[0].id }));
@@ -256,7 +415,7 @@ export default function VendorProductsPage() {
       );
       if (response.ok) {
         const result = await response.json();
-        setProducts(result.data || []);
+        setProducts(Array.isArray(result.data) ? result.data : []);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -273,6 +432,8 @@ export default function VendorProductsPage() {
       body.append("price", formData.price);
       body.append("stock", formData.stock);
       body.append("categoryId", formData.categoryId);
+      body.append("warranty", formData.warranty);
+      body.append("returnPolicy", formData.returnPolicy);
 
       if (selectedFiles) {
         for (let i = 0; i < selectedFiles.length; i++) {
@@ -294,6 +455,8 @@ export default function VendorProductsPage() {
           price: "",
           stock: "",
           categoryId: categories.length > 0 ? categories[0].id : "",
+          warranty: "",
+          returnPolicy: "",
         });
         setSelectedFiles(null);
         await fetchProducts();
@@ -330,6 +493,78 @@ export default function VendorProductsPage() {
 
   const approved = isVendorApproved(profile?.status);
 
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    const searched = products.filter((product) => {
+      if (!query) return true;
+      const categoryName = getCategoryName(product).toLowerCase();
+      const name = (product.name || "").toLowerCase();
+      return name.includes(query) || categoryName.includes(query);
+    });
+
+    const filteredByStock = searched.filter((product) => {
+      const stock = getSafeNumber(product.stock);
+      if (stockFilter === "in-stock") return stock > 0;
+      if (stockFilter === "low-stock") return stock > 0 && stock <= 10;
+      if (stockFilter === "out-of-stock") return stock === 0;
+      return true;
+    });
+
+    const sorted = [...filteredByStock];
+    sorted.sort((a, b) => {
+      if (sortBy === "name-asc") {
+        return (a.name || "").localeCompare(b.name || "");
+      }
+      if (sortBy === "price-high") {
+        return getSafeNumber(b.price) - getSafeNumber(a.price);
+      }
+      if (sortBy === "price-low") {
+        return getSafeNumber(a.price) - getSafeNumber(b.price);
+      }
+      if (sortBy === "stock-high") {
+        return getSafeNumber(b.stock) - getSafeNumber(a.stock);
+      }
+      if (sortBy === "stock-low") {
+        return getSafeNumber(a.stock) - getSafeNumber(b.stock);
+      }
+
+      const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+      return bTime - aTime;
+    });
+
+    return sorted;
+  }, [products, searchQuery, stockFilter, sortBy]);
+
+  const productStats = useMemo(() => {
+    const totalProducts = products.length;
+    const totalUnits = products.reduce(
+      (sum, product) => sum + getSafeNumber(product.stock),
+      0,
+    );
+    const lowStock = products.filter((product) => {
+      const stock = getSafeNumber(product.stock);
+      return stock > 0 && stock <= 10;
+    }).length;
+    const outOfStock = products.filter(
+      (product) => getSafeNumber(product.stock) === 0,
+    ).length;
+    const inventoryValue = products.reduce(
+      (sum, product) =>
+        sum + getSafeNumber(product.stock) * getSafeNumber(product.price),
+      0,
+    );
+
+    return {
+      totalProducts,
+      totalUnits,
+      lowStock,
+      outOfStock,
+      inventoryValue,
+    };
+  }, [products]);
+
   const navItems = [
     { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
     {
@@ -352,21 +587,27 @@ export default function VendorProductsPage() {
         fontFamily: "var(--font-dm-sans)",
       }}
     >
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          className="fixed inset-0 z-40 bg-black/35 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <aside
-        className="w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderRight: "1px solid var(--border-default)",
-          zIndex: 50,
-        }}
+        className={`fixed inset-y-0 left-0 z-50 w-[250px] sm:w-[260px] flex flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)] transform transition-transform duration-300 ease-out ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",
-                fontSize: "24px",
+                fontSize: "22px",
                 color: "var(--brand-primary)",
                 letterSpacing: "0.03em",
                 fontWeight: "normal",
@@ -386,6 +627,15 @@ export default function VendorProductsPage() {
               Vendor Hub
             </p>
           </Link>
+
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="md:hidden h-8 w-8 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] flex items-center justify-center"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={18} />
+          </button>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
@@ -396,6 +646,7 @@ export default function VendorProductsPage() {
               <Link
                 key={item.label}
                 href={item.href}
+                onClick={() => setIsMobileSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                   isActive ? "" : "hover:bg-[var(--bg-sunken)]"
                 }`}
@@ -434,41 +685,47 @@ export default function VendorProductsPage() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 ml-[260px] flex flex-col min-h-screen">
+      <main className="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
         <header
-          className="h-[72px] px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40"
+          className="h-16 md:h-[72px] px-4 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-30"
           style={{ borderBottom: "1px solid var(--border-default)" }}
         >
-          <div className="flex items-center gap-4">
-            <h1
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "2.1rem",
-                color: "var(--text-primary)",
-                letterSpacing: "0.04em",
-                fontWeight: "normal",
-              }}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              className="md:hidden h-9 w-9 rounded-md border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-sunken)] flex items-center justify-center"
+              onClick={() => setIsMobileSidebarOpen(true)}
             >
-              Products
-            </h1>
+              <Menu size={18} />
+            </button>
+
+            <div className="flex flex-col gap-0.5">
+              <h1 className="text-2xl sm:text-3xl font-normal tracking-[0.04em] text-[var(--text-primary)]">
+                Products
+              </h1>
+              <p className="hidden sm:block text-xs font-medium text-[var(--text-secondary)]">
+                Track inventory, pricing, and product readiness.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsAddModalOpen(true)}
               disabled={!approved}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: "var(--brand-primary)",
                 color: "var(--text-inverse)",
               }}
             >
               <Plus size={18} />
-              Add Product
+              <span className="hidden sm:inline">Add Product</span>
             </button>
           </div>
         </header>
 
-        <div className="p-8 max-w-[1200px] w-full">
+        <div className="p-4 sm:p-6 md:p-8 max-w-[1200px] w-full">
           {loading ? (
             <div className="flex items-center gap-2 text-[var(--text-secondary)]">
               <Loader2 className="animate-spin" size={20} />
@@ -495,39 +752,156 @@ export default function VendorProductsPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  product={product}
-                  onUpdateStock={onUpdateStock}
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                <StatCard
+                  title="Total Products"
+                  value={formatPrice(productStats.totalProducts)}
+                  detail="Active items in your catalog"
+                  icon={Package}
                 />
-              ))}
+                <StatCard
+                  title="Inventory Units"
+                  value={formatPrice(productStats.totalUnits)}
+                  detail="Sellable units currently available"
+                  icon={Boxes}
+                />
+                <StatCard
+                  title="Low Stock"
+                  value={formatPrice(productStats.lowStock)}
+                  detail={`${formatPrice(productStats.outOfStock)} currently out of stock`}
+                  icon={AlertTriangle}
+                />
+                <StatCard
+                  title="Inventory Value"
+                  value={`₹${formatPrice(productStats.inventoryValue)}`}
+                  detail="Approx. value based on listed prices"
+                  icon={IndianRupee}
+                />
+              </div>
 
-              {products.length === 0 && (
-                <div className="col-span-full py-20 text-center border-2 border-dashed border-[var(--border-default)] rounded-2xl">
-                  <Package
-                    size={40}
-                    className="mx-auto mb-3 text-[var(--text-muted)] opacity-50"
-                  />
-                  <p className="text-[var(--text-secondary)]">
-                    No products listed yet.
-                  </p>
-                  <button
-                    onClick={() => setIsAddModalOpen(true)}
-                    className="mt-4 text-[var(--brand-primary)] text-sm font-medium hover:underline"
+              <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-4 shadow-sm space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search
+                      size={16}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                    />
+                    <Input
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search by product name or category"
+                      className="pl-9"
+                    />
+                  </div>
+
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="h-10 rounded-md border border-[var(--border-default)] bg-white px-3 text-sm text-[var(--text-primary)]"
                   >
-                    Add your first product
-                  </button>
+                    <option value="newest">Newest first</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="price-high">Price: High to low</option>
+                    <option value="price-low">Price: Low to high</option>
+                    <option value="stock-high">Stock: High to low</option>
+                    <option value="stock-low">Stock: Low to high</option>
+                  </select>
                 </div>
-              )}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  {STOCK_FILTER_OPTIONS.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setStockFilter(option.value)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        stockFilter === option.value
+                          ? "bg-[var(--brand-primary)] text-white"
+                          : "bg-[var(--bg-sunken)] text-[var(--text-secondary)] hover:bg-[var(--bg-base)]"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+
+                  {(searchQuery.length > 0 || stockFilter !== "all") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setStockFilter("all");
+                      }}
+                      className="ml-auto text-xs font-semibold text-[var(--brand-primary)] hover:underline"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p className="text-sm text-[var(--text-secondary)]">
+                  Showing {formatPrice(filteredProducts.length)} of{" "}
+                  {formatPrice(products.length)} products
+                </p>
+                {productStats.outOfStock > 0 && (
+                  <p className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--status-error)]">
+                    <CircleOff size={14} />
+                    {formatPrice(productStats.outOfStock)} item(s) need restock
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    onUpdateStock={onUpdateStock}
+                  />
+                ))}
+
+                {products.length === 0 && (
+                  <div className="col-span-full py-20 text-center border-2 border-dashed border-[var(--border-default)] rounded-2xl">
+                    <Package
+                      size={40}
+                      className="mx-auto mb-3 text-[var(--text-muted)] opacity-50"
+                    />
+                    <p className="text-[var(--text-secondary)]">
+                      No products listed yet.
+                    </p>
+                    <button
+                      onClick={() => setIsAddModalOpen(true)}
+                      className="mt-4 text-[var(--brand-primary)] text-sm font-medium hover:underline"
+                    >
+                      Add your first product
+                    </button>
+                  </div>
+                )}
+
+                {products.length > 0 && filteredProducts.length === 0 && (
+                  <div className="col-span-full py-16 text-center rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
+                    <Search
+                      size={28}
+                      className="mx-auto text-[var(--text-muted)]"
+                    />
+                    <p className="mt-3 text-base font-medium text-[var(--text-primary)]">
+                      No products match these filters
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--text-secondary)]">
+                      Try changing search terms or stock filters.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
       </main>
 
       <Dialog open={isAddModalOpen} onOpenChange={setIsAddModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle
               style={{
@@ -569,7 +943,7 @@ export default function VendorProductsPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
                   Price (₹)
@@ -618,6 +992,36 @@ export default function VendorProductsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
+                  Warranty
+                </label>
+                <Input
+                  required
+                  placeholder="e.g. 6 months"
+                  value={formData.warranty}
+                  onChange={(e) =>
+                    setFormData({ ...formData, warranty: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
+                  Return Policy
+                </label>
+                <Input
+                  required
+                  placeholder="e.g. 7-day easy return"
+                  value={formData.returnPolicy}
+                  onChange={(e) =>
+                    setFormData({ ...formData, returnPolicy: e.target.value })
+                  }
+                />
+              </div>
             </div>
 
             <div className="space-y-2">

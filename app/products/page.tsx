@@ -129,6 +129,8 @@ type ApiProduct = {
   price: number;
   stock: number;
   imageUrl?: string | null;
+  rating?: number | null;
+  reviewCount?: number | null;
   category?: {
     id?: string;
     name?: string;
@@ -192,6 +194,17 @@ export default function ProductsPage() {
         ? item.imageUrl
         : "/placeholder-product-1.jpg";
 
+    const ratingValue = Number(item.rating);
+    const reviewCountValue = Number(item.reviewCount);
+
+    const rating = Number.isFinite(ratingValue)
+      ? Math.min(5, Math.max(0, ratingValue))
+      : 0;
+
+    const reviewCount = Number.isFinite(reviewCountValue)
+      ? Math.max(0, reviewCountValue)
+      : 0;
+
     return {
       id: item.id,
       name: item.name,
@@ -203,8 +216,8 @@ export default function ProductsPage() {
       stock: Number(item.stock || 0),
       vendorId: item.vendor?.id || "",
       vendorName: item.vendor?.businessName || "Unknown Vendor",
-      rating: 4,
-      reviewCount: 0,
+      rating,
+      reviewCount,
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: item.updatedAt || new Date().toISOString(),
       featured: true,
@@ -423,6 +436,13 @@ export default function ProductsPage() {
                     className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--text-primary)] transition-colors"
                   >
                     {currentBanner.ctaLabel}
+                    <ArrowRight size={14} />
+                  </Link>
+                  <Link
+                    href="/customer/orders"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-primary)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition-colors"
+                  >
+                    My Orders
                     <ArrowRight size={14} />
                   </Link>
                   <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
