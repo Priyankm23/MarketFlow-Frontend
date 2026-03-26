@@ -33,9 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+import { API_BASE_URL } from "@/lib/config";
 
 export default function ProductDetailPage() {
   const { id } = useParams();

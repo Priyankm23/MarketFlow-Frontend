@@ -29,6 +29,7 @@ import {
   MapPin,
 } from "lucide-react";
 import "./hero-illustration.css";
+import { API_BASE_URL } from "@/lib/config";
 
 /* ================================================================== */
 /*  DATA                                                               */
@@ -85,14 +86,6 @@ const categories = [
   },
 ];
 
-const toApiV1BaseUrl = (baseUrl: string) => {
-  const trimmed = baseUrl.replace(/\/+$/, "");
-  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
-};
-
-const API_BASE_URL = toApiV1BaseUrl(
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1",
-);
 const TRENDING_PRODUCTS_ENDPOINT = `${API_BASE_URL}/products/trending`;
 const TRENDING_PRODUCTS_PER_SLIDE = 4;
 
@@ -734,7 +727,9 @@ export default function HomePage() {
                   const rawName = vendor.businessName || "Verified Vendor";
                   const cleanName = rawName.replace(/^"+|"+$/g, "");
                   const rawCity = vendor.city || "Local Area";
-                  const cleanCity = rawCity.replace(/^"+|"+$/g, "").toLowerCase();
+                  const cleanCity = rawCity
+                    .replace(/^"+|"+$/g, "")
+                    .toLowerCase();
                   const rawCat = vendor.storeCategory || "";
                   const cleanCat = rawCat.replace(/^"+|"+$/g, "").toUpperCase();
 
@@ -752,8 +747,10 @@ export default function HomePage() {
                           />
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--bg-sunken)] group-hover:scale-105 transition-transform duration-700">
-                             <Store className="w-12 h-12 text-[var(--text-muted)] mb-3" />
-                             <span className="text-sm font-medium text-[var(--text-muted)] text-opacity-70">No Image</span>
+                            <Store className="w-12 h-12 text-[var(--text-muted)] mb-3" />
+                            <span className="text-sm font-medium text-[var(--text-muted)] text-opacity-70">
+                              No Image
+                            </span>
                           </div>
                         )}
                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 pointer-events-none" />

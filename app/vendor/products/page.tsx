@@ -41,8 +41,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+import { API_BASE_URL } from "@/lib/config";
+
+// Using centralized API_BASE_URL from lib/config
 
 type VendorCategory = {
   id: string;

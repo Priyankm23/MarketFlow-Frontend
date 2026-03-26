@@ -6,9 +6,7 @@ import { Navbar } from "@/components/navbar";
 import { useCartStore } from "@/lib/store";
 import { authFetch } from "@/lib/auth-fetch";
 import { ChevronRight, Package, Loader2, Clock3 } from "lucide-react";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+import { API_BASE_URL } from "@/lib/config";
 const PAYMENT_WINDOW_SECONDS = 15 * 60;
 
 type ApiProfile = {

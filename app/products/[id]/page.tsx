@@ -22,9 +22,7 @@ import { Navbar } from "@/components/navbar";
 import { authFetch } from "@/lib/auth-fetch";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/lib/store";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+import { API_BASE_URL } from "@/lib/config";
 
 type ApiProduct = {
   id: string;

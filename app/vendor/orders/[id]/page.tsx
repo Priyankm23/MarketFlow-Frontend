@@ -33,16 +33,9 @@ import {
   Wallet,
   X,
 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/config";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
-
-const toApiV1BaseUrl = (baseUrl: string) => {
-  const trimmed = baseUrl.replace(/\/+$/, "");
-  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
-};
-
-const ORDERS_API_BASE_URL = toApiV1BaseUrl(API_BASE_URL);
+const ORDERS_API_BASE_URL = API_BASE_URL;
 
 type VendorOrderItem = {
   id?: string;
@@ -210,16 +203,21 @@ export default function VendorOrderDetailsPage() {
 
     const fetchAgentProfile = async () => {
       // Look for the partner using the ID if it's available and status is ready
-      if (!order?.deliveryPartnerId && normalizedStatus !== "READY_FOR_PICKUP") return;
-      
+      if (!order?.deliveryPartnerId && normalizedStatus !== "READY_FOR_PICKUP")
+        return;
+
       const partnerId = order?.deliveryPartnerId || "";
       if (!partnerId && !order) return;
 
       try {
         // Trying possible endpoints since the backend profile route is generic ("/profile")
-        let res = await authFetch(`${API_BASE_URL}/delivery/profile?userId=${partnerId}`);
+        let res = await authFetch(
+          `${API_BASE_URL}/delivery/profile?userId=${partnerId}`,
+        );
         if (!res.ok && partnerId) {
-          res = await authFetch(`${API_BASE_URL}/delivery/profile/${partnerId}`);
+          res = await authFetch(
+            `${API_BASE_URL}/delivery/profile/${partnerId}`,
+          );
         }
         if (!res.ok) {
           res = await authFetch(`${API_BASE_URL}/delivery/profile`);
@@ -1120,13 +1118,17 @@ export default function VendorOrderDetailsPage() {
                       {deliveryAgent && deliveryAgent.user ? (
                         <div className="mt-4 space-y-3 text-sm">
                           <div className="rounded-lg border border-indigo-100 bg-white/60 px-3 py-2.5">
-                            <p className="text-xs text-indigo-700/70">Agent Name</p>
+                            <p className="text-xs text-indigo-700/70">
+                              Agent Name
+                            </p>
                             <p className="font-semibold text-indigo-900 mt-0.5">
                               {deliveryAgent.user.name || "Unknown"}
                             </p>
                           </div>
                           <div className="rounded-lg border border-indigo-100 bg-white/60 px-3 py-2.5">
-                            <p className="text-xs text-indigo-700/70">Contact</p>
+                            <p className="text-xs text-indigo-700/70">
+                              Contact
+                            </p>
                             <p className="font-semibold text-indigo-900 mt-0.5">
                               {deliveryAgent.user.phone || "-"}
                             </p>

@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CreditCard, Loader2, Lock } from "lucide-react";
 import { authFetch } from "@/lib/auth-fetch";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
+import { API_BASE_URL } from "@/lib/config";
 const GATEWAY_NAME = "IndigoPay";
 const GATEWAY_HOST = "pay.indigopay-secure.com";
 const GATEWAY_LABEL = `${GATEWAY_NAME} Checkout`;

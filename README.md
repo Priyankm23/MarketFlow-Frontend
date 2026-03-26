@@ -238,6 +238,10 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
 NEXT_PUBLIC_STRIPE_KEY=pk_test_...
 ```
 
+Note: This project centralizes the backend host used by the frontend in `lib/config.ts`.
+Set the backend origin using `NEXT_PUBLIC_API_BASE_URL` in your `.env.local` (example:
+`NEXT_PUBLIC_API_BASE_URL=https://market-flow-backend.vercel.app/api/v1`).
+
 ## API Integration Points
 
 Currently using mock data. Ready for API integration:

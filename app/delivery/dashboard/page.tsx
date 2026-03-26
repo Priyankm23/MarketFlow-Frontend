@@ -5,16 +5,9 @@ import Link from "next/link";
 import { authFetch } from "@/lib/auth-fetch";
 import { DeliveryHeader } from "@/components/delivery-header";
 import { Bike, Clock3, Loader2, MapPin, Phone, Route } from "lucide-react";
+import { API_BASE_URL } from "@/lib/config";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api/v1";
-
-const toApiV1BaseUrl = (baseUrl: string) => {
-  const trimmed = baseUrl.replace(/\/+$/, "");
-  return trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
-};
-
-const DELIVERY_API_BASE_URL = `${toApiV1BaseUrl(API_BASE_URL)}/delivery`;
+const DELIVERY_API_BASE_URL = `${API_BASE_URL}/delivery`;
 
 type ApiAssignedTask = {
   id: string;
