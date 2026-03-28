@@ -5,8 +5,21 @@ import Link from "next/link";
 import { Navbar } from "@/components/navbar";
 import { useCartStore } from "@/lib/store";
 import { authFetch } from "@/lib/auth-fetch";
-import { ChevronRight, Package, Loader2, Clock3 } from "lucide-react";
+import { 
+  ChevronRight, 
+  Package, 
+  Loader2, 
+  Clock3, 
+  ArrowLeft, 
+  ShieldCheck, 
+  MapPin, 
+  Phone, 
+  Mail,
+  User,
+  CreditCard
+} from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
+
 const PAYMENT_WINDOW_SECONDS = 15 * 60;
 
 type ApiProfile = {
@@ -269,6 +282,11 @@ export default function CheckoutPage() {
   const totalPrice = getTotalPrice();
   const paymentSessionExpired = sessionSecondsLeft <= 0;
 
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("en-IN", {
+      maximumFractionDigits: 0,
+    }).format(price);
+
   const invoiceLineItems = useMemo<InvoiceLineItem[]>(() => {
     const productNameById = new Map(
       items.map((item) => [item.productId, item.product?.name || "Product"]),
@@ -427,11 +445,11 @@ export default function CheckoutPage() {
 
   if (cartLoading && items.length === 0) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--bg-base)]">
         <Navbar />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-primary" />
-          <p className="text-muted-foreground">Loading checkout...</p>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24 text-center">
+          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-[var(--brand-accent)]" />
+          <p className="text-xs font-black uppercase tracking-widest text-black">Initializing Checkout...</p>
         </div>
       </div>
     );
@@ -439,28 +457,24 @@ export default function CheckoutPage() {
 
   if (!cartLoading && items.length === 0 && step === 1) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-[var(--bg-base)]">
         <Navbar />
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="bg-card border border-border rounded-lg p-8 text-center space-y-4">
-            <h1 className="font-heading text-3xl leading-tight text-foreground">
-              Your cart is empty
-            </h1>
-            <p className="text-muted-foreground">
-              Add products to your cart before checkout.
-            </p>
-            <div className="flex justify-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+          <div className="bg-white border border-[var(--border-default)] rounded-xl p-12 text-center space-y-6 shadow-sm">
+            <h1 className="text-3xl font-black text-black uppercase tracking-tight">Your cart is empty</h1>
+            <p className="text-zinc-500 text-sm max-w-xs mx-auto">Add products to your bag before you can proceed to checkout.</p>
+            <div className="flex justify-center gap-4 pt-4">
               <Link
                 href="/customer/cart"
-                className="px-5 py-2 bg-primary text-white rounded-lg hover:opacity-90 font-medium"
+                className="px-8 py-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors"
               >
-                Go to Cart
+                Go to Bag
               </Link>
               <Link
                 href="/products"
-                className="px-5 py-2 border border-border rounded-lg hover:bg-secondary font-medium"
+                className="px-8 py-3 border border-[var(--border-default)] text-black rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--bg-sunken)] transition-colors"
               >
-                Browse Products
+                Catalogue
               </Link>
             </div>
           </div>
@@ -470,367 +484,342 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[var(--bg-base)] pb-20">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="font-heading text-4xl sm:text-5xl leading-[1.05] tracking-[0.015em] text-foreground mb-8">
-          Checkout
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+          <Link href="/" className="hover:text-black">Home</Link>
+          <ChevronRight size={12} />
+          <Link href="/customer/cart" className="hover:text-black">Bag</Link>
+          <ChevronRight size={12} />
+          <span className="text-black">Checkout</span>
+        </div>
+
+        <h1 className="text-4xl sm:text-5xl font-black text-black uppercase tracking-tighter mb-10">
+          Secure Checkout
         </h1>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="flex gap-4 mb-8">
+        <div className="grid lg:grid-cols-12 gap-10">
+          <div className="lg:col-span-8">
+            {/* Step Indicators */}
+            <div className="flex gap-10 mb-12 border-b border-[var(--border-default)] pb-6">
               {[
                 { num: 1, label: "Shipping" },
-                { num: 2, label: "Invoice" },
+                { num: 2, label: "Confirmation" },
               ].map((s) => (
-                <div key={s.num} className="flex items-center gap-2">
+                <div key={s.num} className="flex items-center gap-3">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                      s.num <= step
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-muted-foreground"
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black transition-colors ${
+                      s.num === step
+                        ? "bg-black text-white"
+                        : s.num < step 
+                          ? "bg-[var(--brand-accent)] text-white"
+                          : "bg-[var(--bg-sunken)] text-zinc-400"
                     }`}
                   >
                     {s.num < step ? "✓" : s.num}
                   </div>
-                  {s.num < 2 && (
-                    <div
-                      className={`w-8 h-1 ${s.num < step ? "bg-primary" : "bg-secondary"}`}
-                    ></div>
-                  )}
+                  <span className={`text-xs font-black uppercase tracking-widest ${s.num === step ? 'text-black' : 'text-zinc-400'}`}>
+                    {s.label}
+                  </span>
                 </div>
               ))}
             </div>
 
             {step === 1 && (
-              <form onSubmit={handleShippingSubmit} className="space-y-6">
-                <div className="bg-card border border-border rounded-lg p-6">
-                  <h2 className="font-heading text-2xl leading-tight text-foreground mb-4">
-                    Shipping Address
-                  </h2>
-
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={shipping.fullName}
-                          onChange={(e) =>
-                            setShipping({
-                              ...shipping,
-                              fullName: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Email *
-                        </label>
+              <form onSubmit={handleShippingSubmit} className="space-y-10">
+                <div className="space-y-8">
+                  <div className="flex items-center gap-3 mb-2">
+                    <User size={18} className="text-[var(--brand-accent)]" />
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-black">Contact Details</h2>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Full Name *</label>
+                      <input
+                        type="text"
+                        value={shipping.fullName}
+                        onChange={(e) => setShipping({ ...shipping, fullName: e.target.value })}
+                        className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Email *</label>
+                      <div className="relative">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
                         <input
                           type="email"
                           value={shipping.email}
-                          onChange={(e) =>
-                            setShipping({ ...shipping, email: e.target.value })
-                          }
-                          className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        value={shipping.phone}
-                        onChange={(e) =>
-                          setShipping({ ...shipping, phone: e.target.value })
-                        }
-                        className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Address Line 1 *
-                      </label>
-                      <input
-                        type="text"
-                        value={shipping.addressLine1}
-                        onChange={(e) =>
-                          setShipping({
-                            ...shipping,
-                            addressLine1: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="House No., Building Name"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Address Line 2
-                      </label>
-                      <input
-                        type="text"
-                        value={shipping.addressLine2}
-                        onChange={(e) =>
-                          setShipping({
-                            ...shipping,
-                            addressLine2: e.target.value,
-                          })
-                        }
-                        className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        placeholder="Apartment, Street, Sector, Village"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          City *
-                        </label>
-                        <input
-                          type="text"
-                          value={shipping.city}
-                          onChange={(e) =>
-                            setShipping({ ...shipping, city: e.target.value })
-                          }
-                          className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          State *
-                        </label>
-                        <input
-                          type="text"
-                          value={shipping.state}
-                          onChange={(e) =>
-                            setShipping({ ...shipping, state: e.target.value })
-                          }
-                          className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          Postal Code *
-                        </label>
-                        <input
-                          type="text"
-                          value={shipping.postalCode}
-                          onChange={(e) =>
-                            setShipping({
-                              ...shipping,
-                              postalCode: e.target.value,
-                            })
-                          }
-                          className="w-full px-4 py-2 bg-secondary border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                          onChange={(e) => setShipping({ ...shipping, email: e.target.value })}
+                          className="w-full h-12 pl-11 pr-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
                           required
                         />
                       </div>
                     </div>
                   </div>
 
-                  {checkoutError && (
-                    <p className="mt-4 text-sm text-destructive">
-                      {checkoutError}
-                    </p>
-                  )}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Phone Number *</label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-300" />
+                      <input
+                        type="tel"
+                        value={shipping.phone}
+                        onChange={(e) => setShipping({ ...shipping, phone: e.target.value })}
+                        className="w-full h-12 pl-11 pr-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                        placeholder="+91"
+                        required
+                      />
+                    </div>
+                  </div>
 
-                  <button
-                    type="submit"
-                    disabled={placingOrder}
-                    className="mt-6 w-full px-6 py-3 bg-primary text-white rounded-lg hover:opacity-90 font-medium flex items-center justify-center gap-2 disabled:opacity-60"
-                  >
-                    {placingOrder ? "Placing Order..." : "Checkout"}
-                    {!placingOrder && <ChevronRight className="w-5 h-5" />}
-                  </button>
+                  <div className="pt-4 space-y-8">
+                    <div className="flex items-center gap-3 mb-2">
+                      <MapPin size={18} className="text-[var(--brand-accent)]" />
+                      <h2 className="text-sm font-black uppercase tracking-[0.2em] text-black">Shipping Address</h2>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Address Line 1 *</label>
+                        <input
+                          type="text"
+                          value={shipping.addressLine1}
+                          onChange={(e) => setShipping({ ...shipping, addressLine1: e.target.value })}
+                          className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                          placeholder="House No., Building Name"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Address Line 2</label>
+                        <input
+                          type="text"
+                          value={shipping.addressLine2}
+                          onChange={(e) => setShipping({ ...shipping, addressLine2: e.target.value })}
+                          className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                          placeholder="Apartment, Street, Village"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">City *</label>
+                          <input
+                            type="text"
+                            value={shipping.city}
+                            onChange={(e) => setShipping({ ...shipping, city: e.target.value })}
+                            className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">State *</label>
+                          <input
+                            type="text"
+                            value={shipping.state}
+                            onChange={(e) => setShipping({ ...shipping, state: e.target.value })}
+                            className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                            required
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] ml-1">Postal Code *</label>
+                          <input
+                            type="text"
+                            value={shipping.postalCode}
+                            onChange={(e) => setShipping({ ...shipping, postalCode: e.target.value })}
+                            className="w-full h-12 px-4 bg-white border border-[var(--border-default)] rounded-xl text-sm font-bold focus:border-black outline-none transition-colors"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+
+                {checkoutError && (
+                  <div className="p-4 bg-red-50 rounded-xl border border-red-100 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <p className="text-xs font-bold text-red-600 uppercase tracking-widest">{checkoutError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={placingOrder}
+                  className="w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 disabled:opacity-60 shadow-xl"
+                >
+                  {placingOrder ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      Proceed to Review
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
               </form>
             )}
 
             {step === 2 && (
-              <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="font-heading text-2xl leading-tight text-foreground">
-                      Order Invoice
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Your order is placed with status payment pending.
-                    </p>
+              <div className="space-y-10">
+                <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-sm space-y-8">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h2 className="text-xl font-black text-black uppercase tracking-tight">Order Confirmation</h2>
+                      <p className="text-xs font-bold text-zinc-400 mt-1 uppercase tracking-widest">Order placed successfully • Awaiting Payment</p>
+                    </div>
+                    <span className="px-3 py-1 bg-[var(--bg-sunken)] rounded-full text-[10px] font-black uppercase tracking-widest text-black border border-[var(--border-default)]">
+                      Pending
+                    </span>
                   </div>
-                  <span className="inline-flex items-center rounded-full bg-secondary px-3 py-1 text-xs font-semibold text-foreground">
-                    Payment Pending
-                  </span>
-                </div>
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary/60">
-                      <tr className="text-left text-muted-foreground">
-                        <th className="px-4 py-3 font-medium">Product</th>
-                        <th className="px-4 py-3 font-medium">Qty</th>
-                        <th className="px-4 py-3 font-medium">Price</th>
-                        <th className="px-4 py-3 font-medium text-right">
-                          Subtotal
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoiceLineItems.map((line) => (
-                        <tr key={line.key} className="border-t border-border">
-                          <td className="px-4 py-3 text-foreground">
-                            {line.productName}
-                          </td>
-                          <td className="px-4 py-3">{line.quantity}</td>
-                          <td className="px-4 py-3">
-                            ₹{line.price.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-right font-medium text-foreground">
-                            ₹{line.subtotal.toLocaleString()}
-                          </td>
+                  <div className="rounded-xl border border-[var(--border-default)] overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-[var(--bg-sunken)]">
+                        <tr className="text-[10px] font-black uppercase tracking-widest text-zinc-500 border-b border-[var(--border-default)]">
+                          <th className="px-6 py-4">Product</th>
+                          <th className="px-6 py-4 text-center">Qty</th>
+                          <th className="px-6 py-4 text-right">Subtotal</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-default)]">
+                        {invoiceLineItems.map((line) => (
+                          <tr key={line.key} className="text-sm font-bold">
+                            <td className="px-6 py-4 text-black uppercase tracking-tight">{line.productName}</td>
+                            <td className="px-6 py-4 text-center">{line.quantity}</td>
+                            <td className="px-6 py-4 text-right font-black">₹{formatPrice(line.subtotal)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
 
-                <div className="rounded-lg bg-secondary/50 p-4 space-y-2">
-                  <p className="text-sm text-muted-foreground">Shipping To</p>
-                  <p className="text-sm text-foreground font-medium">
-                    {shipping.fullName}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {shipping.email} | {shipping.phone}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {shipping.addressLine1}
-                    {shipping.addressLine2
-                      ? `, ${shipping.addressLine2}`
-                      : ""}, {shipping.city}, {shipping.state} -{" "}
-                    {shipping.postalCode}
-                  </p>
-                </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Shipping Details</h4>
+                      <p className="text-sm font-black text-black uppercase">{shipping.fullName}</p>
+                      <p className="text-xs font-bold text-zinc-500 leading-relaxed">
+                        {shipping.addressLine1}, {shipping.addressLine2 ? shipping.addressLine2 + ', ' : ''}
+                        {shipping.city}, {shipping.state} - {shipping.postalCode}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Contact Info</h4>
+                      <p className="text-xs font-bold text-zinc-500">{shipping.email}</p>
+                      <p className="text-xs font-bold text-zinc-500">{shipping.phone}</p>
+                    </div>
+                  </div>
 
-                <div className="border-t border-border pt-4 flex items-center justify-between">
-                  <span className="font-semibold text-foreground">
-                    Invoice Total
-                  </span>
-                  <span className="text-xl font-bold text-primary">
-                    ₹{invoiceTotal.toLocaleString()}
-                  </span>
+                  <div className="pt-8 border-t border-[var(--border-default)] flex items-center justify-between">
+                    <span className="text-sm font-black text-zinc-400 uppercase tracking-widest">Total Invoice</span>
+                    <span className="text-3xl font-black text-black tracking-tighter">₹{formatPrice(invoiceTotal)}</span>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-4">
             {step === 1 ? (
-              <div className="bg-card border border-border rounded-lg p-6 sticky top-24">
-                <h2 className="font-heading text-2xl leading-tight text-foreground mb-4 flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Order Summary
-                </h2>
+              <div className="sticky top-24 space-y-6">
+                <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-6">
+                  <h2 className="text-xl font-black text-black uppercase tracking-tight flex items-center gap-3">
+                    <Package className="w-5 h-5 text-[var(--brand-accent)]" />
+                    Order Summary
+                  </h2>
 
-                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
-                  {items.map((item) => (
-                    <div
-                      key={item.productId}
-                      className="flex justify-between text-sm"
-                    >
-                      <span className="text-muted-foreground">
-                        {item.product?.name || "Product"} x{item.quantity}
-                      </span>
-                      <span className="font-medium">
-                        ₹{(item.price * item.quantity).toLocaleString()}
-                      </span>
+                  <div className="space-y-4 max-h-64 overflow-y-auto pr-2 scrollbar-hide">
+                    {items.map((item) => (
+                      <div key={item.productId} className="flex justify-between gap-4">
+                        <div className="flex-1">
+                          <p className="text-xs font-black text-black uppercase leading-tight line-clamp-1">{item.product?.name || "Product"}</p>
+                          <p className="text-[10px] font-bold text-zinc-400 mt-1 uppercase tracking-tighter">Qty: {item.quantity}</p>
+                        </div>
+                        <span className="text-xs font-black text-black">₹{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-[var(--border-default)] pt-6 space-y-4">
+                    <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      <span>Subtotal</span>
+                      <span>₹{formatPrice(totalPrice)}</span>
                     </div>
-                  ))}
+                    <div className="flex justify-between items-center text-xs font-bold text-green-600 uppercase tracking-widest">
+                      <span>Delivery</span>
+                      <span>Free</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-4 border-t border-[var(--border-default)]">
+                      <span className="text-sm font-black text-black uppercase tracking-widest">Total</span>
+                      <span className="text-2xl font-black text-black tracking-tighter">₹{formatPrice(totalPrice)}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="border-t border-border pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Subtotal</span>
-                    <span>₹{totalPrice.toLocaleString()}</span>
+                <div className="p-6 bg-black rounded-xl text-white space-y-4 border border-zinc-800 shadow-xl">
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck size={18} className="text-[var(--brand-accent)]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Secure Payment Gateway</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Shipping</span>
-                    <span className="text-green-600 dark:text-green-400">
-                      Free
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-border">
-                    <span>Total</span>
-                    <span className="text-primary">
-                      ₹{totalPrice.toLocaleString()}
-                    </span>
-                  </div>
+                  <p className="text-[10px] text-zinc-400 font-bold leading-relaxed">
+                    Your transactions are protected with military-grade 256-bit SSL encryption and fraud prevention systems.
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="bg-card border border-border rounded-lg p-6 sticky top-24 space-y-5">
-                <h2 className="font-heading text-2xl leading-tight text-foreground">
-                  Payment Session
-                </h2>
+              <div className="sticky top-24 space-y-6">
+                <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-8">
+                  <h2 className="text-xl font-black text-black uppercase tracking-tight flex items-center gap-3">
+                    <CreditCard className="w-5 h-5 text-[var(--brand-accent)]" />
+                    Final Step
+                  </h2>
 
-                <div className="rounded-lg border border-border p-4 bg-secondary/40">
-                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-1">
-                    Time Remaining
+                  <div className="p-6 bg-[var(--bg-sunken)] rounded-xl border border-[var(--border-default)] text-center space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Payment Window Expires In</p>
+                    <div className="flex items-center justify-center gap-3 text-4xl font-black text-black tracking-tighter tabular-nums">
+                      <Clock3 className="w-6 h-6 text-[var(--brand-accent)]" />
+                      {formatTimer(sessionSecondsLeft)}
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-zinc-400 font-bold leading-relaxed text-center uppercase tracking-tighter">
+                    Please complete your payment within 15 minutes to secure your items and current pricing.
                   </p>
-                  <p
-                    className={`text-3xl font-bold tabular-nums ${paymentSessionExpired ? "text-destructive" : "text-foreground"}`}
+
+                  <button
+                    type="button"
+                    onClick={() => { void handleProceedToPay(); }}
+                    disabled={paymentSessionExpired || initiatingPayment}
+                    className="w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg"
                   >
-                    {formatTimer(sessionSecondsLeft)}
-                  </p>
+                    {initiatingPayment ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <>
+                        Proceed to Payment
+                        <ChevronRight className="w-5 h-5" />
+                      </>
+                    )}
+                  </button>
                 </div>
 
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  After 15 minutes, your reserved products will be added back to
-                  stock if payment is not completed.
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    void handleProceedToPay();
-                  }}
-                  disabled={paymentSessionExpired || initiatingPayment}
-                  className="w-full px-5 py-3 bg-primary text-white rounded-lg hover:opacity-90 font-semibold disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                >
-                  <Clock3 className="w-4 h-4" />
-                  {initiatingPayment
-                    ? "Connecting Gateway..."
-                    : "Proceed to Pay"}
-                </button>
-
                 {checkoutOrders.length > 0 && (
-                  <div className="rounded-lg border border-border p-3 text-xs text-muted-foreground space-y-1">
-                    <p className="font-semibold text-foreground">Order IDs</p>
-                    {checkoutOrders.map((order, index) => (
-                      <p
-                        key={order.id || `order-${index}`}
-                        className="font-mono"
-                      >
-                        {order.id || `Order ${index + 1}`}
-                      </p>
-                    ))}
+                  <div className="p-6 bg-[var(--bg-sunken)] border border-[var(--border-default)] rounded-xl space-y-4">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-black">Reference IDs</h4>
+                    <div className="space-y-2">
+                      {checkoutOrders.map((order, index) => (
+                        <div key={order.id || `order-${index}`} className="flex items-center justify-between text-[10px] font-bold text-zinc-500">
+                          <span>Order #{index + 1}</span>
+                          <span className="font-mono text-black">{order.id?.slice(-12) || "---"}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

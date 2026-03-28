@@ -59,6 +59,12 @@ type VendorOrderEvent = {
 type VendorOrder = {
   id: string;
   deliveryPartnerId?: string;
+  deliveryPartner?: {
+    id?: string;
+    user?: { id?: string; name?: string; email?: string; phone?: string };
+    activeDeliveries?: number;
+    dailyCapacity?: number;
+  } | null;
   totalAmount?: number;
   status?: string;
   createdAt?: string;
@@ -199,48 +205,19 @@ export default function VendorOrderDetailsPage() {
   const normalizedStatus = (order?.status || "").toUpperCase();
 
   useEffect(() => {
-    let active = true;
+    // Prefer using the delivery partner data included in the order payload.
+    // If the backend returned `order.deliveryPartner`, use that directly.
+    if (!order) return;
 
-    const fetchAgentProfile = async () => {
-      // Look for the partner using the ID if it's available and status is ready
-      if (!order?.deliveryPartnerId && normalizedStatus !== "READY_FOR_PICKUP")
-        return;
-
-      const partnerId = order?.deliveryPartnerId || "";
-      if (!partnerId && !order) return;
-
-      try {
-        // Trying possible endpoints since the backend profile route is generic ("/profile")
-        let res = await authFetch(
-          `${API_BASE_URL}/delivery/profile?userId=${partnerId}`,
-        );
-        if (!res.ok && partnerId) {
-          res = await authFetch(
-            `${API_BASE_URL}/delivery/profile/${partnerId}`,
-          );
-        }
-        if (!res.ok) {
-          res = await authFetch(`${API_BASE_URL}/delivery/profile`);
-        }
-
-        if (res.ok) {
-          const payload = await res.json();
-          if (active) {
-            setDeliveryAgent(payload.data || payload);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to fetch delivery partner profile", e);
-      }
-    };
-
-    if (normalizedStatus === "READY_FOR_PICKUP") {
-      void fetchAgentProfile();
+    if (order.deliveryPartner) {
+      setDeliveryAgent(order.deliveryPartner);
+      return;
     }
 
-    return () => {
-      active = false;
-    };
+    // If the order has no embedded deliveryPartner and status is READY_FOR_PICKUP,
+    // leave `deliveryAgent` null so the UI shows the "Fetching agent details..." text.
+    // We intentionally avoid calling the `/delivery/profile` API here because
+    // the vendor order response already contains the needed partner info when available.
   }, [order?.deliveryPartnerId, normalizedStatus]);
 
   useEffect(() => {

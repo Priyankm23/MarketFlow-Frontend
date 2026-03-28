@@ -6,8 +6,8 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        heading: ["Fraunces", "Georgia", "serif"],
-        body: ["var(--font-inter)", "system-ui", "sans-serif"],
+        heading: ["var(--font-dm-sans)", "Inter", "system-ui", "sans-serif"],
+        body: ["var(--font-dm-sans)", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
         primary: {

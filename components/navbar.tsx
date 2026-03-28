@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   ShoppingCart,
@@ -74,6 +75,14 @@ export function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (q) router.push(`/products?search=${encodeURIComponent(q)}`);
+  };
 
   React.useEffect(() => {
     setMounted(true);
@@ -114,7 +123,7 @@ export function Navbar() {
         borderBottom: "1px solid var(--border-default)",
       }}
     >
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center h-16 sm:h-[72px] gap-2 sm:gap-4">
           {/* Logo */}
           <Link
@@ -127,7 +136,7 @@ export function Navbar() {
               className="!text-[2rem] sm:!text-[2.25rem] !leading-none"
               style={{
                 fontFamily: "var(--font-instrument-serif)",
-                color: "var(--brand-primary)",
+                color: "var(--brand-accent)",
                 letterSpacing: "0.02em",
                 fontWeight: "normal",
               }}
@@ -142,18 +151,17 @@ export function Navbar() {
               id="category-menu-btn"
               onClick={() => setCategoryMenuOpen(!categoryMenuOpen)}
               onBlur={() => setTimeout(() => setCategoryMenuOpen(false), 200)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-[var(--brand-accent-soft)] transition-colors"
               style={{
                 fontFamily: "var(--font-body)",
                 fontSize: "16px",
-                fontWeight: 500,
+                fontWeight: 600,
                 color: "var(--text-primary)",
-                transition: "color .2s",
               }}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-5 h-5 text-[var(--brand-accent)]" />
               Categories
-              <ChevronDown className="w-4 h-4" />
+              <ChevronDown className="w-4 h-4 opacity-50" />
             </button>
 
             {categoryMenuOpen && (
@@ -198,11 +206,13 @@ export function Navbar() {
           </div>
 
           {/* Search Bar */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-8">
+          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
             <div className="w-full relative">
               <input
                 id="search-input"
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search for products, brands, vendors..."
                 className="w-full pl-11 pr-4 py-2.5 outline-none"
                 style={{
@@ -216,12 +226,11 @@ export function Navbar() {
                   transition: "border-color .2s",
                 }}
               />
-              <Search
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5"
-                style={{ color: "var(--text-muted)" }}
-              />
+              <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2">
+                <Search className="w-5 h-5" style={{ color: "var(--text-muted)" }} />
+              </button>
             </div>
-          </div>
+          </form>
 
           {/* Right Actions */}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
@@ -296,18 +305,11 @@ export function Navbar() {
                       }}
                     >
                       <Link
-                        href={getDashboardLink()}
-                        className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        Dashboard
-                      </Link>
-                      <Link
                         href="/profile"
                         className="block px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
                         onClick={() => setUserMenuOpen(false)}
                       >
-                        Profile
+                        Your Account
                       </Link>
                       <Link
                         href="/customer/orders"
@@ -315,8 +317,7 @@ export function Navbar() {
                         onClick={() => setUserMenuOpen(false)}
                       >
                         My Orders
-                      </Link>
-                      <div className="h-px bg-[var(--border-default)] my-1" />
+                      </Link>                      <div className="h-px bg-[var(--border-default)] my-1" />
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--status-error)] hover:bg-[var(--status-error-bg)]"
@@ -343,11 +344,18 @@ export function Navbar() {
                     Login
                   </Link>
                   <Link
+                    href="/register"
+                    id="signup-btn"
+                    className="px-4 py-2 hidden sm:inline-flex items-center gap-1.5 text-sm font-medium border border-[var(--border-strong)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-sunken)] transition-colors"
+                  >
+                    Sign Up
+                  </Link>
+                  <Link
                     href="/vendor/apply"
                     id="become-vendor-btn"
                     className="px-4 py-2 hidden sm:inline-flex items-center gap-1.5 text-sm font-medium bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-lg hover:opacity-90 transition-opacity"
                   >
-                    Become a Vendor
+                    Sell on MarketFlow
                   </Link>
                 </div>
               ))}
@@ -461,41 +469,16 @@ export function Navbar() {
               <>
                 <div className="h-px bg-[var(--border-default)] my-1" />
                 <Link
-                  href={getDashboardLink()}
-                  onClick={closeMobileMenu}
-                  className="block px-4 py-2.5 rounded-lg"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                    color: "#3D3D4E",
-                  }}
-                >
-                  Dashboard
-                </Link>
-                <Link
                   href="/profile"
                   onClick={closeMobileMenu}
-                  className="block px-4 py-2.5 rounded-lg"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                    color: "#3D3D4E",
-                  }}
+                  className="block px-4 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest text-black hover:bg-[var(--bg-sunken)]"
                 >
-                  Profile
+                  Your Account
                 </Link>
                 <Link
                   href="/customer/orders"
                   onClick={closeMobileMenu}
-                  className="block px-4 py-2.5 rounded-lg"
-                  style={{
-                    fontFamily: "var(--font-body)",
-                    fontSize: "16px",
-                    fontWeight: 500,
-                    color: "#3D3D4E",
-                  }}
+                  className="block px-4 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest text-black hover:bg-[var(--bg-sunken)]"
                 >
                   My Orders
                 </Link>
@@ -515,6 +498,36 @@ export function Navbar() {
             )}
           </div>
         )}
+      </div>
+
+      {/* ── CATEGORY PILLS BAR ── */}
+      <div
+        className="border-t border-[var(--border-default)] overflow-x-auto scrollbar-hide"
+        style={{ background: "var(--bg-surface)" }}
+      >
+        <div className="flex items-center gap-0 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto">
+          {[
+            { label: "For You", href: "/products" },
+            { label: "Electronics", href: `/products?category=${encodeURIComponent("Electronics")}` },
+            { label: "Fashion", href: `/products?category=${encodeURIComponent("Fashion")}` },
+            { label: "Home & Living", href: `/products?category=${encodeURIComponent("Home & Living")}` },
+            { label: "Sports", href: `/products?category=${encodeURIComponent("Sports")}` },
+            { label: "Books", href: `/products?category=${encodeURIComponent("Books")}` },
+            { label: "Beauty", href: `/products?category=${encodeURIComponent("Beauty")}` },
+            { label: "Food & Gourmet", href: `/products?category=${encodeURIComponent("Food & Gourmet")}` },
+            { label: "Toys & Games", href: `/products?category=${encodeURIComponent("Toys & Games")}` },
+            { label: "Today's Deals", href: "/products#deals" },
+          ].map((pill) => (
+            <Link
+              key={pill.label}
+              href={pill.href}
+              className="shrink-0 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors hover:text-[var(--text-primary)] border-b-2 border-transparent hover:border-[var(--brand-primary)]"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {pill.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </nav>
   );

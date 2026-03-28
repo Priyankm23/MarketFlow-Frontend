@@ -1,6 +1,47 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Utility: hide scrollbar but keep scrolling functional */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile brand marquee — continuous auto-scroll animation */
+@keyframes mobile-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.mobile-brand-marquee {
+  display: flex;
+  gap: 12px;
+  width: max-content;
+  animation: mobile-marquee 20s linear infinite;
+}
+.mobile-brand-marquee:hover {
+  animation-play-state: paused;
+}
+.mobile-brand-tile {
+  flex: none;
+  width: 120px;
+  height: 120px;
+  border-radius: 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================================
@@ -51,8 +92,10 @@
   --text-disabled: #9ca3af;
 
   /* Font families */
-  --font-heading: var(--font-instrument-serif), "Fraunces", Georgia, serif;
-  --font-body: var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading:
+    var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body:
+    var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-dm-mono), monospace;
 
   /* NEW MARKETFLOW DESIGN SYSTEM VARIABLES */
@@ -68,9 +111,10 @@
   --text-inverse: #fafafa;
 
   /* Brand */
-  --brand-primary: #18181b;
-  --brand-accent: #e11d48;
-  --brand-accent-soft: #fff1f2;
+  --brand-primary: #000000;
+  --brand-accent: #ff0000;
+  --brand-accent-soft: #fff5f5;
+  --brand-accent-hover: #cc0000;
 
   /* Semantic Status */
   --status-success: #059669;
@@ -105,9 +149,12 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-body: var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: var(--font-instrument-serif), "Fraunces", Georgia, serif;
+  --font-sans:
+    var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body:
+    var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading:
+    var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-dm-mono), monospace;
 
   --color-background: var(--bg-base);
@@ -129,15 +176,31 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-heading);
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family:
+      var(--font-dm-sans),
+      "Inter",
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
     color: var(--text-primary);
     font-weight: normal;
-    letter-spacing: 0.02em;
+    letter-spacing: -0.01em;
   }
-  h1 { font-size: 3rem; }
-  h2 { font-size: 2.25rem; }
-  h3 { font-size: 1.5rem; }
+  h1 {
+    font-size: 3rem;
+  }
+  h2 {
+    font-size: 2.25rem;
+  }
+  h3 {
+    font-size: 1.5rem;
+  }
 }
 
 @layer components {
@@ -227,7 +290,8 @@
   padding: 0 2rem;
   width: 100%;
   display: grid;
-  grid-template-columns: 52% 48%;
+  /* Use a 60 / 40 split for desktop: left = image sliders, right = brand marquee */
+  grid-template-columns: 60% 40%;
   gap: 3rem;
   align-items: start;
   z-index: 1;
@@ -270,7 +334,12 @@
 }
 
 .hero-headline {
-  font-family: var(--font-heading);
+  font-family:
+    var(--font-dm-sans),
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   font-size: 52px;
   font-weight: 700;
   line-height: 1.1;
@@ -287,29 +356,36 @@
   font-size: 17px;
   font-weight: 400;
   line-height: 1.7;
-  color: #6b7280;
-  max-width: 420px;
-}
-
-/* CTA Buttons */
-.hero-cta-group {
-  display: flex;
-  flex-wrap: wrap;
+  .hero-right-fade::before,
+  .hero-right-fade::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: clamp(40px, 8%, 72px);
+    pointer-events: none;
+    z-index: 6;
+    /* apply a subtle backdrop blur so the edges fade and blur adjacent content */
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+  }
   gap: 12px;
-  align-items: center;
-}
-.hero-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+  left: 0;
+  background: linear-gradient(
+    to right,
+    rgba(246, 245, 255, 0.95) 0%,
+    rgba(246, 245, 255, 0.35) 40%,
+    rgba(246, 245, 255, 0) 100%
+  );
   padding: 14px 28px;
   background: #4f46e5;
-  color: #ffffff;
-  font-family: var(--font-body);
-  font-size: 15px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  border-radius: 10px;
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(246, 245, 255, 0.95) 0%,
+    rgba(246, 245, 255, 0.35) 40%,
+    rgba(246, 245, 255, 0) 100%
+  );
   text-decoration: none;
   transition:
     background 0.2s ease,
@@ -401,7 +477,12 @@
   gap: 2px;
 }
 .hero-stat-value {
-  font-family: var(--font-heading);
+  font-family:
+    var(--font-dm-sans),
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   font-size: 32px;
   font-weight: 700;
   color: #1a1a2e;
@@ -453,24 +534,31 @@
   left: 0;
   background: linear-gradient(
     to right,
-    #f6f5ff 0%,
-    rgba(246, 245, 255, 0) 100%
+    var(--bg-sunken) 0%,
+    rgba(244, 244, 245, 0) 100%
   );
 }
 
 .hero-right-fade::after {
   right: 0;
-  background: linear-gradient(to left, #f6f5ff 0%, rgba(246, 245, 255, 0) 100%);
+  background: linear-gradient(
+    to left,
+    var(--bg-sunken) 0%,
+    rgba(244, 244, 245, 0) 100%
+  );
 }
 
 .hero-logo-marquee {
   position: relative;
-  min-height: 390px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 22px;
-  padding: 0 14px;
+  gap: 16px;
+  padding: 20px 0;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .hero-right-stats {
@@ -490,6 +578,7 @@
   align-items: center;
   gap: 18px;
   width: max-content;
+  will-change: transform;
 }
 
 .hero-logo-track-forward {
@@ -501,9 +590,10 @@
 }
 
 .hero-brand-logo-item {
-  width: 210px;
-  height: 108px;
-  flex: 0 0 210px;
+  /* increase logo tile slightly for better visibility */
+  width: 180px;
+  height: 96px;
+  flex: 0 0 180px;
   display: block;
   position: relative;
   overflow: hidden;
@@ -518,6 +608,8 @@
   height: 100%;
   margin: 0;
   object-fit: contain;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 @keyframes heroLogoMarqueeForward {
@@ -542,7 +634,12 @@
    Section Utilities
    ========================================================== */
 .section-heading {
-  font-family: var(--font-heading);
+  font-family:
+    var(--font-dm-sans),
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   font-size: 36px;
   font-weight: 700;
   color: #1a1a2e;

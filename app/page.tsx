@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuthStore } from "@/lib/store";
 import { Navbar } from "@/components/navbar";
 import { HeroCarousel } from "@/components/hero-carousel";
 import {
@@ -27,6 +28,8 @@ import {
   Mail,
   ChevronRight,
   MapPin,
+  Zap,
+  Clock,
 } from "lucide-react";
 import "./hero-illustration.css";
 import { API_BASE_URL } from "@/lib/config";
@@ -203,6 +206,75 @@ const newArrivals = [
   },
 ];
 
+const flashDeals = [
+  {
+    id: "fd1",
+    name: "Wireless Earbuds Pro",
+    vendor: "TechHub Electronics",
+    price: 1499,
+    originalPrice: 3999,
+    discount: 63,
+    rating: 4.7,
+    reviews: 892,
+    emoji: "🎧",
+  },
+  {
+    id: "fd2",
+    name: "Pure Silk Saree",
+    vendor: "StyleWear Fashion",
+    price: 2199,
+    originalPrice: 5999,
+    discount: 63,
+    rating: 4.5,
+    reviews: 234,
+    emoji: "👗",
+  },
+  {
+    id: "fd3",
+    name: "Cold Press Juice Set",
+    vendor: "NaturesBrew",
+    price: 599,
+    originalPrice: 999,
+    discount: 40,
+    rating: 4.8,
+    reviews: 678,
+    emoji: "🍋",
+  },
+  {
+    id: "fd4",
+    name: "Premium Yoga Mat",
+    vendor: "FitLife",
+    price: 899,
+    originalPrice: 1999,
+    discount: 55,
+    rating: 4.6,
+    reviews: 445,
+    emoji: "🧘",
+  },
+  {
+    id: "fd5",
+    name: "Artisan Candle Set",
+    vendor: "AromaCraft",
+    price: 449,
+    originalPrice: 899,
+    discount: 50,
+    rating: 4.7,
+    reviews: 321,
+    emoji: "🕯️",
+  },
+  {
+    id: "fd6",
+    name: "Raw Organic Honey",
+    vendor: "FarmFresh",
+    price: 349,
+    originalPrice: 599,
+    discount: 42,
+    rating: 4.9,
+    reviews: 1203,
+    emoji: "🍯",
+  },
+];
+
 const featuredVendors = [
   {
     name: "TechHub Electronics",
@@ -260,25 +332,25 @@ const trustBenefits = [
     icon: BadgeCheck,
     title: "Verified Vendors",
     desc: "Every vendor goes through a rigorous verification process",
-    iconColor: "#4F46E5",
+    iconColor: "var(--brand-accent)",
   },
   {
     icon: Truck,
     title: "Fast Delivery",
     desc: "Express shipping with real-time tracking across India",
-    iconColor: "#4F46E5",
+    iconColor: "var(--brand-accent)",
   },
   {
     icon: Shield,
     title: "Secure Payments",
     desc: "100% encrypted transactions with buyer protection",
-    iconColor: "#4F46E5",
+    iconColor: "var(--brand-accent)",
   },
   {
     icon: Headphones,
     title: "24/7 Support",
     desc: "Our dedicated team is always here to help you",
-    iconColor: "#4F46E5",
+    iconColor: "var(--brand-accent)",
   },
 ];
 
@@ -368,6 +440,46 @@ export default function HomePage() {
 
   const [spotlightVendors, setSpotlightVendors] = useState<any[]>([]);
   const [spotlightLoading, setSpotlightLoading] = useState(true);
+  const [countdown, setCountdown] = useState({ h: 4, m: 23, s: 47 });
+  const user = useAuthStore((state) => state.user);
+  const [heroBanner, setHeroBanner] = useState(0);
+
+  const heroBanners = [
+    {
+      img: "/hero-fashion.png",
+      label: "New Collection",
+      sub: "Fashion & Ethnic Wear",
+      cta: "Shop Fashion",
+      href: "/products?category=Fashion",
+    },
+    {
+      img: "/hero-electronics.png",
+      label: "Up to 60% Off",
+      sub: "Electronics & Gadgets",
+      cta: "Shop Electronics",
+      href: "/products?category=Electronics",
+    },
+    {
+      img: "/hero-sale.png",
+      label: "Mega Sale",
+      sub: "Deals Across All Categories",
+      cta: "View Deals",
+      href: "#deals",
+    },
+    {
+      img: "/hero-delivery.png",
+      label: "Express Delivery",
+      sub: "Order now, get it fast",
+      cta: "Start Shopping",
+      href: "/products",
+    },
+  ];
+
+  // Auto-advance hero banner every 4 seconds
+  useEffect(() => {
+    const t = setInterval(() => setHeroBanner((p) => (p + 1) % 4), 4000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -441,6 +553,21 @@ export default function HomePage() {
     fetchSpotlightVendors();
   }, []);
 
+  useEffect(() => {
+    const tick = setInterval(() => {
+      setCountdown((prev) => {
+        const total = prev.h * 3600 + prev.m * 60 + prev.s - 1;
+        if (total <= 0) return { h: 4, m: 0, s: 0 };
+        return {
+          h: Math.floor(total / 3600),
+          m: Math.floor((total % 3600) / 60),
+          s: total % 60,
+        };
+      });
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
+
   const trendingSlides = useMemo(() => {
     if (trendingProducts.length === 0) {
       return [] as TrendingProductCard[][];
@@ -490,85 +617,246 @@ export default function HomePage() {
         fontFamily: "var(--font-dm-sans)",
       }}
     >
+      {/* ── ANNOUNCEMENT BAR ── */}
+      <div className="bg-[var(--brand-primary)] text-[var(--text-inverse)] flex items-center justify-center gap-2 sm:gap-6 flex-wrap text-center py-2.5 px-4 text-xs sm:text-sm font-medium">
+        <span>
+          🎉 Free delivery on orders above <strong>₹499</strong>
+        </span>
+        <span className="hidden sm:inline opacity-30">|</span>
+        <span>
+          New user? Use code{" "}
+          <strong className="bg-white/20 px-2 py-0.5 rounded tracking-wide">
+            FIRST100
+          </strong>{" "}
+          for ₹100 off
+        </span>
+        <Link
+          href="/products"
+          className="underline font-bold hover:no-underline opacity-90 hover:opacity-100"
+        >
+          Shop Now →
+        </Link>
+      </div>
+
       <Navbar />
 
       {/* ── HERO ── */}
       <section
         id="hero"
-        className="relative px-4 sm:px-6 lg:px-8 pt-4 pb-10 sm:pt-10 sm:pb-14 max-w-[1280px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+        className="bg-[var(--bg-base)] border-b border-[var(--border-default)]"
       >
-        <div className="space-y-6 animate-in fade-in slide-in-from-left-8 duration-700 text-center lg:text-left flex flex-col items-center lg:items-start">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[var(--text-primary)] text-xs font-semibold uppercase tracking-wider">
-            Empowering 2,000+ Local Vendors 🛍️
-          </div>
-
-          <h1 className="text-6xl sm:text-8xl lg:text-9xl !leading-[1.02] !tracking-tight">
-            Local Shops <br />
-            <span className="italic text-[var(--brand-accent)]">Go Global</span>
-          </h1>
-
-          <p className="text-lg text-[var(--text-secondary)] max-w-lg leading-relaxed">
-            MarketFlow bridges the gap between your favorite local boutiques and
-            the convenience of global e-commerce. Discover authenticity,
-            delivered.
-          </p>
-
-          <div className="flex flex-wrap gap-4 justify-center lg:justify-start">
-            <Link
-              href="/products"
-              className="px-8 py-4 bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-full text-base font-semibold hover:opacity-90 transition-all flex items-center gap-2 group"
+        <div className="max-w-[1400px] mx-auto px-0 sm:px-6 lg:px-8">
+          {/* Flex row: image slider (60%) + brand marquee (40%) */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:gap-6 py-6">
+            {/* Left — Image Banner Slider (60% width) */}
+            <div
+              className="relative overflow-hidden w-full lg:flex-[60] shadow-sm"
+              style={{ height: "400px" }}
             >
-              Start Shopping
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/vendor/apply"
-              className="px-8 py-4 bg-transparent text-[var(--text-primary)] border-2 border-[var(--border-default)] rounded-full text-base font-semibold hover:bg-[var(--bg-sunken)] transition-all"
+              {/* Slides Container for sliding effect */}
+              <div
+                className="flex h-full transition-transform duration-700 ease-in-out"
+                style={{ transform: `translateX(-${heroBanner * 100}%)` }}
+              >
+                {heroBanners.map((banner, i) => (
+                  <div key={i} className="w-full h-full flex-shrink-0 relative">
+                    <img
+                      src={banner.img}
+                      alt={banner.sub}
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Overlay text */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent flex flex-col justify-end p-5 sm:p-8">
+                      <span className="text-white/70 text-xs sm:text-sm font-medium mb-1">
+                        {banner.sub}
+                      </span>
+                      <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold !leading-tight mb-4">
+                        {banner.label}
+                      </h2>
+                      <Link
+                        href={banner.href}
+                        className="w-fit px-5 py-2.5 bg-white text-[var(--text-primary)] rounded-full text-sm font-bold hover:bg-white/90 transition-all flex items-center gap-2 group"
+                      >
+                        {banner.cta}
+                        <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Dot nav: center on small screens, left on larger screens */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0 flex gap-1.5 z-20">
+                {heroBanners.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setHeroBanner(i)}
+                    className={`h-1.5 rounded-full transition-all ${
+                      i === heroBanner ? "w-8 bg-white" : "w-1.5 bg-white/50"
+                    }`}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Right — Brand Marquee (40% width) */}
+            <div
+              className="hidden lg:block overflow-hidden bg-[var(--bg-sunken)] hero-right-fade relative rounded-2xl border border-[var(--border-default)] shadow-sm"
+              style={{ flex: "40", height: "400px" }}
             >
-              Become a Vendor
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-6 pt-2 justify-center lg:justify-start">
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
-                ✓
+              <div className="h-full flex flex-col justify-center py-4 relative z-10">
+                <HeroCarousel />
               </div>
-              <span className="text-sm font-semibold text-[var(--text-secondary)]">
-                Verified Sellers
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
-                ✓
-              </div>
-              <span className="text-sm font-semibold text-[var(--text-secondary)]">
-                Zero Upfront Cost
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-full bg-[var(--status-success-bg)] text-[var(--status-success)] flex items-center justify-center text-[10px] font-bold">
-                ✓
-              </div>
-              <span className="text-sm font-semibold text-[var(--text-secondary)]">
-                Instant Setup
-              </span>
             </div>
           </div>
-        </div>
 
-        <div className="relative animate-in fade-in slide-in-from-right-8 duration-700 delay-150">
-          <HeroCarousel />
+          {/* Brand Marquee — mobile/tablet (CSS animated, not static) */}
+          <div className="lg:hidden border-t border-[var(--border-default)] py-4 overflow-hidden">
+            <div className="mobile-brand-marquee">
+              {[
+                "/brands/342045552_264830236025844_6486536419961059087_n.jpg",
+                "/brands/548b64086f65eda8216ec65d3bb4fa44.jpg",
+                "/brands/attachment_68653513.jpg",
+                "/brands/Boat_Logo.webp",
+                "/brands/BrandEmporio-Logos-04.webp",
+                "/brands/cbca1848a4eb31e0cd5e5978c6e959ae.jpg",
+                "/brands/images%20(7).png",
+                "/brands/image4_480x480.webp",
+                "/brands/images%20(2).png",
+                "/brands/images%20(3).png",
+                "/brands/images%20(5).png",
+                "/brands/images%20(6).png",
+              ].map((src, i) => (
+                <div key={`brand-${i}`} className="mobile-brand-tile">
+                  <img
+                    src={src}
+                    alt="Brand"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              ))}
+              {/* Duplicate the set for seamless loop */}
+              {[
+                "/brands/342045552_264830236025844_6486536419961059087_n.jpg",
+                "/brands/548b64086f65eda8216ec65d3bb4fa44.jpg",
+                "/brands/attachment_68653513.jpg",
+                "/brands/Boat_Logo.webp",
+                "/brands/BrandEmporio-Logos-04.webp",
+                "/brands/cbca1848a4eb31e0cd5e5978c6e959ae.jpg",
+                "/brands/images%20(7).png",
+                "/brands/image4_480x480.webp",
+                "/brands/images%20(2).png",
+                "/brands/images%20(3).png",
+                "/brands/images%20(5).png",
+                "/brands/images%20(6).png",
+              ].map((src, i) => (
+                <div key={`brand-dup-${i}`} className="mobile-brand-tile">
+                  <img
+                    src={src}
+                    alt="Brand"
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
       <div className="[&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body">
+        {/* ── FLASH DEALS ── */}
+        <section id="deals" className="py-8 sm:py-12 bg-[var(--bg-base)]">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <div className="flex flex-wrap items-center gap-4">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <Zap className="w-6 h-6 text-[var(--brand-accent)] fill-[var(--brand-accent)]" />
+                    Flash Deals
+                  </h2>
+                  <p className="text-[var(--text-secondary)] text-sm mt-1">
+                    Limited time &mdash; grab them before they&apos;re gone
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[var(--text-primary)] px-3 py-2 rounded-xl text-xs sm:text-sm font-mono font-semibold">
+                  <Clock className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                  <span className="text-[var(--text-muted)] font-sans font-medium hidden sm:inline">
+                    Ends in
+                  </span>
+                  <span className="tabular-nums">
+                    {String(countdown.h).padStart(2, "0")}
+                  </span>
+                  <span className="text-[var(--text-muted)]">:</span>
+                  <span className="tabular-nums">
+                    {String(countdown.m).padStart(2, "0")}
+                  </span>
+                  <span className="text-[var(--text-muted)]">:</span>
+                  <span className="tabular-nums">
+                    {String(countdown.s).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+              <Link
+                href="/products"
+                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+              >
+                View All <ChevronRight size={16} />
+              </Link>
+            </div>
+            {/* Horizontal scroll strip */}
+            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+              {flashDeals.map((deal) => (
+                <Link
+                  key={deal.id}
+                  href={`/products?search=${encodeURIComponent(deal.name)}`}
+                  className="group flex-none w-[160px] sm:w-[185px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[var(--brand-accent)] transition-all duration-300"
+                >
+                  <div className="aspect-square bg-[var(--bg-sunken)] flex items-center justify-center relative overflow-hidden">
+                    <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">
+                      {deal.emoji}
+                    </span>
+                    <span className="absolute top-2 left-2 bg-[#fff1f1] text-[#cc2200] border border-[#fecaca] text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                      -{deal.discount}%
+                    </span>
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider truncate">
+                      {deal.vendor}
+                    </p>
+                    <p className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mt-0.5 line-clamp-2 leading-snug">
+                      {deal.name}
+                    </p>
+                    <div className="flex items-baseline gap-1.5 mt-2">
+                      <span className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
+                        ₹{deal.price.toLocaleString()}
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)] line-through">
+                        ₹{deal.originalPrice.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Star className="w-3 h-3 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
+                      <span className="text-[11px] font-bold text-[var(--text-secondary)]">
+                        {deal.rating}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        ({deal.reviews})
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* ── SHOP BY CATEGORY ── */}
         <section
           id="categories"
           className="pt-12 pb-10 sm:py-24 bg-[var(--bg-sunken)]"
         >
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-12">
               <div>
                 <h2 className="text-4xl sm:text-5xl">Shop by Category</h2>
@@ -578,7 +866,7 @@ export default function HomePage() {
               </div>
               <Link
                 href="/products"
-                className="text-sm font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1"
+                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
               >
                 Browse All <ChevronRight size={16} />
               </Link>
@@ -618,262 +906,261 @@ export default function HomePage() {
         </section>
 
         {/* ── TRENDING PRODUCTS ── */}
-        <section id="trending" className="pt-8 pb-24 sm:py-24">
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-12">
+        <section id="trending" className="py-10 sm:py-14">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-6">
               <div>
-                <h2 className="text-4xl sm:text-5xl">Trending Now</h2>
-                <p className="text-[var(--text-secondary)] mt-2">
+                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
+                  Trending Now
+                </h2>
+                <p className="text-[var(--text-secondary)] mt-1 text-sm">
                   The most popular picks this week
                 </p>
               </div>
               <Link
                 href="/products"
-                className="text-sm font-bold text-[var(--brand-primary)] hover:underline flex items-center gap-1"
+                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
               >
-                View Store <ChevronRight size={16} />
+                View All <ChevronRight size={16} />
               </Link>
             </div>
             {trendingLoading ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {Array.from({ length: TRENDING_PRODUCTS_PER_SLIDE }).map(
-                  (_, index) => (
-                    <div
-                      key={`trending-skeleton-${index}`}
-                      className="h-[340px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
-                    />
-                  ),
-                )}
+              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-none w-[185px] h-[280px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
+                  />
+                ))}
               </div>
             ) : trendingSlides.length === 0 ? (
               <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-8 text-center text-sm text-[var(--text-secondary)]">
                 Trending products are unavailable right now.
               </div>
             ) : (
-              <div className="relative">
-                <div className="overflow-hidden">
+              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+                {trendingSlides.flat().map((product, i) => (
                   <div
-                    className="flex transition-transform duration-700 ease-out"
-                    style={{
-                      transform: `translateX(-${currentTrendingSlide * 100}%)`,
-                    }}
+                    key={`${product.id}-${i}`}
+                    className="flex-none w-[185px]"
                   >
-                    {trendingSlides.map((slide, slideIndex) => (
-                      <div
-                        key={`trending-slide-${slideIndex}`}
-                        className="min-w-full grid grid-cols-2 lg:grid-cols-4 gap-6"
-                      >
-                        {slide.map((product, productIndex) => (
-                          <ProductCardSection
-                            key={`${product.id}-${slideIndex}-${productIndex}`}
-                            product={product}
-                          />
-                        ))}
-                      </div>
-                    ))}
+                    <ProductCardSection product={product} />
                   </div>
-                </div>
-
-                {trendingSlides.length > 1 && (
-                  <div className="mt-6 flex items-center justify-center gap-2">
-                    {trendingSlides.map((_, index) => (
-                      <button
-                        key={`trending-dot-${index}`}
-                        type="button"
-                        onClick={() => setCurrentTrendingSlide(index)}
-                        aria-label={`Go to trending slide ${index + 1}`}
-                        className={`h-2.5 rounded-full transition-all ${
-                          index === currentTrendingSlide
-                            ? "w-8 bg-[var(--brand-primary)]"
-                            : "w-2.5 bg-[var(--border-strong)]"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
         </section>
 
-        {/* ── VENDOR SPOTLIGHT ── */}
+        {/* ── NEW ARRIVALS ── */}
         <section
-          id="vendors"
-          className="py-24 bg-[var(--bg-surface)] border-y border-[var(--border-default)]"
+          id="new-arrivals"
+          className="py-10 sm:py-14 bg-[var(--bg-sunken)]"
         >
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-12">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-end justify-between mb-6">
               <div>
-                <h2 className="text-4xl sm:text-5xl">Vendor Spotlight</h2>
-                <p className="text-[var(--text-secondary)] mt-2">
-                  Trusted shops bringing their legacy online
+                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[var(--brand-accent)]" />
+                  New Arrivals
+                </h2>
+                <p className="text-[var(--text-secondary)] mt-1 text-sm">
+                  Fresh drops from our latest vendors
                 </p>
               </div>
+              <Link
+                href="/products?sort=newest"
+                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+              >
+                See All <ChevronRight size={16} />
+              </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {spotlightLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={`vendor-skeleton-${i}`}
-                    className="h-[280px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
-                  />
-                ))
-              ) : spotlightVendors.length === 0 ? (
-                <div className="lg:col-span-4 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-base)] p-8 text-center text-sm text-[var(--text-secondary)]">
-                  No vendor spots available right now.
-                </div>
-              ) : (
-                spotlightVendors.map((vendor, index) => {
-                  const rawName = vendor.businessName || "Verified Vendor";
-                  const cleanName = rawName.replace(/^"+|"+$/g, "");
-                  const rawCity = vendor.city || "Local Area";
-                  const cleanCity = rawCity
-                    .replace(/^"+|"+$/g, "")
-                    .toLowerCase();
-                  const rawCat = vendor.storeCategory || "";
-                  const cleanCat = rawCat.replace(/^"+|"+$/g, "").toUpperCase();
-
-                  return (
-                    <div
-                      key={vendor.id || index}
-                      className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-xl hover:border-[var(--brand-primary)] transition-all duration-300 group flex flex-col"
-                    >
-                      <div className="w-full aspect-[4/3] bg-[var(--bg-sunken)] relative overflow-hidden flex items-center justify-center shrink-0">
-                        {vendor.logoUrl ? (
-                          <img
-                            src={vendor.logoUrl}
-                            alt={cleanName}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center bg-[var(--bg-sunken)] group-hover:scale-105 transition-transform duration-700">
-                            <Store className="w-12 h-12 text-[var(--text-muted)] mb-3" />
-                            <span className="text-sm font-medium text-[var(--text-muted)] text-opacity-70">
-                              No Image
-                            </span>
-                          </div>
+            {/* Horizontal scroll strip */}
+            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+              {newArrivals.map((product) => (
+                <Link
+                  key={product.id}
+                  href={`/products/${product.id}`}
+                  className="group flex-none w-[160px] sm:w-[185px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-md transition-all"
+                >
+                  <div className="aspect-square bg-[var(--bg-sunken)] flex items-center justify-center relative overflow-hidden">
+                    <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">
+                      {product.emoji}
+                    </span>
+                    <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                      New
+                    </span>
+                    {product.originalPrice && (
+                      <span className="absolute top-2 right-2 bg-[#fff1f1] text-[#cc2200] border border-[#fecaca] text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                        -
+                        {Math.round(
+                          ((product.originalPrice - product.price) /
+                            product.originalPrice) *
+                            100,
                         )}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300 pointer-events-none" />
-                      </div>
-
-                      <div className="p-6 flex flex-col items-center text-center flex-1">
-                        <h3
-                          className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] font-body line-clamp-1 w-full"
-                          title={cleanName}
-                        >
-                          {cleanName}
-                        </h3>
-
-                        {cleanCat && (
-                          <div className="mt-4">
-                            <span className="text-[var(--brand-primary)] text-xs font-bold px-3 py-1 bg-[var(--brand-primary)]/10 rounded-full max-w-full truncate uppercase tracking-widest border border-[var(--brand-primary)]/20">
-                              {cleanCat}
-                            </span>
-                          </div>
-                        )}
-
-                        <div className="mt-auto pt-6 w-full flex items-center justify-center text-[var(--text-secondary)] text-sm md:text-base capitalize font-medium">
-                          <MapPin size={18} className="mr-1.5 shrink-0" />
-                          <span className="truncate">{cleanCity}</span>
-                        </div>
-                      </div>
+                        %
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider truncate">
+                      {product.vendor}
+                    </p>
+                    <h3 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mt-0.5 line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <Star className="w-3 h-3 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
+                      <span className="text-[11px] font-bold text-[var(--text-primary)]">
+                        {product.rating}
+                      </span>
+                      <span className="text-[10px] text-[var(--text-muted)]">
+                        ({product.reviews})
+                      </span>
                     </div>
-                  );
-                })
-              )}
+                    <div className="flex items-baseline gap-1.5 mt-2">
+                      <span className="text-sm font-bold text-[var(--text-primary)]">
+                        ₹{product.price.toLocaleString()}
+                      </span>
+                      {product.originalPrice && (
+                        <span className="text-xs text-[var(--text-muted)] line-through">
+                          ₹{product.originalPrice.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ── TRUST BENEFITS ── */}
-        <section className="py-24">
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
-              {trustBenefits.map((benefit) => {
-                const Icon = benefit.icon;
-                return (
-                  <div key={benefit.title} className="text-center space-y-4">
-                    <div className="w-16 h-16 rounded-2xl bg-[var(--bg-sunken)] flex items-center justify-center mx-auto text-[var(--brand-primary)]">
-                      <Icon size={32} />
+        {/* ── TESTIMONIALS ── */}
+        <section
+          id="testimonials"
+          className="py-16 sm:py-20 bg-[var(--bg-base)]"
+        >
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)]">
+                What Our Customers Say
+              </h2>
+              <p className="text-[var(--text-secondary)] mt-2 text-sm">
+                Real reviews from real people across India
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {testimonials.map((t) => (
+                <div
+                  key={t.name}
+                  className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 space-y-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        className="w-4 h-4 fill-[var(--brand-primary)] text-[var(--brand-primary)]"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed">
+                    {t.text}
+                  </p>
+                  <div className="flex items-center gap-3 pt-2 border-t border-[var(--border-default)]">
+                    <div className="w-10 h-10 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-sm font-bold text-[var(--text-primary)] shrink-0">
+                      {t.initials}
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-[var(--text-primary)] font-body">
-                        {benefit.title}
-                      </h3>
-                      <p className="text-sm text-[var(--text-secondary)] mt-2 leading-relaxed max-w-[200px] mx-auto">
-                        {benefit.desc}
+                      <p className="text-sm font-bold text-[var(--text-primary)]">
+                        {t.name}
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)]">
+                        {t.role}
                       </p>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* ── CTA ── */}
-        <section className="py-24 bg-[var(--brand-primary)] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 translate-x-1/2" />
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <h2 className="text-4xl sm:text-6xl text-[var(--text-inverse)] !leading-[1.1]">
-                Join the Digital <br />
-                <span className="italic opacity-80">Market Revolution</span>
-              </h2>
-              <p className="text-lg text-white/70 leading-relaxed max-w-lg">
-                Scale your business with MarketFlow. Reach more customers,
-                manage inventory seamlessly, and grow your brand beyond borders.
-              </p>
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/vendor/apply"
-                  className="px-8 py-4 bg-white text-[var(--brand-primary)] rounded-full font-bold hover:bg-white/90 transition-all"
-                >
-                  Apply Now
-                </Link>
-                <Link
-                  href="/vendor/apply"
-                  className="px-8 py-4 bg-transparent text-white border-2 border-white/30 rounded-full font-bold hover:bg-white/10 transition-all"
-                >
-                  Learn More
-                </Link>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { label: "Active Vendors", value: "2,000+" },
-                { label: "Avg Growth", value: "3.5x" },
-                { label: "Active Cities", value: "150+" },
-                { label: "Zero Fees", value: "90 Days" },
-              ].map((stat) => (
-                <div
-                  key={stat.label}
-                  className="p-6 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm"
-                >
-                  <p className="text-3xl font-bold text-white mb-1">
-                    {stat.value}
-                  </p>
-                  <p className="text-xs font-medium text-white/50 uppercase tracking-widest">
-                    {stat.label}
-                  </p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
+        {/* ── CUSTOMER CTA (guests only) ── */}
+        {!user && (
+          <section className="py-20 bg-[var(--brand-primary)] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 translate-x-1/4 pointer-events-none" />
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div className="space-y-6">
+                <h2 className="text-3xl sm:text-5xl font-bold text-white !leading-tight">
+                  Your Favourite Local
+                  <br />
+                  <span className="opacity-75">Shops, Now Online</span>
+                </h2>
+                <p className="text-white/70 text-base leading-relaxed max-w-md">
+                  Sign up today and get ₹100 off your first order. Discover
+                  handpicked products from 2,000+ verified local vendors across
+                  India.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <Link
+                    href="/register"
+                    className="px-7 py-3.5 bg-white text-[var(--brand-accent)] rounded-full font-bold hover:bg-white/90 transition-all text-sm sm:text-base"
+                  >
+                    Sign Up &amp; Get ₹100 Off
+                  </Link>
+                  <Link
+                    href="/products"
+                    className="px-7 py-3.5 bg-transparent text-white border-2 border-white/30 rounded-full font-bold hover:bg-white/10 transition-all text-sm sm:text-base"
+                  >
+                    Browse Products
+                  </Link>
+                </div>
+                <p className="text-white/40 text-xs">
+                  Are you a local vendor?{" "}
+                  <Link
+                    href="/vendor/apply"
+                    className="text-white/70 font-semibold hover:text-white underline"
+                  >
+                    Apply to list your shop →
+                  </Link>
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  { label: "Verified Vendors", value: "2,000+" },
+                  { label: "Products Listed", value: "50,000+" },
+                  { label: "Cities Covered", value: "150+" },
+                  { label: "Happy Customers", value: "25,000+" },
+                ].map((stat) => (
+                  <div
+                    key={stat.label}
+                    className="p-5 rounded-2xl bg-white/10 border border-white/10 backdrop-blur-sm text-center"
+                  >
+                    <p className="text-2xl sm:text-3xl font-bold text-white">
+                      {stat.value}
+                    </p>
+                    <p className="text-[10px] sm:text-xs font-medium text-white/50 uppercase tracking-widest mt-1">
+                      {stat.label}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* ── FOOTER ── */}
         <footer className="bg-[var(--bg-surface)] pt-24 pb-12 border-t border-[var(--border-default)]">
-          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-20">
               <div className="col-span-2">
                 <h2
                   style={{
                     fontFamily: "var(--font-dm-sans)",
                     fontSize: "28px",
-                    color: "var(--brand-primary)",
+                    color: "var(--brand-accent)",
                     letterSpacing: "0.02em",
-                    fontWeight: "normal",
+                    fontWeight: "bold",
                   }}
                   className="mb-6"
                 >
@@ -891,26 +1178,26 @@ export default function HomePage() {
                 <ul className="space-y-4">
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/products"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Products
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/products"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Categories
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/products"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
-                      Vendors
+                      Browse Deals
                     </Link>
                   </li>
                 </ul>
@@ -922,24 +1209,24 @@ export default function HomePage() {
                 <ul className="space-y-4">
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/vendor/apply"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Become a Vendor
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/vendor/apply"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Vendor Guidelines
                     </Link>
                   </li>
                   <li>
                     <Link
-                      href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      href="/login"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Support
                     </Link>
@@ -954,7 +1241,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Privacy
                     </Link>
@@ -962,7 +1249,7 @@ export default function HomePage() {
                   <li>
                     <Link
                       href="#"
-                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+                      className="text-sm text-[var(--text-secondary)] hover:text-[var(--brand-accent)] transition-colors"
                     >
                       Terms
                     </Link>
@@ -977,13 +1264,13 @@ export default function HomePage() {
               <div className="flex gap-6">
                 <Link
                   href="#"
-                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--brand-accent)] transition-colors"
                 >
                   Twitter
                 </Link>
                 <Link
                   href="#"
-                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                  className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)] hover:text-[var(--brand-accent)] transition-colors"
                 >
                   Instagram
                 </Link>

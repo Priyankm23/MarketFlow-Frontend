@@ -18,6 +18,10 @@ import {
   ShieldCheck,
   Star,
   Truck,
+  Filter,
+  RefreshCw,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -41,82 +45,55 @@ type SeasonalBanner = {
   ctaLabel: string;
   ctaHref: string;
   background: string;
+  textColor: string;
 };
 
-// Admin-editable seasonal campaigns for the products page hero banner.
+// High-end dark theme seasonal banners
 const SEASONAL_BANNERS: SeasonalBanner[] = [
   {
-    id: "festive-spring",
-    eyebrow: "Spring Festival Edit",
-    title: "Celebrate The Season With Local Favorites",
-    subtitle:
-      "Fresh festive collections, trusted sellers, and delivery across India.",
-    ctaLabel: "Explore Festive Picks",
-    ctaHref: "/products?category=Fashion",
-    background:
-      "linear-gradient(120deg, #FFFFFF 0%, #F5F5F6 56%, #ECECEE 100%)",
-  },
-  {
-    id: "wedding-season",
-    eyebrow: "Wedding Season",
-    title: "Curated Styles For Every Celebration",
-    subtitle:
-      "Premium wedding-ready fashion and gifting essentials from verified vendors.",
-    ctaLabel: "Shop Occasion Wear",
-    ctaHref: "/products?category=Fashion",
-    background:
-      "linear-gradient(120deg, #FFFFFF 0%, #F3F3F5 55%, #E6E6EA 100%)",
-  },
-  {
-    id: "summer-deals",
-    eyebrow: "Seasonal Spotlight",
-    title: "Top Rated Deals, Handpicked For You",
-    subtitle:
-      "Discover trusted electronics, home, and lifestyle products at best-value prices.",
-    ctaLabel: "View Top Deals",
+    id: "premium-black",
+    eyebrow: "Limited Edition",
+    title: "The Midnight Collection",
+    subtitle: "Premium craft meets modern design. Discover the most exclusive picks from India's top artisans.",
+    ctaLabel: "Shop The Collection",
     ctaHref: "/products",
-    background:
-      "linear-gradient(120deg, #FFFFFF 0%, #F7F7F8 55%, #EFEFF1 100%)",
+    background: "linear-gradient(135deg, #000000 0%, #1a1a1a 100%)",
+    textColor: "white",
   },
+  {
+    id: "red-rush",
+    eyebrow: "Season Finale",
+    title: "Experience The Red Rush",
+    subtitle: "Bold styles, vibrant energy. Grab the season's hottest trends with up to 40% off on verified brands.",
+    ctaLabel: "View Deals",
+    ctaHref: "/products",
+    background: "linear-gradient(135deg, #000000 0%, #4a0000 100%)",
+    textColor: "white",
+  }
 ];
 
 const PRICE_BANDS = [
   { value: "all", label: "All Prices" },
-  { value: "0-499", label: "Under Rs. 500" },
-  { value: "500-999", label: "Rs. 500 - Rs. 999" },
-  { value: "1000-1999", label: "Rs. 1,000 - Rs. 1,999" },
-  { value: "2000-4999", label: "Rs. 2,000 - Rs. 4,999" },
-  { value: "5000+", label: "Rs. 5,000 and above" },
+  { value: "0-499", label: "Under ₹500" },
+  { value: "500-999", label: "₹500 - ₹999" },
+  { value: "1000-1999", label: "₹1,000 - ₹1,999" },
+  { value: "2000-4999", label: "₹2,000 - ₹4,999" },
+  { value: "5000+", label: "₹5,000 & Above" },
 ];
 
 const REVIEW_BANDS = [
-  { value: "all", label: "All Ratings" },
-  { value: "4", label: "4.0 and above" },
-  { value: "3", label: "3.0 and above" },
-  { value: "2", label: "2.0 and above" },
+  { value: "all", label: "Any Rating" },
+  { value: "4", label: "4.0 ★ & Above" },
+  { value: "3", label: "3.0 ★ & Above" },
+  { value: "2", label: "2.0 ★ & Above" },
 ];
 
 const matchesPriceBand = (price: number, band: string) => {
-  if (band === "0-499") {
-    return price >= 0 && price <= 499;
-  }
-
-  if (band === "500-999") {
-    return price >= 500 && price <= 999;
-  }
-
-  if (band === "1000-1999") {
-    return price >= 1000 && price <= 1999;
-  }
-
-  if (band === "2000-4999") {
-    return price >= 2000 && price <= 4999;
-  }
-
-  if (band === "5000+") {
-    return price >= 5000;
-  }
-
+  if (band === "0-499") return price >= 0 && price <= 499;
+  if (band === "500-999") return price >= 500 && price <= 999;
+  if (band === "1000-1999") return price >= 1000 && price <= 1999;
+  if (band === "2000-4999") return price >= 2000 && price <= 4999;
+  if (band === "5000+") return price >= 5000;
   return true;
 };
 
@@ -129,27 +106,9 @@ type ApiProduct = {
   imageUrl?: string | null;
   rating?: number | null;
   reviewCount?: number | null;
-  category?: {
-    id?: string;
-    name?: string;
-  } | null;
-  vendor?: {
-    id?: string;
-    businessName?: string;
-  } | null;
+  category?: { id?: string; name?: string } | null;
+  vendor?: { id?: string; businessName?: string } | null;
   createdAt?: string;
-  updatedAt?: string;
-};
-
-type ProductsResponse = {
-  status: string;
-  data?: ApiProduct[];
-  meta?: {
-    total?: number;
-    page?: number;
-    limit?: number;
-    totalPages?: number;
-  };
 };
 
 export default function ProductsPage() {
@@ -160,7 +119,7 @@ export default function ProductsPage() {
   const [selectedPriceBand, setSelectedPriceBand] = useState("all");
   const [selectedReviewBand, setSelectedReviewBand] = useState("all");
   const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
-  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
@@ -174,168 +133,77 @@ export default function ProductsPage() {
 
   useEffect(() => {
     const category = searchParams.get("category");
-    if (category && category.trim().length > 0) {
+    if (category) {
       setSelectedCategory(category);
-      setCategories((prevCategories) => {
-        if (prevCategories.includes(category)) {
-          return prevCategories;
-        }
-        return [...prevCategories, category];
-      });
       setPage(1);
     }
   }, [searchParams]);
 
-  const mapApiProductToUi = (item: ApiProduct): Product => {
-    const image =
-      item.imageUrl && item.imageUrl.trim().length > 0
-        ? item.imageUrl
-        : "/placeholder-product-1.jpg";
-
-    const ratingValue = Number(item.rating);
-    const reviewCountValue = Number(item.reviewCount);
-
-    const rating = Number.isFinite(ratingValue)
-      ? Math.min(5, Math.max(0, ratingValue))
-      : 0;
-
-    const reviewCount = Number.isFinite(reviewCountValue)
-      ? Math.max(0, reviewCountValue)
-      : 0;
-
-    return {
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: Number(item.price || 0),
-      images: [image],
-      category: item.category?.name || "Uncategorized",
-      subcategory: item.category?.name || "General",
-      stock: Number(item.stock || 0),
-      vendorId: item.vendor?.id || "",
-      vendorName: item.vendor?.businessName || "Unknown Vendor",
-      rating,
-      reviewCount,
-      createdAt: item.createdAt || new Date().toISOString(),
-      updatedAt: item.updatedAt || new Date().toISOString(),
-      featured: true,
-    };
-  };
+  const mapApiProductToUi = (item: ApiProduct): Product => ({
+    id: item.id,
+    name: item.name,
+    description: item.description,
+    price: Number(item.price || 0),
+    images: [item.imageUrl || "/placeholder-product-1.jpg"],
+    category: item.category?.name || "General",
+    subcategory: "General",
+    stock: item.stock || 0,
+    vendorId: item.vendor?.id || "",
+    vendorName: item.vendor?.businessName || "Verified Vendor",
+    rating: Number(item.rating) || 0,
+    reviewCount: Number(item.reviewCount) || 0,
+    createdAt: item.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    featured: true,
+  });
 
   useEffect(() => {
     let active = true;
-
     const fetchProducts = async () => {
       setLoading(true);
       setError("");
-
       try {
-        let response: Response;
+        const endpoint = selectedCategory === "All" 
+          ? `${API_BASE_URL}/products?page=${page}&limit=${limit}`
+          : `${API_BASE_URL}/products/category/${encodeURIComponent(selectedCategory)}`;
+        
+        const response = await fetch(endpoint);
+        const payload = await response.json();
 
-        if (selectedCategory === "All") {
-          const params = new URLSearchParams({
-            page: String(page),
-            limit: String(limit),
-          });
+        if (!response.ok || payload.status !== "success") throw new Error("Could not fetch products");
 
-          response = await fetch(
-            `${API_BASE_URL}/products?${params.toString()}`,
-            {
-              method: "GET",
-            },
-          );
-        } else {
-          response = await fetch(
-            `${API_BASE_URL}/products/category/${encodeURIComponent(selectedCategory)}`,
-            {
-              method: "GET",
-            },
-          );
-        }
-
-        const payload: ProductsResponse = await response
-          .json()
-          .catch(() => ({ status: "error" }));
-
-        if (!response.ok || payload.status !== "success") {
-          throw new Error("Failed to load products");
-        }
-
-        const mappedProducts = (payload.data || []).map(mapApiProductToUi);
-
-        if (!active) return;
-
-        setProducts(mappedProducts);
-        if (selectedCategory === "All") {
-          setTotalProducts(payload.meta?.total || mappedProducts.length);
-          setTotalPages(payload.meta?.totalPages || 1);
-        } else {
-          setTotalProducts(mappedProducts.length);
-          setTotalPages(1);
-        }
-
-        setCategories((prevCategories) => {
-          const categorySet = new Set<string>(prevCategories);
-          mappedProducts.forEach((product) =>
-            categorySet.add(product.category),
-          );
-          return Array.from(categorySet);
-        });
-      } catch (err: unknown) {
-        if (!active) return;
-        const message =
-          err instanceof Error ? err.message : "Unable to fetch products";
-        setError(message);
-        setProducts([]);
-        setTotalProducts(0);
-        setTotalPages(1);
-      } finally {
         if (active) {
-          setLoading(false);
+          const mapped = (payload.data || []).map(mapApiProductToUi);
+          setProducts(mapped);
+          setTotalProducts(payload.meta?.total || mapped.length);
+          setTotalPages(payload.meta?.totalPages || 1);
         }
+      } catch (err: any) {
+        if (active) setError(err.message);
+      } finally {
+        if (active) setLoading(false);
       }
     };
-
     fetchProducts();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [page, limit, selectedCategory]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setCurrentBannerIndex((prev) => (prev + 1) % SEASONAL_BANNERS.length);
-    }, 4500);
-
-    return () => window.clearInterval(intervalId);
+    const interval = setInterval(() => {
+      setCurrentBannerIndex(prev => (prev + 1) % SEASONAL_BANNERS.length);
+    }, 6000);
+    return () => clearInterval(interval);
   }, []);
 
   const filteredProducts = useMemo(() => {
-    const minRating =
-      selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
-
-    const byPriceAndReview = products.filter(
-      (p) =>
-        matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating,
-    );
-
-    const sorted = [...byPriceAndReview];
-
-    if (sortBy === "price-low") {
-      sorted.sort((a, b) => a.price - b.price);
-    } else if (sortBy === "price-high") {
-      sorted.sort((a, b) => b.price - a.price);
-    } else if (sortBy === "newest") {
-      sorted.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      );
-    } else if (sortBy === "name") {
-      sorted.sort((a, b) => a.name.localeCompare(b.name));
-    }
-
-    return sorted;
+    const minRating = selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
+    let result = products.filter(p => matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating);
+    
+    if (sortBy === "price-low") result.sort((a, b) => a.price - b.price);
+    else if (sortBy === "price-high") result.sort((a, b) => b.price - a.price);
+    else if (sortBy === "newest") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    
+    return result;
   }, [products, selectedPriceBand, selectedReviewBand, sortBy]);
 
   const resetFilters = () => {
@@ -346,501 +214,257 @@ export default function ProductsPage() {
     setPage(1);
   };
 
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-IN", {
-      maximumFractionDigits: 0,
-    }).format(price);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-
-    products.forEach((product) => {
-      counts[product.category] = (counts[product.category] || 0) + 1;
-    });
-
-    return counts;
-  }, [products]);
-
-  const priceBandCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-
-    PRICE_BANDS.forEach((band) => {
-      counts[band.value] = products.filter((product) =>
-        matchesPriceBand(product.price, band.value),
-      ).length;
-    });
-
-    return counts;
-  }, [products]);
-
-  const reviewBandCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-
-    REVIEW_BANDS.forEach((band) => {
-      if (band.value === "all") {
-        counts[band.value] = products.length;
-      } else {
-        counts[band.value] = products.filter(
-          (product) => product.rating >= Number(band.value),
-        ).length;
-      }
-    });
-
-    return counts;
-  }, [products]);
-
-  const activeFilterCount =
-    Number(selectedCategory !== "All") +
-    Number(selectedPriceBand !== "all") +
-    Number(selectedReviewBand !== "all") +
-    Number(sortBy !== "featured");
-
   const currentBanner = SEASONAL_BANNERS[currentBannerIndex];
 
   return (
-    <div
-      className="min-h-screen bg-[var(--bg-base)]"
-      style={{ fontFamily: "var(--font-dm-sans)" }}
-    >
+    <div className="min-h-screen bg-[var(--bg-base)] selection:bg-[var(--brand-accent)] selection:text-white">
       <Navbar />
 
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
-        <section
-          className="relative overflow-hidden rounded-3xl border border-[var(--border-default)]"
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* --- REFINED HERO --- */}
+        <section 
+          className="relative h-[200px] sm:h-[260px] rounded-xl overflow-hidden group transition-all duration-700 shadow-xl"
           style={{ background: currentBanner.background }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(0,0,0,0.12),transparent_55%)]" />
-          <div className="relative z-10 p-5 sm:p-8 lg:p-10 pb-24 sm:pb-24 lg:pb-10">
-            <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-              <div className="max-w-3xl">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--brand-accent)]">
-                  {currentBanner.eyebrow}
-                </p>
-                <h1
-                  className="mt-2 text-3xl sm:text-5xl lg:text-6xl !leading-[1.04]"
-                  style={{
-                    color: "var(--brand-accent)",
-                    fontFamily: "var(--font-instrument-serif)",
-                  }}
-                >
-                  {currentBanner.title}
-                </h1>
-                <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed text-[var(--text-secondary)]">
-                  {currentBanner.subtitle}
-                </p>
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <Link
-                    href={currentBanner.ctaHref}
-                    className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-primary)] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[var(--text-primary)] transition-colors"
-                  >
-                    {currentBanner.ctaLabel}
-                    <ArrowRight size={14} />
-                  </Link>
-                  <Link
-                    href="/customer/orders"
-                    className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-primary)] bg-white px-5 py-2.5 text-sm font-semibold text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition-colors"
-                  >
-                    My Orders
-                    <ArrowRight size={14} />
-                  </Link>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                    <BadgeCheck
-                      size={14}
-                      className="text-[var(--brand-primary)]"
-                    />
-                    Verified Sellers
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                    <ShieldCheck
-                      size={14}
-                      className="text-[var(--brand-primary)]"
-                    />
-                    Secure Checkout
-                  </span>
-                  <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border-default)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)]">
-                    <Truck size={14} className="text-[var(--brand-primary)]" />
-                    Fast Delivery
-                  </span>
-                </div>
-                <p className="mt-4 text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-primary)]"></p>
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+          
+          <div className="relative h-full flex items-center px-6 sm:px-10 lg:px-12">
+            <div className="max-w-xl space-y-3 sm:space-y-4">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)] animate-ping" />
+                <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">{currentBanner.eyebrow}</span>
               </div>
-
-              <div className="w-full lg:w-auto lg:min-w-[320px] flex justify-center lg:justify-end">
-                <div className="w-full max-w-[320px] sm:max-w-none inline-flex items-center gap-3 rounded-2xl border border-[var(--border-default)] bg-white/90 px-4 py-3 shadow-sm">
-                  <div className="h-10 w-10 rounded-full bg-[var(--brand-primary)] text-white flex items-center justify-center">
-                    <Truck size={18} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                      Special Offer
-                    </p>
-                    <p className="text-lg font-bold text-[var(--text-primary)]">
-                      First 3 Deliveries Free
-                    </p>
-                  </div>
-                </div>
+              
+              <h1 className="text-3xl sm:text-5xl font-bold text-white !leading-[1.1] tracking-tight">
+                {currentBanner.title}
+              </h1>
+              
+              <p className="text-white/60 text-xs sm:text-sm max-w-md font-medium leading-relaxed line-clamp-2">
+                {currentBanner.subtitle}
+              </p>
+              
+              <div className="flex items-center gap-4">
+                <Link
+                  href={currentBanner.ctaHref}
+                  className="group relative px-6 py-2.5 bg-white text-black rounded-full text-sm font-bold overflow-hidden transition-all hover:pr-10"
+                >
+                  <span className="relative z-10">{currentBanner.ctaLabel}</span>
+                  <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={16} />
+                </Link>
               </div>
             </div>
           </div>
 
-          <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentBannerIndex(
-                  (prev) =>
-                    (prev - 1 + SEASONAL_BANNERS.length) %
-                    SEASONAL_BANNERS.length,
-                )
-              }
-              className="h-9 w-9 rounded-full border border-[var(--border-default)] bg-white/90 text-[var(--text-primary)] flex items-center justify-center"
-              aria-label="Previous banner"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setCurrentBannerIndex(
-                  (prev) => (prev + 1) % SEASONAL_BANNERS.length,
-                )
-              }
-              className="h-9 w-9 rounded-full border border-[var(--border-default)] bg-white/90 text-[var(--text-primary)] flex items-center justify-center"
-              aria-label="Next banner"
-            >
-              <ChevronRight size={16} />
-            </button>
-          </div>
-
-          <div className="absolute bottom-6 left-6 z-20 flex items-center gap-2">
-            {SEASONAL_BANNERS.map((banner, index) => (
-              <button
-                key={banner.id}
-                type="button"
-                onClick={() => setCurrentBannerIndex(index)}
-                className={`h-2.5 rounded-full transition-all ${
-                  currentBannerIndex === index
-                    ? "w-8 bg-[var(--brand-primary)]"
-                    : "w-2.5 bg-[var(--border-default)]"
-                }`}
-                aria-label={`Go to banner ${index + 1}`}
-              />
-            ))}
+          {/* Banner Controls */}
+          <div className="absolute bottom-6 right-6 flex gap-2">
+             {SEASONAL_BANNERS.map((_, i) => (
+               <button 
+                 key={i} 
+                 onClick={() => setCurrentBannerIndex(i)}
+                 className={`h-1 rounded-full transition-all duration-500 ${currentBannerIndex === i ? 'w-8 bg-[var(--brand-accent)]' : 'w-3 bg-white/20 hover:bg-white/40'}`} 
+               />
+             ))}
           </div>
         </section>
 
-        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="h-fit rounded-2xl border border-[var(--border-default)] bg-white p-4 sm:p-5 lg:sticky lg:top-24 transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <p className="font-body text-sm font-semibold uppercase tracking-[0.12em] text-[var(--text-primary)]">
-                Filters
-              </p>
+        {/* --- MAIN GRID --- */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
+          
+          {/* REFINED SIDEBAR */}
+          <aside className="h-fit">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-default)] lg:mb-0 mb-2">
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFilterCollapsed((prev) => !prev)}
-                  className="inline-flex h-8 w-8 rounded-md border border-[var(--border-default)] text-[var(--brand-primary)] items-center justify-center"
-                  aria-label={
-                    isFilterCollapsed ? "Expand filters" : "Shrink filters"
-                  }
-                >
-                  {isFilterCollapsed ? (
-                    <PanelLeftOpen size={14} />
-                  ) : (
-                    <PanelLeftClose size={14} />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="text-xs font-semibold text-[var(--brand-primary)] hover:underline"
-                >
-                  Clear All
-                </button>
+                <Filter size={16} className="text-[var(--brand-accent)]" />
+                <span className="font-bold text-xs uppercase tracking-widest">Refine</span>
               </div>
+              {/* Only show collapse on mobile */}
+              <button onClick={() => setIsFilterCollapsed(!isFilterCollapsed)} className="lg:hidden p-2 hover:bg-[var(--bg-sunken)] rounded-lg transition-colors">
+                {isFilterCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              </button>
             </div>
 
-            {isFilterCollapsed ? (
-              activeFilterCount > 0 ? (
-                <div className="mt-4 pt-4 border-t border-[var(--border-default)] flex flex-col items-center gap-2">
-                  <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-semibold">
-                    Active
-                  </p>
-                  <p className="text-lg font-bold text-[var(--text-primary)]">
-                    {activeFilterCount}
-                  </p>
-                </div>
-              ) : null
-            ) : (
-              <>
-                <div className="mt-5 border-t border-[var(--border-default)] pt-5">
-                  <p className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] mb-3">
-                    Category
-                  </p>
-                  <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
-                    {["All", ...categories.filter((cat) => cat !== "All")].map(
-                      (cat) => (
-                        <label
-                          key={cat}
-                          className="flex items-center justify-between gap-2 text-sm cursor-pointer"
-                        >
-                          <span className="flex items-center gap-2 text-[var(--text-secondary)]">
-                            <input
-                              type="radio"
-                              name="category-filter"
-                              checked={selectedCategory === cat}
-                              onChange={() => {
-                                setSelectedCategory(cat);
-                                setPage(1);
-                              }}
-                              className="h-4 w-4 accent-[var(--brand-primary)]"
-                            />
-                            {cat}
-                          </span>
-                          <span className="text-xs font-semibold text-[var(--text-muted)]">
-                            {cat === "All"
-                              ? totalProducts
-                              : categoryCounts[cat] || 0}
-                          </span>
-                        </label>
-                      ),
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-5 border-t border-[var(--border-default)] pt-5">
-                  <p className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] mb-3">
-                    Review
-                  </p>
-                  <div className="space-y-2.5">
-                    {REVIEW_BANDS.map((band) => (
-                      <label
-                        key={band.value}
-                        className="flex items-center justify-between gap-2 text-sm cursor-pointer"
+            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-8 lg:mt-8`}>
+                {/* Category Section */}
+                <section>
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Category</h4>
+                  <div className="grid grid-cols-1 gap-1">
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
                       >
-                        <span className="flex items-center gap-2 text-[var(--text-secondary)]">
-                          <input
-                            type="radio"
-                            name="review-filter"
-                            checked={selectedReviewBand === band.value}
-                            onChange={() => {
-                              setSelectedReviewBand(band.value);
-                              setPage(1);
-                            }}
-                            className="h-4 w-4 accent-[var(--brand-primary)]"
-                          />
-                          {band.label}
-                        </span>
-                        <span className="text-xs font-semibold text-[var(--text-muted)]">
-                          {reviewBandCounts[band.value] || 0}
-                        </span>
-                      </label>
+                        {cat}
+                        {selectedCategory === cat && <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
+                      </button>
                     ))}
                   </div>
-                </div>
+                </section>
 
-                <div className="mt-5 border-t border-[var(--border-default)] pt-5">
-                  <p className="font-body text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)] mb-3">
-                    Price
-                  </p>
-                  <div className="space-y-2.5">
-                    {PRICE_BANDS.map((band) => (
-                      <label
+                {/* Price Section */}
+                <section>
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Price Range</h4>
+                  <div className="space-y-2">
+                    {PRICE_BANDS.map(band => (
+                      <button
                         key={band.value}
-                        className="flex items-center justify-between gap-2 text-sm cursor-pointer"
+                        onClick={() => setSelectedPriceBand(band.value)}
+                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all ${selectedPriceBand === band.value ? 'text-black font-bold' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
                       >
-                        <span className="flex items-center gap-2 text-[var(--text-secondary)]">
-                          <input
-                            type="radio"
-                            name="price-filter"
-                            checked={selectedPriceBand === band.value}
-                            onChange={() => {
-                              setSelectedPriceBand(band.value);
-                              setPage(1);
-                            }}
-                            className="h-4 w-4 accent-[var(--brand-primary)]"
-                          />
-                          {band.label}
-                        </span>
-                        <span className="text-xs font-semibold text-[var(--text-muted)]">
-                          {priceBandCounts[band.value] || 0}
-                        </span>
-                      </label>
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
+                          {selectedPriceBand === band.value && <div className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
+                        </div>
+                        {band.label}
+                      </button>
                     ))}
                   </div>
-                </div>
-              </>
-            )}
+                </section>
+
+                {/* Rating Section */}
+                <section>
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Rating</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {REVIEW_BANDS.map(band => (
+                      <button
+                        key={band.value}
+                        onClick={() => setSelectedReviewBand(band.value)}
+                        className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-md' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
+                      >
+                        {band.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <button 
+                  onClick={resetFilters}
+                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[var(--bg-sunken)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                >
+                  <RefreshCw size={14} />
+                  Reset All
+                </button>
+              </div>
           </aside>
 
-          <section>
-            <div className="rounded-2xl border border-[var(--border-default)] bg-white p-4 sm:p-5">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-secondary)]">
-                    Showing {filteredProducts.length} result
-                    {filteredProducts.length === 1 ? "" : "s"}
-                  </p>
-                  <p className="mt-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    Trusted marketplace products from local vendors
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    Sort By
-                  </span>
-                  <div className="relative min-w-[190px]">
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full appearance-none rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] px-4 py-2.5 pr-9 text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--brand-primary)] transition-colors"
-                    >
-                      <option value="featured">Featured</option>
-                      <option value="newest">Newest</option>
-                      <option value="price-low">Price: Low to High</option>
-                      <option value="price-high">Price: High to Low</option>
-                      <option value="name">Name: A to Z</option>
-                    </select>
-                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
-                  </div>
-                </div>
+          {/* PRODUCT LISTING AREA */}
+          <main className="space-y-6">
+            {/* Header Controls */}
+            <header className="flex items-center justify-between gap-4 py-4 px-1 sm:px-4 border-b border-[var(--border-default)] mb-4">
+              <div>
+                <h2 className="text-xs sm:text-sm font-black text-black uppercase tracking-widest">Catalogue</h2>
+                <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">{totalProducts} Items found</p>
               </div>
-            </div>
 
+              <div className="flex items-center gap-2">
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-transparent text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 pl-2 pr-1 rounded-none outline-none border-none cursor-pointer focus:ring-0"
+                >
+                  <option value="featured">Sort / Featured</option>
+                  <option value="newest">Sort / Newest</option>
+                  <option value="price-low">Sort / Price Low</option>
+                  <option value="price-high">Sort / Price High</option>
+                </select>
+              </div>
+            </header>
+
+            {/* RESULTS GRID */}
             {loading ? (
-              <div className="mt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-                {[...Array(10)].map((_, i) => (
-                  <ProductCardSkeleton key={i} />
-                ))}
-              </div>
-            ) : error ? (
-              <div className="mt-5 text-center py-20 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
-                <h3 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
-                  Unable to load products
-                </h3>
-                <p className="text-[var(--text-secondary)]">{error}</p>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
               </div>
             ) : filteredProducts.length > 0 ? (
-              <>
-                <div className="mt-5 grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5">
-                  {filteredProducts.map((product) => (
-                    <Link
-                      key={product.id}
-                      href={`/products/${product.id}`}
-                      className="group"
-                    >
-                      <article className="h-full overflow-hidden rounded-3xl border border-[var(--border-default)] bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(26,26,46,0.12)]">
-                        <div className="relative aspect-square overflow-hidden bg-[var(--bg-sunken)]">
-                          <Image
-                            src={
-                              product.images[0] || "/placeholder-product-1.jpg"
-                            }
-                            alt={product.name}
-                            fill
-                            className="object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                          {product.stock < 5 && (
-                            <span className="absolute right-3 top-3 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider bg-[var(--status-error-bg)] text-[var(--status-error)]">
-                              {product.stock === 0
-                                ? "Out of Stock"
-                                : `Only ${product.stock} left`}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="p-3 sm:p-4 flex flex-col gap-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="inline-flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                              <BadgeCheck
-                                size={13}
-                                className="text-[var(--brand-primary)]"
-                              />
-                              {product.vendorName}
-                            </p>
-                            <div className="inline-flex items-center gap-1 rounded-md bg-[var(--bg-sunken)] px-2 py-1 text-[10px] font-semibold text-[var(--text-secondary)]">
-                              <Star
-                                size={11}
-                                className="fill-[var(--brand-primary)] text-[var(--brand-primary)]"
-                              />
-                              {product.rating.toFixed(1)}
-                            </div>
-                          </div>
-
-                          <h3 className="text-base sm:text-lg font-normal text-[var(--text-primary)] line-clamp-2 leading-tight min-h-10 font-body">
-                            {product.name}
-                          </h3>
-
-                          <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                            <ShieldCheck
-                              size={13}
-                              className="text-[var(--brand-primary)]"
-                            />
-                            <span className="font-medium">
-                              Secure checkout eligible
-                            </span>
-                          </div>
-
-                          <div className="pt-3 border-t border-[var(--border-default)] flex items-center justify-between gap-2">
-                            <div>
-                              <p className="text-lg sm:text-xl font-bold text-[var(--text-primary)] leading-none">
-                                ₹{formatPrice(product.price)}
-                              </p>
-                              <p className="mt-1 text-[11px] font-medium text-[var(--text-muted)]">
-                                Inclusive of all taxes
-                              </p>
-                            </div>
-
-                            <div className="inline-flex items-center gap-1 rounded-lg bg-[var(--bg-sunken)] px-3 py-2 text-xs font-bold uppercase tracking-wider text-[var(--text-primary)] group-hover:bg-[var(--brand-primary)] group-hover:text-[var(--text-inverse)] transition-colors">
-                              View
-                              <ArrowRight size={14} />
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    </Link>
-                  ))}
-                </div>
-
-                <div className="mt-12 flex items-center justify-center gap-4">
-                  <button
-                    onClick={() => setPage((prev) => Math.max(1, prev - 1))}
-                    disabled={page === 1}
-                    className="rounded-xl border border-[var(--border-default)] px-6 py-2.5 text-sm font-bold text-[var(--text-primary)] disabled:opacity-40 hover:bg-[var(--bg-surface)] transition-colors shadow-sm"
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {filteredProducts.map(product => (
+                  <Link 
+                    key={product.id} 
+                    href={`/products/${product.id}`} 
+                    className="group relative flex flex-col bg-white border border-[var(--border-default)] rounded-xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-black/10 hover:-translate-y-1 active:scale-95 sm:active:scale-100"
                   >
-                    Previous
-                  </button>
-                  <span className="text-sm font-medium text-[var(--text-secondary)]">
-                    Page {page} of {totalPages}
-                  </span>
-                  <button
-                    onClick={() =>
-                      setPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    disabled={page === totalPages}
-                    className="rounded-xl border border-[var(--border-default)] px-6 py-2.5 text-sm font-bold text-[var(--text-primary)] disabled:opacity-40 hover:bg-[var(--bg-surface)] transition-colors shadow-sm"
-                  >
-                    Next
-                  </button>
-                </div>
-              </>
+                    {/* Badge */}
+                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
+                      {product.stock < 5 && (
+                        <span className="px-2 py-0.5 bg-red-600 text-[8px] font-black text-white uppercase tracking-tighter rounded-full shadow-lg">Low Stock</span>
+                      )}
+                    </div>
+
+                    {/* Image */}
+                    <div className="aspect-[4/5] relative overflow-hidden bg-zinc-100">
+                      <Image 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        fill 
+                        className="object-cover transition-transform duration-1000 group-hover:scale-110" 
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 lg:group-hover:opacity-100 transition-opacity" />
+                    </div>
+
+                    {/* Info */}
+                    <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1 sm:gap-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[60%]">{product.vendorName}</span>
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-1 text-[10px] font-bold text-black">
+                            <Star size={10} className="fill-[var(--brand-accent)] text-[var(--brand-accent)]" />
+                            {product.rating.toFixed(1)}
+                          </div>
+                          <span className="text-[8px] font-bold text-zinc-400 leading-none">({product.reviewCount})</span>
+                        </div>
+                      </div>
+
+                      <h3 className="text-xs sm:text-sm font-bold text-black line-clamp-2 leading-tight min-h-[32px] sm:min-h-[40px] group-hover:text-[var(--brand-accent)] transition-colors">{product.name}</h3>
+                      
+                      <div className="mt-auto pt-2 sm:pt-3 border-t border-zinc-50 flex items-center justify-between">
+                        <div>
+                          <p className="text-[9px] text-[var(--text-muted)] font-medium uppercase tracking-tighter">Price</p>
+                          <p className="text-base sm:text-lg font-black text-black tracking-tight">₹{product.price.toLocaleString()}</p>
+                        </div>
+                        <button className="hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black text-white items-center justify-center transition-all lg:group-hover:bg-[var(--brand-accent)] lg:group-hover:rotate-45">
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
             ) : (
-              <div className="mt-5 text-center py-20 rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)]">
-                <h3 className="text-xl font-bold mb-2 text-[var(--text-primary)]">
-                  No products found
-                </h3>
-                <p className="text-[var(--text-secondary)]">
-                  Try adjusting your filters to find what you're looking for.
-                </p>
-                <button
-                  onClick={resetFilters}
-                  className="mt-6 text-sm font-bold text-[var(--brand-primary)] hover:underline"
+              <div className="py-20 text-center rounded-2xl border-2 border-dashed border-[var(--border-default)]">
+                <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <RefreshCw size={32} className="text-zinc-300" />
+                </div>
+                <h3 className="text-xl font-bold text-black">No matches found</h3>
+                <p className="text-zinc-500 max-w-xs mx-auto mt-2">Try adjusting your filters or clearing them to see all available products.</p>
+                <button onClick={resetFilters} className="mt-8 px-8 py-3 bg-black text-white rounded-full font-bold hover:bg-[var(--brand-accent)] transition-colors shadow-lg">Clear All Filters</button>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {filteredProducts.length > 0 && (
+              <div className="pt-10 flex items-center justify-center gap-0">
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p-1))}
+                  disabled={page === 1}
+                  className="h-12 px-6 rounded-none border border-[var(--border-default)] bg-white text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 shadow-sm"
                 >
-                  Clear all filters
+                  Prev
+                </button>
+                <div className="flex items-center justify-center px-6 h-12 border-y border-[var(--border-default)] bg-[var(--bg-sunken)]">
+                  <span className="text-xs font-black text-black">{page}</span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase mx-1">/</span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase">{totalPages}</span>
+                </div>
+                <button 
+                  onClick={() => setPage(p => Math.min(totalPages, p+1))}
+                  disabled={page === totalPages}
+                  className="h-12 px-6 rounded-none border border-[var(--border-default)] bg-white text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 shadow-sm"
+                >
+                  Next
                 </button>
               </div>
             )}
-          </section>
+          </main>
         </div>
       </div>
     </div>

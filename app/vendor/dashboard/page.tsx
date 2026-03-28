@@ -251,7 +251,7 @@ export default function VendorDashboard() {
     >
       {/* SIDEBAR */}
       <aside
-        className="w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
+        className="hidden md:flex w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
         style={{
           backgroundColor: "var(--bg-surface)",
           borderRight: "1px solid var(--border-default)",
@@ -345,10 +345,10 @@ export default function VendorDashboard() {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 ml-[260px] flex flex-col min-h-screen">
+      <main className="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
         {/* TOP BAR */}
         <header
-          className="h-[72px] px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40"
+          className="h-[72px] px-4 md:px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40"
           style={{ borderBottom: "1px solid var(--border-default)" }}
         >
           <div className="flex items-center gap-4">
@@ -370,12 +370,12 @@ export default function VendorDashboard() {
             )}
           </div>
           <div className="flex items-center gap-4">
-            <div className="relative">
+            <div className="relative w-full max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
               <input
                 type="text"
                 placeholder="Search orders, products..."
-                className="pl-9 pr-4 py-2 rounded-full text-sm w-64 bg-[var(--bg-surface)] border-[var(--border-default)] border focus:outline-none focus:border-[var(--brand-primary)]"
+                className="pl-9 pr-4 py-2 rounded-full text-sm w-full md:w-64 bg-[var(--bg-surface)] border-[var(--border-default)] border focus:outline-none focus:border-[var(--brand-primary)]"
                 style={{ color: "var(--text-primary)" }}
               />
             </div>
@@ -400,7 +400,7 @@ export default function VendorDashboard() {
         </header>
 
         {/* PAGE CONTENT */}
-        <div className="p-8 max-w-[1200px] w-full">
+        <div className="p-4 sm:p-8 max-w-[1200px] w-full">
           {loading ? (
             <div className="text-[var(--text-secondary)] text-sm">
               Loading dashboard data...
@@ -543,8 +543,8 @@ export default function VendorDashboard() {
                         </Link>
                       </div>
 
-                      <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-hidden">
-                        <table className="w-full text-left border-collapse">
+                      <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-auto">
+                        <table className="w-full min-w-[700px] text-left border-collapse">
                           <thead>
                             <tr className="bg-[var(--bg-sunken)]">
                               <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">

@@ -359,6 +359,16 @@ export default function AdminDashboard() {
               <Bell size={20} />
               <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--brand-accent)] rounded-full"></span>
             </button>
+            <a
+              href="/products"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white border border-[var(--border-default)] text-sm hover:shadow-sm transition-shadow"
+              title="Open customer Products"
+            >
+              <ShoppingBag size={16} />
+              <span className="hidden sm:inline">View Products</span>
+            </a>
             <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden border border-[var(--border-default)]">
               <img
                 src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || "admin"}`}

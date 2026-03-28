@@ -77,7 +77,7 @@ export function HeroCarousel() {
   return (
     <div
       className="hero-logo-marquee"
-      aria-label="Top companies selling on Amazon"
+      aria-label="Partner brands selling on MarketFlow"
     >
       <BrandRow brands={topRow} />
       <BrandRow brands={middleRow} reverse />

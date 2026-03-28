@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, DM_Sans, DM_Mono, Instrument_Serif } from "next/font/google";
+import { Inter, DM_Sans, DM_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { AuthGuard } from "@/components/auth-guard";
 import "./globals.css";
@@ -23,12 +23,6 @@ const dmMono = DM_Mono({
   weight: ["400", "500"],
 });
 
-const instrumentSerif = Instrument_Serif({
-  subsets: ["latin"],
-  variable: "--font-instrument-serif",
-  weight: ["400"],
-  style: ["normal", "italic"],
-});
 
 export const metadata: Metadata = {
   title: "MarketFlow \u2014 Where Local Shops Become Global",
@@ -89,7 +83,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${dmSans.variable} ${dmMono.variable} ${instrumentSerif.variable}`}
+      className={`${inter.variable} ${dmSans.variable} ${dmMono.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -99,10 +93,7 @@ export default function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,800;1,700&display=swap"
-          rel="stylesheet"
-        />
+
       </head>
       <body className="font-body antialiased">
         <AuthGuard>
