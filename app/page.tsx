@@ -702,17 +702,32 @@ export default function HomePage() {
 
             {/* Right — Brand Marquee (40% width) */}
             <div
-              className="hidden lg:block overflow-hidden bg-[var(--bg-sunken)] hero-right-fade relative rounded-2xl border border-[var(--border-default)] shadow-sm"
+              className="hidden lg:flex lg:flex-col overflow-hidden bg-white hero-right-fade relative border border-[var(--border-default)] shadow-sm"
               style={{ flex: "40", height: "400px" }}
             >
-              <div className="h-full flex flex-col justify-center py-4 relative z-10">
+              {/* Title */}
+              <div className="px-5 pt-5 pb-2 text-center">
+                <h2 className="font-bold tracking-widest uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em", fontSize: "17px" }}>
+                  Shop from Big Brands
+                </h2>
+                <div className="mx-auto mt-2 h-0.5 w-12 rounded-full" style={{ background: "var(--brand-accent)" }} />
+              </div>
+              {/* Marquee rows */}
+              <div className="relative z-10 flex-1 flex flex-col justify-center">
                 <HeroCarousel />
               </div>
             </div>
           </div>
 
           {/* Brand Marquee — mobile/tablet (CSS animated, not static) */}
-          <div className="lg:hidden border-t border-[var(--border-default)] py-4 overflow-hidden">
+          <div className="lg:hidden border-t border-[var(--border-default)] pt-4 pb-3 overflow-hidden">
+            {/* Title */}
+            <div className="text-center mb-3">
+              <h2 className="font-bold tracking-widest uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em", fontSize: "15px" }}>
+                Shop from Big Brands
+              </h2>
+              <div className="mx-auto mt-2 h-0.5 w-12 rounded-full" style={{ background: "var(--brand-accent)" }} />
+            </div>
             <div className="mobile-brand-marquee">
               {[
                 "/brands/342045552_264830236025844_6486536419961059087_n.jpg",
