@@ -21,16 +21,29 @@ const publicExclusions = [
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
+  const refreshSession = useAuthStore((state) => state.refreshSession);
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    
+    const initAuth = async () => {
+      const token = localStorage.getItem("accessToken");
+      if (!user && !token) {
+        // Try to restore session from cookies
+        await refreshSession();
+      }
+      setCheckingAuth(false);
+    };
+
+    initAuth();
+  }, [user, refreshSession]);
 
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || checkingAuth) return;
 
     const requiresAuth = protectedPrefixes.some((prefix) =>
       pathname?.startsWith(prefix),
@@ -72,7 +85,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [mounted, user, pathname, router]);
 
   // Prevent UI flash on client-side before mount
-  if (!mounted) {
+  if (!mounted || checkingAuth) {
     return <div className="min-h-screen bg-background" />;
   }
 

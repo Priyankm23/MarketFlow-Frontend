@@ -269,7 +269,7 @@ export default function ProductsPage() {
         </section>
 
         {/* --- MAIN GRID --- */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-8">
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6">
           
           {/* REFINED SIDEBAR */}
           <aside className="h-fit">
@@ -284,19 +284,19 @@ export default function ProductsPage() {
               </button>
             </div>
 
-            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-8 lg:mt-8`}>
+            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-6 lg:mt-6`}>
                 {/* Category Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Category</h4>
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Category</h4>
                   <div className="grid grid-cols-1 gap-1">
                     {categories.map(cat => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
                       >
                         {cat}
-                        {selectedCategory === cat && <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
+                        {selectedCategory === cat && <span className="w-1 h-1 rounded-full bg-[var(--brand-accent)]" />}
                       </button>
                     ))}
                   </div>
@@ -304,15 +304,15 @@ export default function ProductsPage() {
 
                 {/* Price Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Price Range</h4>
-                  <div className="space-y-2">
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Price</h4>
+                  <div className="space-y-1">
                     {PRICE_BANDS.map(band => (
                       <button
                         key={band.value}
                         onClick={() => setSelectedPriceBand(band.value)}
-                        className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all ${selectedPriceBand === band.value ? 'text-black font-bold' : 'text-[var(--text-secondary)] opacity-60 hover:opacity-100'}`}
+                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? 'text-black font-bold' : 'text-[var(--text-secondary)] opacity-70 hover:opacity-100'}`}
                       >
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
+                        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
                           {selectedPriceBand === band.value && <div className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
                         </div>
                         {band.label}
@@ -323,13 +323,13 @@ export default function ProductsPage() {
 
                 {/* Rating Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">Rating</h4>
-                  <div className="flex flex-wrap gap-2">
+                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Rating</h4>
+                  <div className="flex flex-wrap gap-1.5">
                     {REVIEW_BANDS.map(band => (
                       <button
                         key={band.value}
                         onClick={() => setSelectedReviewBand(band.value)}
-                        className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-md' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-md' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
                       >
                         {band.label}
                       </button>
@@ -339,10 +339,10 @@ export default function ProductsPage() {
 
                 <button 
                   onClick={resetFilters}
-                  className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[var(--bg-sunken)] text-[var(--text-primary)] text-xs font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-sunken)] text-[var(--text-primary)] text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
                 >
-                  <RefreshCw size={14} />
-                  Reset All
+                  <RefreshCw size={12} />
+                  Reset
                 </button>
               </div>
           </aside>
@@ -372,21 +372,21 @@ export default function ProductsPage() {
 
             {/* RESULTS GRID */}
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {[...Array(8)].map((_, i) => <ProductCardSkeleton key={i} />)}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {[...Array(10)].map((_, i) => <ProductCardSkeleton key={i} />)}
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredProducts.map(product => (
                   <Link 
                     key={product.id} 
                     href={`/products/${product.id}`} 
-                    className="group relative flex flex-col bg-white border border-[var(--border-default)] rounded-xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-black/10 hover:-translate-y-1 active:scale-95 sm:active:scale-100"
+                    className="group relative flex flex-col bg-white border border-[var(--border-default)] rounded-none overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-black/10 hover:-translate-y-1 active:scale-95 sm:active:scale-100"
                   >
                     {/* Badge */}
                     <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
                       {product.stock < 5 && (
-                        <span className="px-2 py-0.5 bg-red-600 text-[8px] font-black text-white uppercase tracking-tighter rounded-full shadow-lg">Low Stock</span>
+                        <span className="px-2 py-0.5 bg-red-600 text-[8px] font-black text-white uppercase tracking-tighter rounded-none shadow-lg">Low Stock</span>
                       )}
                     </div>
 
@@ -402,26 +402,25 @@ export default function ProductsPage() {
                     </div>
 
                     {/* Info */}
-                    <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1 sm:gap-1.5">
+                    <div className="p-3.5 flex-1 flex flex-col gap-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[60%]">{product.vendorName}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[55%]">{product.vendorName}</span>
                         <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1 text-[10px] font-bold text-black">
-                            <Star size={10} className="fill-[var(--brand-accent)] text-[var(--brand-accent)]" />
+                          <div className="flex items-center gap-1 text-[11px] font-bold text-black">
+                            <Star size={11} className="fill-[var(--brand-accent)] text-[var(--brand-accent)]" />
                             {product.rating.toFixed(1)}
+                            <span className="text-[10px] text-zinc-400 font-medium">({product.reviewCount})</span>
                           </div>
-                          <span className="text-[8px] font-bold text-zinc-400 leading-none">({product.reviewCount})</span>
                         </div>
                       </div>
 
-                      <h3 className="text-xs sm:text-sm font-bold text-black line-clamp-2 leading-tight min-h-[32px] sm:min-h-[40px] group-hover:text-[var(--brand-accent)] transition-colors">{product.name}</h3>
+                      <h3 className="text-[13px] sm:text-[14px] font-bold text-black line-clamp-2 leading-tight min-h-[34px] group-hover:text-[var(--brand-accent)] transition-colors">{product.name}</h3>
                       
-                      <div className="mt-auto pt-2 sm:pt-3 border-t border-zinc-50 flex items-center justify-between">
+                      <div className="mt-auto pt-2.5 border-t border-zinc-100 flex items-center justify-between">
                         <div>
-                          <p className="text-[9px] text-[var(--text-muted)] font-medium uppercase tracking-tighter">Price</p>
-                          <p className="text-base sm:text-lg font-black text-black tracking-tight">₹{product.price.toLocaleString()}</p>
+                          <p className="text-[14px] font-black text-black tracking-tight">₹{product.price.toLocaleString()}</p>
                         </div>
-                        <button className="hidden sm:flex w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black text-white items-center justify-center transition-all lg:group-hover:bg-[var(--brand-accent)] lg:group-hover:rotate-45">
+                        <button className="hidden sm:flex w-8 h-8 bg-black text-white items-center justify-center transition-all lg:group-hover:bg-[var(--brand-accent)]">
                           <ArrowRight size={16} />
                         </button>
                       </div>

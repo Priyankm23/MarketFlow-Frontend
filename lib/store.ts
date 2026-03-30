@@ -1,7 +1,11 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { User, UserRole, CartItem, Notification, Product } from "./types";
 import { API_BASE_URL } from "@/lib/config";
+import { useAuthStore } from "./auth-store";
+import { authFetch } from "./auth-fetch";
+
+// Export useAuthStore from here for backward compatibility
+export { useAuthStore };
 
 const toApiV1BaseUrl = (baseUrl: string) => {
   const trimmed = baseUrl.replace(/\/+$/, "");
@@ -37,13 +41,6 @@ type ApiCartResponse = {
   data?: ApiCartPayload;
   items?: ApiCartItem[];
   totalAmount?: number;
-};
-
-const getAccessToken = () => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return localStorage.getItem("accessToken");
 };
 
 const getCartItemsFromPayload = (payload: ApiCartResponse): ApiCartItem[] => {
@@ -117,20 +114,6 @@ const mergeCartItemsFromApi = (
     .filter((item): item is CartItem => Boolean(item));
 };
 
-interface AuthStore {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (
-    name: string,
-    email: string,
-    password: string,
-    role?: UserRole,
-  ) => Promise<void>;
-  logout: () => Promise<void>;
-  setUser: (user: User | null) => void;
-}
-
 interface CartStore {
   items: CartItem[];
   isLoading: boolean;
@@ -162,130 +145,6 @@ interface NotificationStore {
   unreadCount: number;
 }
 
-// Auth Store
-export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set) => ({
-      user: null,
-      isLoading: false,
-      login: async (email, password) => {
-        set({ isLoading: true });
-        try {
-          const response = await fetch(`${API_BASE_URL}/auth/login`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email, password }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || "Login failed");
-          }
-
-          const data = await response.json();
-
-          if (data && data.data && data.data.user) {
-            const loggedInUser: User = {
-              id: data.data.user.id || Math.random().toString(36).substr(2, 9),
-              email: data.data.user.email,
-              name: data.data.user.name,
-              role: data.data.user.role?.toLowerCase() || "customer",
-              createdAt: data.data.user.createdAt || new Date().toISOString(),
-              updatedAt: data.data.user.updatedAt || new Date().toISOString(),
-            };
-            set({ user: loggedInUser, isLoading: false });
-
-            if (data.data.accessToken) {
-              localStorage.setItem("accessToken", data.data.accessToken);
-            }
-            return loggedInUser;
-          } else {
-            throw new Error("Invalid response structure from server");
-          }
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-      register: async (name, email, password, role = "customer") => {
-        set({ isLoading: true });
-        try {
-          const response = await fetch(`${API_BASE_URL}/auth/register`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              name,
-              email,
-              password,
-              role: role.toUpperCase(),
-            }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || "Registration failed");
-          }
-
-          const data = await response.json();
-
-          // Assuming backend returns { status: "success", data: { user, accessToken } }
-          if (data && data.data && data.data.user) {
-            const registeredUser: User = {
-              id: data.data.user.id || Math.random().toString(36).substr(2, 9),
-              email: data.data.user.email,
-              name: data.data.user.name,
-              role: data.data.user.role?.toLowerCase() || role,
-              createdAt: data.data.user.createdAt || new Date().toISOString(),
-              updatedAt: data.data.user.updatedAt || new Date().toISOString(),
-            };
-            set({ user: registeredUser, isLoading: false });
-
-            // Optionally store the token
-            if (data.data.accessToken) {
-              localStorage.setItem("accessToken", data.data.accessToken);
-            }
-          } else {
-            throw new Error("Invalid response structure from server");
-          }
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
-      },
-      logout: async () => {
-        const accessToken = localStorage.getItem("accessToken");
-
-        try {
-          await fetch(`${API_BASE_URL}/auth/logout`, {
-            method: "POST",
-            credentials: "include",
-            headers: {
-              ...(accessToken
-                ? { Authorization: `Bearer ${accessToken}` }
-                : {}),
-            },
-          });
-        } catch {
-          // Ignore network/API errors and still clear local auth state.
-        } finally {
-          localStorage.removeItem("accessToken");
-          set({ user: null });
-        }
-      },
-      setUser: (user) => set({ user }),
-    }),
-    {
-      name: "auth-storage",
-    },
-  ),
-);
-
 // Cart Store
 export const useCartStore = create<CartStore>((set, get) => ({
   items: [],
@@ -301,14 +160,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const accessToken = getAccessToken();
-      const response = await fetch(`${CART_API_BASE_URL}/cart`, {
+      const response = await authFetch(`${CART_API_BASE_URL}/cart`, {
         method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
       });
 
       if (!response.ok) {
@@ -334,14 +187,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
     }
 
     try {
-      const accessToken = getAccessToken();
-      const response = await fetch(`${CART_API_BASE_URL}/cart/items`, {
+      const response = await authFetch(`${CART_API_BASE_URL}/cart/items`, {
         method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        },
         body: JSON.stringify({
           userId: user.id,
           productId: item.productId,
@@ -381,17 +228,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
     if (user && user.role === "customer") {
       try {
-        const accessToken = getAccessToken();
-        const response = await fetch(
+        const response = await authFetch(
           `${CART_API_BASE_URL}/cart/items/${productId}`,
           {
             method: "DELETE",
-            credentials: "include",
-            headers: {
-              ...(accessToken
-                ? { Authorization: `Bearer ${accessToken}` }
-                : {}),
-            },
           },
         );
 
@@ -431,18 +271,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
     if (user && user.role === "customer") {
       try {
-        const accessToken = getAccessToken();
-        const patchResponse = await fetch(
+        const patchResponse = await authFetch(
           `${CART_API_BASE_URL}/cart/items/${productId}`,
           {
             method: "PATCH",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              ...(accessToken
-                ? { Authorization: `Bearer ${accessToken}` }
-                : {}),
-            },
             body: JSON.stringify({ quantity }),
           },
         );
@@ -459,15 +291,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
         const delta = quantity - (currentItem?.quantity || 0);
         if (delta > 0) {
-          const addResponse = await fetch(`${CART_API_BASE_URL}/cart/items`, {
+          const addResponse = await authFetch(`${CART_API_BASE_URL}/cart/items`, {
             method: "POST",
-            credentials: "include",
-            headers: {
-              "Content-Type": "application/json",
-              ...(accessToken
-                ? { Authorization: `Bearer ${accessToken}` }
-                : {}),
-            },
             body: JSON.stringify({
               userId: user.id,
               productId,
@@ -501,13 +326,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
     if (user && user.role === "customer") {
       try {
-        const accessToken = getAccessToken();
-        await fetch(`${CART_API_BASE_URL}/cart`, {
+        await authFetch(`${CART_API_BASE_URL}/cart`, {
           method: "DELETE",
-          credentials: "include",
-          headers: {
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-          },
         });
       } catch {
         // Ignore errors and clear local cache.

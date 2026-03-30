@@ -39,7 +39,7 @@ export function ProductCard({
   if (variant === "compact") {
     return (
       <Link href={`/products/${product.id}`}>
-        <div className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col cursor-pointer">
+        <div className="bg-card border border-border rounded-lg overflow-hidden transition-shadow duration-300 h-full flex flex-col cursor-pointer group transform-gpu motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-0.5 hover:shadow-lg">
           <div className="relative aspect-square bg-white overflow-hidden">
             {product.images[0] && (
               <Image
@@ -51,13 +51,18 @@ export function ProductCard({
               />
             )}
             {discountPercent > 0 && (
-              <div className="absolute top-2 right-2 bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs font-bold">
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs font-bold">
                 -{discountPercent}%
               </div>
             )}
           </div>
-          <div className="p-4 flex-1 flex flex-col justify-between gap-2">
-            <h3 className="font-normal text-lg line-clamp-2 leading-tight" style={{ fontFamily: "var(--font-instrument-serif)" }}>{product.name}</h3>
+          <div className="p-4 sm:p-4 flex-1 flex flex-col justify-between gap-3 sm:gap-2">
+            <h3
+              className="font-normal text-lg sm:text-base line-clamp-2 leading-tight"
+              style={{ fontFamily: "var(--font-instrument-serif)" }}
+            >
+              {product.name}
+            </h3>
             <div>
               <div className="flex items-center gap-1 mt-1">
                 <div className="flex items-center">
@@ -77,7 +82,9 @@ export function ProductCard({
                 </span>
               </div>
               <div className="flex items-center gap-2 mt-2">
-                <span className="font-bold text-xl text-primary">₹{product.price}</span>
+                <span className="font-bold text-xl text-primary">
+                  ₹{product.price}
+                </span>
                 {product.originalPrice && (
                   <span className="line-through text-sm text-muted-foreground">
                     ₹{product.originalPrice}
@@ -93,7 +100,7 @@ export function ProductCard({
 
   return (
     <Link href={`/products/${product.id}`}>
-      <div className="bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full flex flex-col cursor-pointer group">
+      <div className="bg-card border border-border rounded-lg overflow-hidden transition-shadow duration-300 h-full flex flex-col cursor-pointer group transform-gpu motion-safe:transition-transform motion-safe:duration-300 hover:-translate-y-1 hover:shadow-xl">
         {/* Image Section */}
         <div className="relative aspect-square bg-white overflow-hidden">
           {product.images[0] && (
@@ -108,7 +115,7 @@ export function ProductCard({
 
           {/* Discount Badge */}
           {discountPercent > 0 && (
-            <div className="absolute top-3 right-3 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold">
+            <div className="absolute top-2 right-2 sm:top-3 sm:right-3 bg-destructive text-destructive-foreground px-3 py-1 rounded-full text-sm font-bold">
               -{discountPercent}%
             </div>
           )}
@@ -145,14 +152,17 @@ export function ProductCard({
         </div>
 
         {/* Content Section */}
-        <div className="p-5 flex-1 flex flex-col justify-between gap-3">
+        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between gap-3 sm:gap-4">
           {/* Vendor Info */}
           <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
             {product.vendorName}
           </div>
 
           {/* Product Name */}
-          <h3 className="font-normal text-xl line-clamp-2 leading-tight group-hover:text-primary transition-colors" style={{ fontFamily: "var(--font-instrument-serif)" }}>
+          <h3
+            className="font-normal text-lg sm:text-xl line-clamp-2 leading-tight group-hover:text-primary transition-colors"
+            style={{ fontFamily: "var(--font-instrument-serif)" }}
+          >
             {product.name}
           </h3>
 

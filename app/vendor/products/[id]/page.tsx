@@ -54,20 +54,78 @@ export default function ProductDetailPage() {
     categoryId: "",
   });
 
+  const [isFlashDealModalOpen, setIsFlashDealModalOpen] = useState(false);
+  const [flashDealSubmitting, setFlashDealSubmitting] = useState(false);
+  const [flashDealData, setFlashDealData] = useState({
+    offerName: "",
+    discountPercentage: "",
+    couponCode: "",
+    startAt: "",
+    endAt: "",
+    termsAndConditions: "",
+  });
+
   // Mock Offers Data
-  const mockOffers = [
-    {
-      id: 1,
-      name: "Summer Sale",
-      discount: "20%",
-      perks: "Free Shipping",
-      status: "Active",
-    },
-  ];
+  const [offers, setOffers] = useState<any[]>([]);
 
   useEffect(() => {
     loadData();
+    fetchOffers();
   }, [id]);
+
+  const fetchOffers = async () => {
+    try {
+      const res = await authFetch(`${API_BASE_URL}/flash-deals?productId=${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOffers(data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching offers:", err);
+    }
+  };
+
+  const handleCreateFlashDeal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFlashDealSubmitting(true);
+    try {
+      const response = await authFetch(`${API_BASE_URL}/flash-deals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productId: id,
+          offerName: flashDealData.offerName,
+          discountPercentage: Number(flashDealData.discountPercentage),
+          couponCode: flashDealData.couponCode || null,
+          startAt: new Date(flashDealData.startAt).toISOString(),
+          endAt: new Date(flashDealData.endAt).toISOString(),
+          termsAndConditions: flashDealData.termsAndConditions || null,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Flash deal created successfully!");
+        setIsFlashDealModalOpen(false);
+        setFlashDealData({
+          offerName: "",
+          discountPercentage: "",
+          couponCode: "",
+          startAt: "",
+          endAt: "",
+          termsAndConditions: "",
+        });
+        fetchOffers();
+      } else {
+        const error = await response.json();
+        alert(error.message || "Failed to create flash deal");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("An error occurred while creating the flash deal");
+    } finally {
+      setFlashDealSubmitting(false);
+    }
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -396,7 +454,7 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* MOCK OFFERS SECTION */}
+          {/* OFFERS SECTION */}
           <div className="space-y-4 pt-4">
             <div className="flex items-center justify-between">
               <h2
@@ -408,10 +466,13 @@ export default function ProductDetailPage() {
                   fontWeight: "normal",
                 }}
               >
-                Product Offers
+                Product Flash Deals
               </h2>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--bg-sunken)] text-[var(--text-primary)] hover:bg-[var(--border-default)] transition-colors">
-                <Plus size={16} /> Create New Offer
+              <button
+                onClick={() => setIsFlashDealModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity"
+              >
+                <Plus size={16} /> Create Flash Deal
               </button>
             </div>
 
@@ -419,60 +480,89 @@ export default function ProductDetailPage() {
               {/* Existing Offers */}
               <div className="space-y-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
-                  Active Offers
+                  Active & Scheduled Deals
                 </h3>
-                {mockOffers.map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-default)] relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 p-2">
-                      <span className="px-2 py-0.5 bg-[var(--status-success-bg)] text-[var(--status-success)] text-[10px] font-bold rounded-full uppercase">
-                        {offer.status}
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)]">
-                        <Tag size={20} />
+                {offers.length > 0 ? (
+                  offers.map((offer) => (
+                    <div
+                      key={offer.id}
+                      className="bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-default)] relative overflow-hidden"
+                    >
+                      <div className="absolute top-0 right-0 p-2">
+                        <span
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
+                            new Date(offer.endAt) < new Date()
+                              ? "bg-[var(--status-error-bg)] text-[var(--status-error)]"
+                              : new Date(offer.startAt) > new Date()
+                                ? "bg-[var(--bg-sunken)] text-[var(--text-secondary)]"
+                                : "bg-[var(--status-success-bg)] text-[var(--status-success)]"
+                          }`}
+                        >
+                          {new Date(offer.endAt) < new Date()
+                            ? "Expired"
+                            : new Date(offer.startAt) > new Date()
+                              ? "Scheduled"
+                              : "Active"}
+                        </span>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-[var(--text-primary)] font-body">
-                          {offer.name}
-                        </h4>
-                        <p className="text-sm text-[var(--text-secondary)] mt-1">
-                          <span className="text-[var(--brand-primary)] font-bold">
-                            {offer.discount} OFF
-                          </span>{" "}
-                          • {offer.perks}
-                        </p>
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)]">
+                          <Tag size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-[var(--text-primary)] font-body">
+                            {offer.offerName}
+                          </h4>
+                          <p className="text-sm text-[var(--text-secondary)] mt-1">
+                            <span className="text-[var(--brand-primary)] font-bold">
+                              {offer.discountPercentage}% OFF
+                            </span>{" "}
+                            {offer.couponCode && `• Code: ${offer.couponCode}`}
+                          </p>
+                          <div className="mt-2 text-[10px] text-[var(--text-muted)] flex flex-col gap-0.5">
+                            <span>
+                              Starts: {new Date(offer.startAt).toLocaleString()}
+                            </span>
+                            <span>
+                              Ends: {new Date(offer.endAt).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-8 text-center border border-dashed border-[var(--border-default)] rounded-xl bg-[var(--bg-sunken)]/30">
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      No flash deals created yet.
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
 
-              {/* Create Offer Mock Form */}
+              {/* Quick Info / Tips */}
               <div className="bg-[var(--bg-surface)] p-6 rounded-xl border border-[var(--border-default)] space-y-4">
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
-                  Quick Create (Mock)
+                  Flash Deal Tips
                 </h3>
-                <div className="space-y-3">
-                  <Input
-                    placeholder="Offer Name (e.g. Festival Special)"
-                    disabled
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input placeholder="Discount %" disabled />
-                    <Input placeholder="Coupon Code" disabled />
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-sunken)] flex items-center justify-center flex-shrink-0">
+                      <BarChart2 size={16} className="text-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">Increase Visibility</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">Flash deals are featured on the home page and category pages.</p>
+                    </div>
                   </div>
-                  <Textarea
-                    placeholder="Terms and Conditions"
-                    disabled
-                    className="min-h-[80px]"
-                  />
-                  <div className="flex items-center gap-2 p-3 bg-[var(--bg-sunken)] rounded-lg text-[var(--text-muted)] text-xs italic">
-                    <AlertCircle size={14} />
-                    This feature will be available soon.
+                  <div className="flex gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-sunken)] flex items-center justify-center flex-shrink-0">
+                      <Bell size={16} className="text-[var(--brand-primary)]" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">Limited Time</p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">Short, high-discount deals (4-24 hours) typically perform best.</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -480,6 +570,143 @@ export default function ProductDetailPage() {
           </div>
         </div>
       </main>
+
+      {/* FLASH DEAL MODAL */}
+      <Dialog open={isFlashDealModalOpen} onOpenChange={setIsFlashDealModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle
+              style={{
+                fontFamily: "var(--font-dm-sans)",
+                fontSize: "1.5rem",
+                letterSpacing: "0.02em",
+                fontWeight: "normal",
+              }}
+            >
+              Create Flash Deal
+            </DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateFlashDeal} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Offer Name
+              </label>
+              <Input
+                required
+                placeholder="e.g. Midnight Madness"
+                value={flashDealData.offerName}
+                onChange={(e) =>
+                  setFlashDealData({ ...flashDealData, offerName: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Discount (%)
+                </label>
+                <Input
+                  required
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder="20"
+                  value={flashDealData.discountPercentage}
+                  onChange={(e) =>
+                    setFlashDealData({
+                      ...flashDealData,
+                      discountPercentage: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Coupon Code (Optional)
+                </label>
+                <Input
+                  placeholder="SAVE20"
+                  value={flashDealData.couponCode}
+                  onChange={(e) =>
+                    setFlashDealData({
+                      ...flashDealData,
+                      couponCode: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  Start Date & Time
+                </label>
+                <Input
+                  required
+                  type="datetime-local"
+                  value={flashDealData.startAt}
+                  onChange={(e) =>
+                    setFlashDealData({ ...flashDealData, startAt: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                  End Date & Time
+                </label>
+                <Input
+                  required
+                  type="datetime-local"
+                  value={flashDealData.endAt}
+                  onChange={(e) =>
+                    setFlashDealData({ ...flashDealData, endAt: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Terms & Conditions (Optional)
+              </label>
+              <Textarea
+                placeholder="e.g. Valid on minimum purchase of ₹500"
+                className="min-h-[80px]"
+                value={flashDealData.termsAndConditions}
+                onChange={(e) =>
+                  setFlashDealData({
+                    ...flashDealData,
+                    termsAndConditions: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <DialogFooter>
+              <button
+                type="button"
+                onClick={() => setIsFlashDealModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={flashDealSubmitting}
+                className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {flashDealSubmitting ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  "Create Deal"
+                )}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* ADD IMAGES MODAL */}
       <Dialog open={isAddImageModalOpen} onOpenChange={setIsAddImageModalOpen}>

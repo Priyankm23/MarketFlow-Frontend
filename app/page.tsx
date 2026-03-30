@@ -404,7 +404,7 @@ function ProductCardSection({ product }: { product: TrendingProductCard }) {
             <div className="flex items-center gap-1.5 mb-3">
               <Star className="w-4 h-4 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
               <span className="text-sm font-bold text-[var(--text-primary)]">
-                {product.rating}
+                {product.rating.toFixed(1)}
               </span>
               <span className="text-xs text-[var(--text-muted)]">
                 ({product.reviews} reviews)
@@ -666,11 +666,11 @@ export default function HomePage() {
                       className="w-full h-full object-cover"
                     />
                     {/* Overlay text */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent flex flex-col justify-end p-5 sm:p-8">
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent flex flex-col justify-end p-6 sm:p-10 gap-4">
                       <span className="text-white/70 text-xs sm:text-sm font-medium mb-1">
                         {banner.sub}
                       </span>
-                      <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold !leading-tight mb-4">
+                      <h2 className="text-white text-2xl sm:text-3xl lg:text-4xl font-bold !leading-tight mb-6">
                         {banner.label}
                       </h2>
                       <Link
@@ -707,10 +707,20 @@ export default function HomePage() {
             >
               {/* Title */}
               <div className="px-5 pt-5 pb-2 text-center">
-                <h2 className="font-bold tracking-widest uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em", fontSize: "17px" }}>
+                <h2
+                  className="font-bold tracking-widest uppercase"
+                  style={{
+                    color: "var(--text-primary)",
+                    letterSpacing: "0.08em",
+                    fontSize: "17px",
+                  }}
+                >
                   Shop from Big Brands
                 </h2>
-                <div className="mx-auto mt-2 h-0.5 w-12 rounded-full" style={{ background: "var(--brand-accent)" }} />
+                <div
+                  className="mx-auto mt-2 h-0.5 w-12 rounded-full"
+                  style={{ background: "var(--brand-accent)" }}
+                />
               </div>
               {/* Marquee rows */}
               <div className="relative z-10 flex-1 flex flex-col justify-center">
@@ -720,13 +730,23 @@ export default function HomePage() {
           </div>
 
           {/* Brand Marquee — mobile/tablet (CSS animated, not static) */}
-          <div className="lg:hidden border-t border-[var(--border-default)] pt-4 pb-3 overflow-hidden">
+          <div className="lg:hidden border-t border-[var(--border-default)] pt-4 pb-3 overflow-hidden bg-[var(--bg-surface)]">
             {/* Title */}
             <div className="text-center mb-3">
-              <h2 className="font-bold tracking-widest uppercase" style={{ color: "var(--text-primary)", letterSpacing: "0.08em", fontSize: "15px" }}>
+              <h2
+                className="font-bold tracking-widest uppercase"
+                style={{
+                  color: "var(--text-primary)",
+                  letterSpacing: "0.08em",
+                  fontSize: "15px",
+                }}
+              >
                 Shop from Big Brands
               </h2>
-              <div className="mx-auto mt-2 h-0.5 w-12 rounded-full" style={{ background: "var(--brand-accent)" }} />
+              <div
+                className="mx-auto mt-2 h-0.5 w-12 rounded-full"
+                style={{ background: "var(--brand-accent)" }}
+              />
             </div>
             <div className="mobile-brand-marquee">
               {[
@@ -1027,7 +1047,7 @@ export default function HomePage() {
                     <div className="flex items-center gap-1 mt-1.5">
                       <Star className="w-3 h-3 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
                       <span className="text-[11px] font-bold text-[var(--text-primary)]">
-                        {product.rating}
+                        {product.rating.toFixed(1)}
                       </span>
                       <span className="text-[10px] text-[var(--text-muted)]">
                         ({product.reviews})

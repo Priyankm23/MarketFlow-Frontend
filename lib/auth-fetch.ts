@@ -1,7 +1,7 @@
-import { useAuthStore } from "./store";
+import { useAuthStore } from "./auth-store";
 import { API_BASE_URL } from "@/lib/config";
 
-const INVALID_OR_EXPIRED_TOKEN_PATTERN = /invalid or expired token/i;
+const INVALID_OR_EXPIRED_TOKEN_PATTERN = /invalid or expired token|jwt expired|token expired|unauthorized/i;
 
 let refreshPromise: Promise<string | null> | null = null;
 
