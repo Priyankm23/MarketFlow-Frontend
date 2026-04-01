@@ -1,15 +1,11 @@
 export function ProductCardSkeleton() {
   return (
-    <div className="bg-card border border-border rounded-lg overflow-hidden animate-pulse">
-      <div className="aspect-square bg-secondary"></div>
-      <div className="p-4 space-y-3">
-        <div className="h-4 bg-secondary rounded w-3/4"></div>
-        <div className="flex gap-1">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="w-3 h-3 bg-secondary rounded-full"></div>
-          ))}
-        </div>
-        <div className="h-5 bg-secondary rounded w-1/2"></div>
+    <div className="flex flex-col animate-pulse">
+      <div className="aspect-[3/4] bg-zinc-100 rounded-none"></div>
+      <div className="mt-4 px-1 space-y-2">
+        <div className="h-4 bg-zinc-100 rounded-none w-1/2"></div>
+        <div className="h-3 bg-zinc-100 rounded-none w-3/4"></div>
+        <div className="h-4 bg-zinc-100 rounded-none w-1/3"></div>
       </div>
     </div>
   )

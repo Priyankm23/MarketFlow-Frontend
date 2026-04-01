@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuthStore } from "@/lib/store";
 import { Navbar } from "@/components/navbar";
 import { HeroCarousel } from "@/components/hero-carousel";
+import { ProductCard } from "@/components/product-card";
+import { FlashDealCard } from "@/components/flash-deal-card";
+import { FlashDeal } from "@/lib/types";
 import {
   ArrowRight,
   Truck,
@@ -28,7 +31,6 @@ import {
   Mail,
   ChevronRight,
   MapPin,
-  Zap,
   Clock,
 } from "lucide-react";
 import "./hero-illustration.css";
@@ -206,75 +208,6 @@ const newArrivals = [
   },
 ];
 
-const flashDeals = [
-  {
-    id: "fd1",
-    name: "Wireless Earbuds Pro",
-    vendor: "TechHub Electronics",
-    price: 1499,
-    originalPrice: 3999,
-    discount: 63,
-    rating: 4.7,
-    reviews: 892,
-    emoji: "🎧",
-  },
-  {
-    id: "fd2",
-    name: "Pure Silk Saree",
-    vendor: "StyleWear Fashion",
-    price: 2199,
-    originalPrice: 5999,
-    discount: 63,
-    rating: 4.5,
-    reviews: 234,
-    emoji: "👗",
-  },
-  {
-    id: "fd3",
-    name: "Cold Press Juice Set",
-    vendor: "NaturesBrew",
-    price: 599,
-    originalPrice: 999,
-    discount: 40,
-    rating: 4.8,
-    reviews: 678,
-    emoji: "🍋",
-  },
-  {
-    id: "fd4",
-    name: "Premium Yoga Mat",
-    vendor: "FitLife",
-    price: 899,
-    originalPrice: 1999,
-    discount: 55,
-    rating: 4.6,
-    reviews: 445,
-    emoji: "🧘",
-  },
-  {
-    id: "fd5",
-    name: "Artisan Candle Set",
-    vendor: "AromaCraft",
-    price: 449,
-    originalPrice: 899,
-    discount: 50,
-    rating: 4.7,
-    reviews: 321,
-    emoji: "🕯️",
-  },
-  {
-    id: "fd6",
-    name: "Raw Organic Honey",
-    vendor: "FarmFresh",
-    price: 349,
-    originalPrice: 599,
-    discount: 42,
-    rating: 4.9,
-    reviews: 1203,
-    emoji: "🍯",
-  },
-];
-
 const featuredVendors = [
   {
     name: "TechHub Electronics",
@@ -310,7 +243,7 @@ const testimonials = [
   {
     text: '"MarketFlow made it so easy to find quality products from local vendors. The delivery was fast and the products exceeded expectations!"',
     name: "Priya Sharma",
-    role: "Regular Customer",
+    role: "Regular Shopper",
     initials: "PS",
   },
   {
@@ -322,7 +255,7 @@ const testimonials = [
   {
     text: '"The platform is so intuitive. I love how I can discover unique products from shops near me that I never knew existed."',
     name: "Ananya Patel",
-    role: "Premium Member",
+    role: "Regular Shopper",
     initials: "AP",
   },
 ];
@@ -355,79 +288,6 @@ const trustBenefits = [
 ];
 
 /* ================================================================== */
-/*  Product Card Component                                             */
-/* ================================================================== */
-
-/* ================================================================== */
-/*  Product Card Component                                             */
-/* ================================================================== */
-
-function ProductCardSection({ product }: { product: TrendingProductCard }) {
-  const discount = product.originalPrice
-    ? Math.round(
-        ((product.originalPrice - product.price) / product.originalPrice) * 100,
-      )
-    : 0;
-
-  return (
-    <Link href={`/products/${product.id}`} className="block h-full">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col group">
-        <div className="aspect-square relative bg-[var(--bg-sunken)] flex items-center justify-center overflow-hidden">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            loading="lazy"
-          />
-          {product.badge && (
-            <span className="absolute top-3 left-3 bg-[var(--bg-surface)] text-[var(--text-primary)] text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-[var(--border-default)] shadow-sm">
-              {product.badge}
-            </span>
-          )}
-          {discount > 0 && (
-            <span className="absolute top-3 right-3 bg-[var(--brand-accent)] text-white text-[10px] font-bold px-2 py-1 rounded-md">
-              -{discount}%
-            </span>
-          )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
-        </div>
-        <div className="p-5 flex-1 flex flex-col gap-3">
-          <div>
-            <p className="text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-1.5">
-              {product.vendor}
-            </p>
-            <h3 className="text-xl font-normal text-[var(--text-primary)] line-clamp-2 leading-tight font-body">
-              {product.name}
-            </h3>
-          </div>
-          <div className="mt-auto">
-            <div className="flex items-center gap-1.5 mb-3">
-              <Star className="w-4 h-4 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
-              <span className="text-sm font-bold text-[var(--text-primary)]">
-                {product.rating.toFixed(1)}
-              </span>
-              <span className="text-xs text-[var(--text-muted)]">
-                ({product.reviews} reviews)
-              </span>
-            </div>
-            <div className="flex items-baseline gap-2.5">
-              <span className="text-xl font-bold text-[var(--text-primary)]">
-                ₹{product.price.toLocaleString()}
-              </span>
-              {product.originalPrice && (
-                <span className="text-sm text-[var(--text-muted)] line-through">
-                  ₹{product.originalPrice.toLocaleString()}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-/* ================================================================== */
 /*  PAGE                                                               */
 /* ================================================================== */
 
@@ -438,11 +298,19 @@ export default function HomePage() {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [currentTrendingSlide, setCurrentTrendingSlide] = useState(0);
 
+  const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
+  const [flashDealsLoading, setFlashDealsLoading] = useState(true);
+
   const [spotlightVendors, setSpotlightVendors] = useState<any[]>([]);
   const [spotlightLoading, setSpotlightLoading] = useState(true);
   const [countdown, setCountdown] = useState({ h: 4, m: 23, s: 47 });
   const user = useAuthStore((state) => state.user);
   const [heroBanner, setHeroBanner] = useState(0);
+  const showCustomerCta = !user || user.role !== "customer";
+  const heroTouchStartX = useRef<number | null>(null);
+  const heroTouchStartY = useRef<number | null>(null);
+  const heroTouchDeltaX = useRef(0);
+  const heroTouchDeltaY = useRef(0);
 
   const heroBanners = [
     {
@@ -477,9 +345,54 @@ export default function HomePage() {
 
   // Auto-advance hero banner every 4 seconds
   useEffect(() => {
-    const t = setInterval(() => setHeroBanner((p) => (p + 1) % 4), 4000);
+    const t = setInterval(
+      () => setHeroBanner((p) => (p + 1) % heroBanners.length),
+      4000,
+    );
     return () => clearInterval(t);
-  }, []);
+  }, [heroBanners.length]);
+
+  const handleHeroTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    heroTouchStartX.current = touch.clientX;
+    heroTouchStartY.current = touch.clientY;
+    heroTouchDeltaX.current = 0;
+    heroTouchDeltaY.current = 0;
+  };
+
+  const handleHeroTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (heroTouchStartX.current === null || heroTouchStartY.current === null) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    heroTouchDeltaX.current = touch.clientX - heroTouchStartX.current;
+    heroTouchDeltaY.current = touch.clientY - heroTouchStartY.current;
+  };
+
+  const handleHeroTouchEnd = () => {
+    const swipeThreshold = 50;
+    const isHorizontalSwipe =
+      Math.abs(heroTouchDeltaX.current) > Math.abs(heroTouchDeltaY.current);
+
+    if (
+      isHorizontalSwipe &&
+      Math.abs(heroTouchDeltaX.current) > swipeThreshold
+    ) {
+      setHeroBanner((prev) => {
+        if (heroTouchDeltaX.current < 0) {
+          return (prev + 1) % heroBanners.length;
+        }
+
+        return (prev - 1 + heroBanners.length) % heroBanners.length;
+      });
+    }
+
+    heroTouchStartX.current = null;
+    heroTouchStartY.current = null;
+    heroTouchDeltaX.current = 0;
+    heroTouchDeltaY.current = 0;
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -522,6 +435,23 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const fetchFlashDeals = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/flash-deals?limit=10`);
+        const payload = await response.json();
+        if (response.ok && payload.status === "success") {
+          setFlashDeals(payload.data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch flash deals:", err);
+      } finally {
+        setFlashDealsLoading(false);
+      }
+    };
+    fetchFlashDeals();
+  }, []);
+
+  useEffect(() => {
     const fetchSpotlightVendors = async () => {
       try {
         const url = `${API_BASE_URL}/admin/vendors/approved`;
@@ -554,10 +484,21 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (flashDeals.length === 0) return;
+
+    const minSeconds = Math.min(
+      ...flashDeals.map((d) => d.timeTillValidSeconds),
+    );
+    setCountdown({
+      h: Math.floor(minSeconds / 3600),
+      m: Math.floor((minSeconds % 3600) / 60),
+      s: minSeconds % 60,
+    });
+
     const tick = setInterval(() => {
       setCountdown((prev) => {
         const total = prev.h * 3600 + prev.m * 60 + prev.s - 1;
-        if (total <= 0) return { h: 4, m: 0, s: 0 };
+        if (total <= 0) return { h: 0, m: 0, s: 0 };
         return {
           h: Math.floor(total / 3600),
           m: Math.floor((total % 3600) / 60),
@@ -566,7 +507,7 @@ export default function HomePage() {
       });
     }, 1000);
     return () => clearInterval(tick);
-  }, []);
+  }, [flashDeals]);
 
   const trendingSlides = useMemo(() => {
     if (trendingProducts.length === 0) {
@@ -650,8 +591,11 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row items-stretch lg:gap-6 py-6">
             {/* Left — Image Banner Slider (60% width) */}
             <div
-              className="relative overflow-hidden w-full lg:flex-[60] shadow-sm"
+              className="relative overflow-hidden w-full lg:flex-[60] shadow-sm touch-pan-y"
               style={{ height: "400px" }}
+              onTouchStart={handleHeroTouchStart}
+              onTouchMove={handleHeroTouchMove}
+              onTouchEnd={handleHeroTouchEnd}
             >
               {/* Slides Container for sliding effect */}
               <div
@@ -803,85 +747,45 @@ export default function HomePage() {
         {/* ── FLASH DEALS ── */}
         <section id="deals" className="py-8 sm:py-12 bg-[var(--bg-base)]">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-              <div className="flex flex-wrap items-center gap-4">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                    <Zap className="w-6 h-6 text-[var(--brand-accent)] fill-[var(--brand-accent)]" />
-                    Flash Deals
-                  </h2>
-                  <p className="text-[var(--text-secondary)] text-sm mt-1">
-                    Limited time &mdash; grab them before they&apos;re gone
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[var(--text-primary)] px-3 py-2 rounded-xl text-xs sm:text-sm font-mono font-semibold">
-                  <Clock className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
-                  <span className="text-[var(--text-muted)] font-sans font-medium hidden sm:inline">
-                    Ends in
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+              <div>
+                <h2 className="text-3xl sm:text-6xl font-black text-black uppercase tracking-tighter leading-none">
+                  Flash{" "}
+                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                    Deals
                   </span>
-                  <span className="tabular-nums">
-                    {String(countdown.h).padStart(2, "0")}
-                  </span>
-                  <span className="text-[var(--text-muted)]">:</span>
-                  <span className="tabular-nums">
-                    {String(countdown.m).padStart(2, "0")}
-                  </span>
-                  <span className="text-[var(--text-muted)]">:</span>
-                  <span className="tabular-nums">
-                    {String(countdown.s).padStart(2, "0")}
-                  </span>
-                </div>
+                </h2>
+                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest mt-6">
+                  Limited time &mdash; grab them before they&apos;re gone
+                </p>
               </div>
               <Link
                 href="/products"
-                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+                className="text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
               >
-                View All <ChevronRight size={16} />
+                View All Catalogue
               </Link>
             </div>
             {/* Horizontal scroll strip */}
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-              {flashDeals.map((deal) => (
-                <Link
-                  key={deal.id}
-                  href={`/products?search=${encodeURIComponent(deal.name)}`}
-                  className="group flex-none w-[160px] sm:w-[185px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-lg hover:border-[var(--brand-accent)] transition-all duration-300"
-                >
-                  <div className="aspect-square bg-[var(--bg-sunken)] flex items-center justify-center relative overflow-hidden">
-                    <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">
-                      {deal.emoji}
-                    </span>
-                    <span className="absolute top-2 left-2 bg-[#fff1f1] text-[#cc2200] border border-[#fecaca] text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                      -{deal.discount}%
-                    </span>
+              {flashDealsLoading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-none w-[185px] h-[320px] bg-[var(--bg-sunken)] animate-pulse rounded-none"
+                  />
+                ))
+              ) : flashDeals.length > 0 ? (
+                flashDeals.map((deal) => (
+                  <div key={deal.id} className="flex-none w-[185px]">
+                    <FlashDealCard deal={deal} />
                   </div>
-                  <div className="p-3">
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider truncate">
-                      {deal.vendor}
-                    </p>
-                    <p className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mt-0.5 line-clamp-2 leading-snug">
-                      {deal.name}
-                    </p>
-                    <div className="flex items-baseline gap-1.5 mt-2">
-                      <span className="text-sm sm:text-base font-bold text-[var(--text-primary)]">
-                        ₹{deal.price.toLocaleString()}
-                      </span>
-                      <span className="text-xs text-[var(--text-muted)] line-through">
-                        ₹{deal.originalPrice.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Star className="w-3 h-3 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
-                      <span className="text-[11px] font-bold text-[var(--text-secondary)]">
-                        {deal.rating}
-                      </span>
-                      <span className="text-[10px] text-[var(--text-muted)]">
-                        ({deal.reviews})
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                ))
+              ) : (
+                <div className="w-full py-10 text-center text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] border-2 border-dashed border-[var(--border-default)]">
+                  No active flash deals at the moment.
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -889,50 +793,60 @@ export default function HomePage() {
         {/* ── SHOP BY CATEGORY ── */}
         <section
           id="categories"
-          className="pt-12 pb-10 sm:py-24 bg-[var(--bg-sunken)]"
+          className="py-10 sm:py-14 bg-white border-y border-[var(--border-default)]"
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-end justify-between mb-12">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-10">
               <div>
-                <h2 className="text-4xl sm:text-5xl">Shop by Category</h2>
-                <p className="text-[var(--text-secondary)] mt-2">
+                <h2 className="text-3xl sm:text-6xl font-black text-black tracking-tighter uppercase leading-none whitespace-nowrap">
+                  Shop by{" "}
+                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                    Category
+                  </span>
+                </h2>
+                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] mt-6">
                   Curated collections from across the country
                 </p>
               </div>
               <Link
                 href="/products"
-                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+                className="group flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-black"
               >
-                Browse All <ChevronRight size={16} />
+                Browse All
+                <div className="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center group-hover:bg-black group-hover:text-white transition-all">
+                  <ArrowRight size={16} />
+                </div>
               </Link>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
               {categories.map((cat) => (
                 <Link
                   key={cat.name}
                   href={`/products?category=${encodeURIComponent(cat.name)}`}
-                  className="group bg-[var(--bg-surface)] rounded-2xl overflow-hidden border border-[var(--border-default)] hover:shadow-lg transition-all"
+                  className="group relative flex flex-col bg-zinc-50 border border-transparent hover:border-black transition-all duration-500 overflow-hidden"
                 >
-                  <div className="aspect-[16/9] relative overflow-hidden bg-[var(--bg-sunken)]">
+                  <div className="aspect-[16/9] relative overflow-hidden bg-zinc-100">
                     <img
                       src={cat.image}
                       alt={cat.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-all duration-700"
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   </div>
-                  <div className="p-5 flex items-center justify-between">
+                  <div className="p-5 flex items-center justify-between bg-white border-t border-[var(--border-default)] group-hover:bg-black transition-colors duration-300">
                     <div>
-                      <h3 className="text-lg font-normal text-[var(--text-primary)] font-body">
+                      <h3 className="text-sm sm:text-base font-black text-black uppercase tracking-widest group-hover:text-white transition-colors">
                         {cat.name}
                       </h3>
-                      <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                        {cat.desc}
+                      <p className="text-[9px] font-bold text-red-600 group-hover:text-red-400 transition-colors">
+                        Explore Collection
                       </p>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-[var(--text-primary)] group-hover:bg-[var(--brand-primary)] group-hover:text-[var(--text-inverse)] transition-colors">
-                      <ArrowRight size={14} />
-                    </div>
+                    <ArrowRight
+                      size={14}
+                      className="text-black group-hover:text-white transition-colors group-hover:translate-x-1 duration-300"
+                    />
                   </div>
                 </Link>
               ))}
@@ -945,10 +859,13 @@ export default function HomePage() {
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-6">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)]">
-                  Trending Now
+                <h2 className="text-3xl sm:text-6xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
+                  Trending{" "}
+                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                    Now
+                  </span>
                 </h2>
-                <p className="text-[var(--text-secondary)] mt-1 text-sm">
+                <p className="text-[var(--text-secondary)] mt-6 text-sm">
                   The most popular picks this week
                 </p>
               </div>
@@ -979,7 +896,21 @@ export default function HomePage() {
                     key={`${product.id}-${i}`}
                     className="flex-none w-[185px]"
                   >
-                    <ProductCardSection product={product} />
+                    <ProductCard
+                      product={
+                        {
+                          ...product,
+                          images: [product.imageUrl],
+                          vendorName: product.vendor,
+                          reviewCount: product.reviews,
+                          stock: 10, // Mock stock for homepage
+                          category: "General",
+                          subcategory: "General",
+                          updatedAt: new Date().toISOString(),
+                          createdAt: new Date().toISOString(),
+                        } as any
+                      }
+                    />
                   </div>
                 ))}
               </div>
@@ -995,11 +926,13 @@ export default function HomePage() {
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-end justify-between mb-6">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-[var(--brand-accent)]" />
-                  New Arrivals
+                <h2 className="text-3xl sm:text-6xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
+                  New{" "}
+                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                    Arrivals
+                  </span>
                 </h2>
-                <p className="text-[var(--text-secondary)] mt-1 text-sm">
+                <p className="text-[var(--text-secondary)] mt-6 text-sm">
                   Fresh drops from our latest vendors
                 </p>
               </div>
@@ -1013,58 +946,28 @@ export default function HomePage() {
             {/* Horizontal scroll strip */}
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
               {newArrivals.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
-                  className="group flex-none w-[160px] sm:w-[185px] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl overflow-hidden hover:shadow-md transition-all"
-                >
-                  <div className="aspect-square bg-[var(--bg-sunken)] flex items-center justify-center relative overflow-hidden">
-                    <span className="text-4xl sm:text-5xl group-hover:scale-110 transition-transform duration-300">
-                      {product.emoji}
-                    </span>
-                    <span className="absolute top-2 left-2 bg-black text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                      New
-                    </span>
-                    {product.originalPrice && (
-                      <span className="absolute top-2 right-2 bg-[#fff1f1] text-[#cc2200] border border-[#fecaca] text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                        -
-                        {Math.round(
-                          ((product.originalPrice - product.price) /
-                            product.originalPrice) *
-                            100,
-                        )}
-                        %
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-3">
-                    <p className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider truncate">
-                      {product.vendor}
-                    </p>
-                    <h3 className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] mt-0.5 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <div className="flex items-center gap-1 mt-1.5">
-                      <Star className="w-3 h-3 fill-[var(--brand-primary)] text-[var(--brand-primary)]" />
-                      <span className="text-[11px] font-bold text-[var(--text-primary)]">
-                        {product.rating.toFixed(1)}
-                      </span>
-                      <span className="text-[10px] text-[var(--text-muted)]">
-                        ({product.reviews})
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1.5 mt-2">
-                      <span className="text-sm font-bold text-[var(--text-primary)]">
-                        ₹{product.price.toLocaleString()}
-                      </span>
-                      {product.originalPrice && (
-                        <span className="text-xs text-[var(--text-muted)] line-through">
-                          ₹{product.originalPrice.toLocaleString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+                <div key={product.id} className="flex-none w-[185px]">
+                  <ProductCard
+                    product={
+                      {
+                        id: product.id,
+                        name: product.name,
+                        price: product.price,
+                        originalPrice: product.originalPrice,
+                        rating: product.rating,
+                        reviewCount: product.reviews,
+                        vendorName: product.vendor,
+                        images: ["/placeholder-product-1.jpg"],
+                        stock: 10,
+                        category: "General",
+                        subcategory: "General",
+                        updatedAt: new Date().toISOString(),
+                        createdAt: new Date().toISOString(),
+                        featured: true,
+                      } as any
+                    }
+                  />
+                </div>
               ))}
             </div>
           </div>
@@ -1077,10 +980,10 @@ export default function HomePage() {
         >
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
-              <h2 className="text-3xl sm:text-4xl font-bold text-[var(--text-primary)]">
-                What Our Customers Say
+              <h2 className="text-3xl sm:text-6xl font-black text-[var(--text-primary)] tracking-tighter leading-none">
+                What Our Trusted Users Say
               </h2>
-              <p className="text-[var(--text-secondary)] mt-2 text-sm">
+              <p className="text-[var(--text-secondary)] mt-6 text-sm">
                 Real reviews from real people across India
               </p>
             </div>
@@ -1121,7 +1024,7 @@ export default function HomePage() {
         </section>
 
         {/* ── CUSTOMER CTA (guests only) ── */}
-        {!user && (
+        {showCustomerCta && (
           <section className="py-20 bg-[var(--brand-primary)] relative overflow-hidden">
             <div className="absolute top-0 right-0 w-1/2 h-full bg-white/5 skew-x-12 translate-x-1/4 pointer-events-none" />
             <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">

@@ -201,6 +201,29 @@ export interface Review {
   createdAt: string;
 }
 
+// Flash Deal types
+export interface FlashDeal {
+  id: string;
+  offerName: string;
+  discountPercentage: number;
+  computedDiscountPercentage: number;
+  startAt: string;
+  endAt: string;
+  timeTillValidSeconds: number;
+  product: {
+    id: string;
+    name: string;
+    originalPrice: number;
+    priceAfterFlashDeal: number;
+    stock: number;
+    imageUrl: string | null;
+    imageUrls: string[] | null;
+    rating: number;
+    vendorId: string;
+    vendorBusinessName: string | null;
+  };
+}
+
 // Notification types
 export interface Notification {
   id: string;

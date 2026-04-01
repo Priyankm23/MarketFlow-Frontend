@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
+import { ProductCard } from "@/components/product-card";
 import { authFetch } from "@/lib/auth-fetch";
 import { Product } from "@/lib/types";
 import { useCartStore } from "@/lib/store";
@@ -430,19 +431,13 @@ export default function ProductDetailPage() {
       <Navbar />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Link
-            href="/products"
-            className="p-2 rounded-full hover:bg-[var(--bg-sunken)] transition-colors"
-          >
-            <ArrowLeft className="h-5 w-5 text-black" />
-          </Link>
-          <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--text-muted)]">
-            <Link href="/" className="hover:text-black">Home</Link>
-            <ChevronRight size={12} />
-            <Link href="/products" className="hover:text-black">Catalogue</Link>
-            <ChevronRight size={12} />
-            <span className="text-black truncate max-w-[150px]">{product?.name || 'Product'}</span>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-2 text-[11px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
+            <Link href="/" className="hover:text-black transition-colors">Home</Link>
+            <span className="opacity-30">/</span>
+            <Link href="/products" className="hover:text-black transition-colors">Catalogue</Link>
+            <span className="opacity-30">/</span>
+            <span className="text-black">{product?.name || 'Product'}</span>
           </div>
         </div>
 
@@ -553,9 +548,6 @@ export default function ProductDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <p className="text-lg line-through text-zinc-300 font-bold">
                           ₹{formatPrice(product.originalPrice)}
-                        </p>
-                        <p className="px-2 py-0.5 bg-green-50 text-[var(--status-success)] text-[10px] font-black rounded uppercase">
-                          {product.discountPercent}% OFF
                         </p>
                       </div>
                     )}
@@ -705,32 +697,9 @@ export default function ProductDetailPage() {
                   <h2 className="text-xl sm:text-2xl font-black text-black uppercase tracking-tight">More from {product.vendorName}</h2>
                   <Link href="/products" className="text-xs font-black text-[var(--brand-accent)] uppercase tracking-widest hover:underline">View Shop</Link>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-y-10 gap-x-6">
                   {vendorProducts.map((vp) => (
-                    <Link key={vp.id} href={`/products/${vp.id}`} className="group relative flex flex-col bg-white border border-[var(--border-default)] rounded-xl overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-black/10 hover:-translate-y-1 active:scale-95 sm:active:scale-100">
-                      <div className="aspect-[4/5] relative overflow-hidden bg-zinc-100">
-                        <Image src={vp.images[0]} alt={vp.name} fill className="object-cover transition-transform duration-1000 group-hover:scale-110" />
-                      </div>
-                      <div className="p-3 sm:p-5 flex-1 flex flex-col gap-1 sm:gap-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[60%]">{vp.vendorName}</span>
-                          <div className="flex flex-col items-end">
-                            <div className="flex items-center gap-1 text-[10px] font-bold text-black">
-                              <Star size={10} className="fill-[var(--brand-accent)] text-[var(--brand-accent)]" />
-                              {vp.rating.toFixed(1)}
-                            </div>
-                            <span className="text-[8px] font-bold text-zinc-400 leading-none">({vp.reviewCount})</span>
-                          </div>
-                        </div>
-                        <h3 className="text-xs sm:text-sm font-bold text-black line-clamp-2 leading-tight min-h-[32px] sm:min-h-[40px] group-hover:text-[var(--brand-accent)] transition-colors tracking-tight">{vp.name}</h3>
-                        <div className="mt-auto pt-2 sm:pt-3 border-t border-zinc-50 flex items-center justify-between">
-                          <p className="text-base sm:text-lg font-black text-black tracking-tight">₹{vp.price.toLocaleString()}</p>
-                          <button className="hidden sm:flex w-8 h-8 rounded-full bg-black text-white items-center justify-center transition-all group-hover:bg-[var(--brand-accent)] group-hover:rotate-45">
-                            <ArrowRight size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    </Link>
+                    <ProductCard key={vp.id} product={vp} />
                   ))}
                 </div>
               </div>

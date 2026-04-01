@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/navbar";
+import { ProductCard } from "@/components/product-card";
 import { ProductCardSkeleton } from "@/components/skeleton-loader";
 import { Product } from "@/lib/types";
 import {
@@ -35,41 +36,6 @@ const DEFAULT_CATEGORIES = [
   "Beauty",
   "Food",
   "Toys",
-];
-
-type SeasonalBanner = {
-  id: string;
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  ctaLabel: string;
-  ctaHref: string;
-  background: string;
-  textColor: string;
-};
-
-// High-end dark theme seasonal banners
-const SEASONAL_BANNERS: SeasonalBanner[] = [
-  {
-    id: "premium-black",
-    eyebrow: "Limited Edition",
-    title: "The Midnight Collection",
-    subtitle: "Premium craft meets modern design. Discover the most exclusive picks from India's top artisans.",
-    ctaLabel: "Shop The Collection",
-    ctaHref: "/products",
-    background: "linear-gradient(135deg, #000000 0%, #1a1a1a 100%)",
-    textColor: "white",
-  },
-  {
-    id: "red-rush",
-    eyebrow: "Season Finale",
-    title: "Experience The Red Rush",
-    subtitle: "Bold styles, vibrant energy. Grab the season's hottest trends with up to 40% off on verified brands.",
-    ctaLabel: "View Deals",
-    ctaHref: "/products",
-    background: "linear-gradient(135deg, #000000 0%, #4a0000 100%)",
-    textColor: "white",
-  }
 ];
 
 const PRICE_BANDS = [
@@ -118,7 +84,6 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedPriceBand, setSelectedPriceBand] = useState("all");
   const [selectedReviewBand, setSelectedReviewBand] = useState("all");
-  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -139,23 +104,29 @@ export default function ProductsPage() {
     }
   }, [searchParams]);
 
-  const mapApiProductToUi = (item: ApiProduct): Product => ({
-    id: item.id,
-    name: item.name,
-    description: item.description,
-    price: Number(item.price || 0),
-    images: [item.imageUrl || "/placeholder-product-1.jpg"],
-    category: item.category?.name || "General",
-    subcategory: "General",
-    stock: item.stock || 0,
-    vendorId: item.vendor?.id || "",
-    vendorName: item.vendor?.businessName || "Verified Vendor",
-    rating: Number(item.rating) || 0,
-    reviewCount: Number(item.reviewCount) || 0,
-    createdAt: item.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    featured: true,
-  });
+  const mapApiProductToUi = (item: ApiProduct): Product => {
+    const safePrice = Number(item.price || 0);
+    const generatedOriginalPrice = safePrice > 0 ? Math.ceil((safePrice * 1.25) / 10) * 10 : 0;
+    
+    return {
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: safePrice,
+      originalPrice: generatedOriginalPrice,
+      images: [item.imageUrl || "/placeholder-product-1.jpg"],
+      category: item.category?.name || "General",
+      subcategory: "General",
+      stock: item.stock || 0,
+      vendorId: item.vendor?.id || "",
+      vendorName: item.vendor?.businessName || "Verified Vendor",
+      rating: Number(item.rating) || 0,
+      reviewCount: Number(item.reviewCount) || 0,
+      createdAt: item.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      featured: true,
+    };
+  };
 
   useEffect(() => {
     let active = true;
@@ -188,13 +159,6 @@ export default function ProductsPage() {
     return () => { active = false; };
   }, [page, limit, selectedCategory]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentBannerIndex(prev => (prev + 1) % SEASONAL_BANNERS.length);
-    }, 6000);
-    return () => clearInterval(interval);
-  }, []);
-
   const filteredProducts = useMemo(() => {
     const minRating = selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
     let result = products.filter(p => matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating);
@@ -214,62 +178,20 @@ export default function ProductsPage() {
     setPage(1);
   };
 
-  const currentBanner = SEASONAL_BANNERS[currentBannerIndex];
-
   return (
     <div className="min-h-screen bg-[var(--bg-base)] selection:bg-[var(--brand-accent)] selection:text-white">
       <Navbar />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* --- REFINED HERO --- */}
-        <section 
-          className="relative h-[200px] sm:h-[260px] rounded-xl overflow-hidden group transition-all duration-700 shadow-xl"
-          style={{ background: currentBanner.background }}
-        >
-          {/* Animated Background Elements */}
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-          
-          <div className="relative h-full flex items-center px-6 sm:px-10 lg:px-12">
-            <div className="max-w-xl space-y-3 sm:space-y-4">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-md">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)] animate-ping" />
-                <span className="text-[9px] font-bold uppercase tracking-widest text-white/80">{currentBanner.eyebrow}</span>
-              </div>
-              
-              <h1 className="text-3xl sm:text-5xl font-bold text-white !leading-[1.1] tracking-tight">
-                {currentBanner.title}
-              </h1>
-              
-              <p className="text-white/60 text-xs sm:text-sm max-w-md font-medium leading-relaxed line-clamp-2">
-                {currentBanner.subtitle}
-              </p>
-              
-              <div className="flex items-center gap-4">
-                <Link
-                  href={currentBanner.ctaHref}
-                  className="group relative px-6 py-2.5 bg-white text-black rounded-full text-sm font-bold overflow-hidden transition-all hover:pr-10"
-                >
-                  <span className="relative z-10">{currentBanner.ctaLabel}</span>
-                  <ArrowRight className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-all" size={16} />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-          {/* Banner Controls */}
-          <div className="absolute bottom-6 right-6 flex gap-2">
-             {SEASONAL_BANNERS.map((_, i) => (
-               <button 
-                 key={i} 
-                 onClick={() => setCurrentBannerIndex(i)}
-                 className={`h-1 rounded-full transition-all duration-500 ${currentBannerIndex === i ? 'w-8 bg-[var(--brand-accent)]' : 'w-3 bg-white/20 hover:bg-white/40'}`} 
-               />
-             ))}
-          </div>
-        </section>
+        {/* --- BREADCRUMBS --- */}
+        <nav className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">
+          <Link href="/" className="hover:text-[var(--brand-accent)] transition-colors">Home</Link>
+          <span className="opacity-30">/</span>
+          <span className="text-black">Catalogue</span>
+        </nav>
 
         {/* --- MAIN GRID --- */}
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-6">
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-10">
           
           {/* REFINED SIDEBAR */}
           <aside className="h-fit">
@@ -284,19 +206,19 @@ export default function ProductsPage() {
               </button>
             </div>
 
-            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-6 lg:mt-6`}>
+            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-8 lg:mt-6`}>
                 {/* Category Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Category</h4>
-                  <div className="grid grid-cols-1 gap-1">
+                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Category</h4>
+                  <div className="grid grid-cols-1 gap-1.5">
                     {categories.map(cat => (
                       <button
                         key={cat}
                         onClick={() => setSelectedCategory(cat)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-lg' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-xl' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
                       >
                         {cat}
-                        {selectedCategory === cat && <span className="w-1 h-1 rounded-full bg-[var(--brand-accent)]" />}
+                        {selectedCategory === cat && <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
                       </button>
                     ))}
                   </div>
@@ -304,16 +226,16 @@ export default function ProductsPage() {
 
                 {/* Price Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Price</h4>
-                  <div className="space-y-1">
+                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Price</h4>
+                  <div className="space-y-1.5">
                     {PRICE_BANDS.map(band => (
                       <button
                         key={band.value}
                         onClick={() => setSelectedPriceBand(band.value)}
-                        className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? 'text-black font-bold' : 'text-[var(--text-secondary)] opacity-70 hover:opacity-100'}`}
+                        className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? 'text-black font-black' : 'text-[var(--text-secondary)] opacity-70 hover:opacity-100'}`}
                       >
-                        <div className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
-                          {selectedPriceBand === band.value && <div className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
+                          {selectedPriceBand === band.value && <div className="w-2 h-2 rounded-full bg-[var(--brand-accent)]" />}
                         </div>
                         {band.label}
                       </button>
@@ -323,13 +245,13 @@ export default function ProductsPage() {
 
                 {/* Rating Section */}
                 <section>
-                  <h4 className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-3">Rating</h4>
-                  <div className="flex flex-wrap gap-1.5">
+                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Rating</h4>
+                  <div className="flex flex-wrap gap-2">
                     {REVIEW_BANDS.map(band => (
                       <button
                         key={band.value}
                         onClick={() => setSelectedReviewBand(band.value)}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-md' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-lg' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
                       >
                         {band.label}
                       </button>
@@ -339,7 +261,7 @@ export default function ProductsPage() {
 
                 <button 
                   onClick={resetFilters}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--bg-sunken)] text-[var(--text-primary)] text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-black text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
                 >
                   <RefreshCw size={12} />
                   Reset
@@ -372,60 +294,13 @@ export default function ProductsPage() {
 
             {/* RESULTS GRID */}
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {[...Array(10)].map((_, i) => <ProductCardSkeleton key={i} />)}
               </div>
             ) : filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-y-10 gap-x-6">
                 {filteredProducts.map(product => (
-                  <Link 
-                    key={product.id} 
-                    href={`/products/${product.id}`} 
-                    className="group relative flex flex-col bg-white border border-[var(--border-default)] rounded-none overflow-hidden transition-all duration-500 hover:shadow-2xl hover:border-black/10 hover:-translate-y-1 active:scale-95 sm:active:scale-100"
-                  >
-                    {/* Badge */}
-                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-2">
-                      {product.stock < 5 && (
-                        <span className="px-2 py-0.5 bg-red-600 text-[8px] font-black text-white uppercase tracking-tighter rounded-none shadow-lg">Low Stock</span>
-                      )}
-                    </div>
-
-                    {/* Image */}
-                    <div className="aspect-[4/5] relative overflow-hidden bg-zinc-100">
-                      <Image 
-                        src={product.images[0]} 
-                        alt={product.name} 
-                        fill 
-                        className="object-cover transition-transform duration-1000 group-hover:scale-110" 
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 lg:group-hover:opacity-100 transition-opacity" />
-                    </div>
-
-                    {/* Info */}
-                    <div className="p-3.5 flex-1 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] truncate max-w-[55%]">{product.vendorName}</span>
-                        <div className="flex flex-col items-end">
-                          <div className="flex items-center gap-1 text-[11px] font-bold text-black">
-                            <Star size={11} className="fill-[var(--brand-accent)] text-[var(--brand-accent)]" />
-                            {product.rating.toFixed(1)}
-                            <span className="text-[10px] text-zinc-400 font-medium">({product.reviewCount})</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <h3 className="text-[13px] sm:text-[14px] font-bold text-black line-clamp-2 leading-tight min-h-[34px] group-hover:text-[var(--brand-accent)] transition-colors">{product.name}</h3>
-                      
-                      <div className="mt-auto pt-2.5 border-t border-zinc-100 flex items-center justify-between">
-                        <div>
-                          <p className="text-[14px] font-black text-black tracking-tight">₹{product.price.toLocaleString()}</p>
-                        </div>
-                        <button className="hidden sm:flex w-8 h-8 bg-black text-white items-center justify-center transition-all lg:group-hover:bg-[var(--brand-accent)]">
-                          <ArrowRight size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  </Link>
+                  <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             ) : (
