@@ -60,16 +60,16 @@ export function ProductCard({ product }: ProductCardProps) {
 
       {/* Info Container */}
       <div className="mt-4 px-1 flex flex-col gap-0.5">
-        <h4 className="text-[13px] font-black text-black tracking-tight truncate group-hover:text-[var(--brand-accent)] transition-colors">
+        <h4 className="text-[14px] font-black text-black tracking-tight truncate group-hover:text-[var(--brand-accent)] transition-colors">
           {product.vendorName}
         </h4>
 
-        <p className="text-[12px] font-medium text-zinc-500 line-clamp-1 mb-1 leading-tight">
+        <p className="text-[13px] font-medium text-zinc-500 line-clamp-1 mb-1 leading-tight">
           {product.name}
         </p>
 
         <div className="flex items-baseline gap-2 mt-0.5">
-          <span className="text-[13px] font-black text-black">
+          <span className="text-[14px] font-black text-black">
             ₹{product.price.toLocaleString()}
           </span>
         </div>

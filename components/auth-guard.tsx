@@ -9,7 +9,6 @@ const protectedPrefixes: string[] = [
   "/vendor",
   "/delivery",
   "/admin",
-  "/products",
 ];
 
 // Paths that might start with protected prefix but should remain public
@@ -29,7 +28,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    
+
     const initAuth = async () => {
       const token = localStorage.getItem("accessToken");
       if (!user && !token) {

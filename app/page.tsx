@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuthStore } from "@/lib/store";
@@ -8,7 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { HeroCarousel } from "@/components/hero-carousel";
 import { ProductCard } from "@/components/product-card";
 import { FlashDealCard } from "@/components/flash-deal-card";
-import { FlashDeal } from "@/lib/types";
+import { FlashDeal, Product } from "@/lib/types";
 import {
   ArrowRight,
   Truck,
@@ -92,7 +92,7 @@ const categories = [
 ];
 
 const TRENDING_PRODUCTS_ENDPOINT = `${API_BASE_URL}/products/trending`;
-const TRENDING_PRODUCTS_PER_SLIDE = 4;
+const NEW_ARRIVALS_PRODUCTS_ENDPOINT = `${API_BASE_URL}/products/new-arrivals`;
 
 type ApiTrendingProduct = {
   id: string;
@@ -122,6 +122,22 @@ type TrendingProductCard = {
   reviews: number;
   badge: string | null;
   imageUrl: string;
+};
+
+type ApiNewArrivalProduct = {
+  id: string;
+  name?: string;
+  description?: string;
+  price?: string | number;
+  stock?: number;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+  rating?: number;
+  reviewCount?: number;
+  category?: { name?: string } | null;
+  vendor?: { id?: string; businessName?: string } | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 const cleanBusinessName = (name?: string) => {
@@ -161,52 +177,55 @@ const toTrendingProductCard = (
   };
 };
 
-const newArrivals = [
-  {
-    id: "5",
-    name: "LED Desk Lamp USB",
-    vendor: "TechHub",
-    price: 1899,
-    originalPrice: 2999,
-    rating: 4.6,
-    reviews: 342,
-    badge: "New",
-    emoji: "💡",
-  },
-  {
-    id: "6",
-    name: "Organic Tea Gift Set",
-    vendor: "NaturesBrew",
-    price: 899,
-    originalPrice: 1499,
-    rating: 4.8,
-    reviews: 567,
-    badge: "New",
-    emoji: "🍵",
-  },
-  {
-    id: "7",
-    name: "Yoga Mat Premium",
-    vendor: "FitLife",
-    price: 1499,
-    originalPrice: 2499,
-    rating: 4.3,
-    reviews: 189,
-    badge: "New",
-    emoji: "🧘",
-  },
-  {
-    id: "8",
-    name: "Smart Watch Lite",
-    vendor: "TechHub",
-    price: 2999,
-    originalPrice: 4999,
-    rating: 4.5,
-    reviews: 421,
-    badge: "New",
-    emoji: "⌚",
-  },
-];
+const getNewArrivalsFromPayload = (
+  payload: unknown,
+): ApiNewArrivalProduct[] => {
+  if (Array.isArray(payload)) {
+    return payload as ApiNewArrivalProduct[];
+  }
+
+  if (
+    payload &&
+    typeof payload === "object" &&
+    Array.isArray((payload as { data?: unknown }).data)
+  ) {
+    return (payload as { data: ApiNewArrivalProduct[] }).data;
+  }
+
+  if (
+    payload &&
+    typeof payload === "object" &&
+    Array.isArray((payload as { products?: unknown }).products)
+  ) {
+    return (payload as { products: ApiNewArrivalProduct[] }).products;
+  }
+
+  return [];
+};
+
+const toNewArrivalProductCard = (item: ApiNewArrivalProduct): Product => {
+  const safePrice = Number(item.price || 0);
+
+  return {
+    id: item.id,
+    name: item.name || "New Arrival",
+    description: item.description || "",
+    price: Number.isFinite(safePrice) ? safePrice : 0,
+    images: [
+      item.imageUrls?.[0] || item.imageUrl || "/placeholder-product-1.jpg",
+    ],
+    category: item.category?.name || "General",
+    subcategory: "General",
+    stock: Number(item.stock || 0),
+    vendorId: item.vendor?.id || "",
+    vendorName: cleanBusinessName(item.vendor?.businessName),
+    rating: Number(item.rating || 0),
+    reviewCount: Number(item.reviewCount || 0),
+    createdAt: item.createdAt || new Date().toISOString(),
+    updatedAt: item.updatedAt || new Date().toISOString(),
+    featured: false,
+  };
+};
 
 const featuredVendors = [
   {
@@ -296,10 +315,12 @@ export default function HomePage() {
     TrendingProductCard[]
   >([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
-  const [currentTrendingSlide, setCurrentTrendingSlide] = useState(0);
 
   const [flashDeals, setFlashDeals] = useState<FlashDeal[]>([]);
   const [flashDealsLoading, setFlashDealsLoading] = useState(true);
+
+  const [newArrivals, setNewArrivals] = useState<Product[]>([]);
+  const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
 
   const [spotlightVendors, setSpotlightVendors] = useState<any[]>([]);
   const [spotlightLoading, setSpotlightLoading] = useState(true);
@@ -435,6 +456,40 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchNewArrivals = async () => {
+      try {
+        const response = await fetch(NEW_ARRIVALS_PRODUCTS_ENDPOINT, {
+          method: "GET",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error("Failed to fetch new arrivals");
+        }
+
+        const items = getNewArrivalsFromPayload(payload);
+        setNewArrivals(items.map(toNewArrivalProductCard));
+      } catch {
+        setNewArrivals([]);
+      } finally {
+        setNewArrivalsLoading(false);
+      }
+    };
+
+    void fetchNewArrivals();
+
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     const fetchFlashDeals = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/flash-deals?limit=10`);
@@ -508,47 +563,6 @@ export default function HomePage() {
     }, 1000);
     return () => clearInterval(tick);
   }, [flashDeals]);
-
-  const trendingSlides = useMemo(() => {
-    if (trendingProducts.length === 0) {
-      return [] as TrendingProductCard[][];
-    }
-
-    const slideCount = Math.ceil(
-      trendingProducts.length / TRENDING_PRODUCTS_PER_SLIDE,
-    );
-
-    const slides = Array.from({ length: slideCount }, (_, slideIndex) =>
-      Array.from({ length: TRENDING_PRODUCTS_PER_SLIDE }, (_, itemIndex) => {
-        const index =
-          (slideIndex * TRENDING_PRODUCTS_PER_SLIDE + itemIndex) %
-          trendingProducts.length;
-        return trendingProducts[index];
-      }),
-    );
-
-    return slides.length === 1 ? [slides[0], slides[0]] : slides;
-  }, [trendingProducts]);
-
-  useEffect(() => {
-    setCurrentTrendingSlide(0);
-  }, [trendingSlides.length]);
-
-  useEffect(() => {
-    if (trendingSlides.length <= 1) {
-      return;
-    }
-
-    const intervalId = window.setInterval(() => {
-      setCurrentTrendingSlide((current) =>
-        current + 1 >= trendingSlides.length ? 0 : current + 1,
-      );
-    }, 4500);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [trendingSlides.length]);
 
   return (
     <div
@@ -747,24 +761,24 @@ export default function HomePage() {
         {/* ── FLASH DEALS ── */}
         <section id="deals" className="py-8 sm:py-12 bg-[var(--bg-base)]">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-              <div>
-                <h2 className="text-3xl sm:text-6xl font-black text-black uppercase tracking-tighter leading-none">
-                  Flash{" "}
-                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
-                    Deals
-                  </span>
-                </h2>
-                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest mt-6">
+            <div className="mb-8">
+              <h2 className="text-3xl sm:text-6xl font-black text-black uppercase tracking-tighter leading-none">
+                Flash{" "}
+                <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                  Deals
+                </span>
+              </h2>
+              <div className="mt-6 flex items-start justify-between gap-4">
+                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest max-w-[220px] sm:max-w-none leading-relaxed">
                   Limited time &mdash; grab them before they&apos;re gone
                 </p>
+                <Link
+                  href="/products"
+                  className="shrink-0 text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
+                >
+                  View All Catalogue
+                </Link>
               </div>
-              <Link
-                href="/products"
-                className="text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
-              >
-                View All Catalogue
-              </Link>
             </div>
             {/* Horizontal scroll strip */}
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
@@ -786,6 +800,14 @@ export default function HomePage() {
                   No active flash deals at the moment.
                 </div>
               )}
+            </div>
+            <div className="sm:hidden flex items-center justify-center gap-2 mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <span>Swipe for more</span>
+              <ChevronRight size={12} className="text-[var(--brand-accent)]" />
+              <ChevronRight
+                size={12}
+                className="text-[var(--brand-accent)] -ml-2 opacity-70"
+              />
             </div>
           </div>
         </section>
@@ -870,10 +892,10 @@ export default function HomePage() {
                 </p>
               </div>
               <Link
-                href="/products"
-                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+                href="/trending"
+                className="text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
               >
-                View All <ChevronRight size={16} />
+                View All Catalogue
               </Link>
             </div>
             {trendingLoading ? (
@@ -885,35 +907,45 @@ export default function HomePage() {
                   />
                 ))}
               </div>
-            ) : trendingSlides.length === 0 ? (
+            ) : trendingProducts.length === 0 ? (
               <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] p-8 text-center text-sm text-[var(--text-secondary)]">
                 Trending products are unavailable right now.
               </div>
             ) : (
-              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-                {trendingSlides.flat().map((product, i) => (
-                  <div
-                    key={`${product.id}-${i}`}
-                    className="flex-none w-[185px]"
-                  >
-                    <ProductCard
-                      product={
-                        {
-                          ...product,
-                          images: [product.imageUrl],
-                          vendorName: product.vendor,
-                          reviewCount: product.reviews,
-                          stock: 10, // Mock stock for homepage
-                          category: "General",
-                          subcategory: "General",
-                          updatedAt: new Date().toISOString(),
-                          createdAt: new Date().toISOString(),
-                        } as any
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+                  {trendingProducts.slice(0, 6).map((product) => (
+                    <div key={product.id} className="flex-none w-[185px]">
+                      <ProductCard
+                        product={
+                          {
+                            ...product,
+                            images: [product.imageUrl],
+                            vendorName: product.vendor,
+                            reviewCount: product.reviews,
+                            stock: 10, // Mock stock for homepage
+                            category: "General",
+                            subcategory: "General",
+                            updatedAt: new Date().toISOString(),
+                            createdAt: new Date().toISOString(),
+                          } as any
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="sm:hidden flex items-center justify-center gap-2 mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                  <span>Swipe for more</span>
+                  <ChevronRight
+                    size={12}
+                    className="text-[var(--brand-accent)]"
+                  />
+                  <ChevronRight
+                    size={12}
+                    className="text-[var(--brand-accent)] -ml-2 opacity-70"
+                  />
+                </div>
+              </>
             )}
           </div>
         </section>
@@ -937,38 +969,40 @@ export default function HomePage() {
                 </p>
               </div>
               <Link
-                href="/products?sort=newest"
-                className="text-sm font-bold text-[var(--brand-accent)] hover:underline flex items-center gap-1"
+                href="/new-arrivals"
+                className="text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
               >
-                See All <ChevronRight size={16} />
+                View All Catalogue
               </Link>
             </div>
             {/* Horizontal scroll strip */}
             <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-              {newArrivals.map((product) => (
-                <div key={product.id} className="flex-none w-[185px]">
-                  <ProductCard
-                    product={
-                      {
-                        id: product.id,
-                        name: product.name,
-                        price: product.price,
-                        originalPrice: product.originalPrice,
-                        rating: product.rating,
-                        reviewCount: product.reviews,
-                        vendorName: product.vendor,
-                        images: ["/placeholder-product-1.jpg"],
-                        stock: 10,
-                        category: "General",
-                        subcategory: "General",
-                        updatedAt: new Date().toISOString(),
-                        createdAt: new Date().toISOString(),
-                        featured: true,
-                      } as any
-                    }
+              {newArrivalsLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-none w-[185px] h-[280px] rounded-2xl border border-[var(--border-default)] bg-[var(--bg-surface)] animate-pulse"
                   />
+                ))
+              ) : newArrivals.length > 0 ? (
+                newArrivals.slice(0, 6).map((product) => (
+                  <div key={product.id} className="flex-none w-[185px]">
+                    <ProductCard product={product} />
+                  </div>
+                ))
+              ) : (
+                <div className="w-full py-10 text-center text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] border-2 border-dashed border-[var(--border-default)]">
+                  New arrivals are unavailable right now.
                 </div>
-              ))}
+              )}
+            </div>
+            <div className="sm:hidden flex items-center justify-center gap-2 mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+              <span>Swipe for more</span>
+              <ChevronRight size={12} className="text-[var(--brand-accent)]" />
+              <ChevronRight
+                size={12}
+                className="text-[var(--brand-accent)] -ml-2 opacity-70"
+              />
             </div>
           </div>
         </section>

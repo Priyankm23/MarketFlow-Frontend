@@ -70,13 +70,58 @@ export function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
   const fetchCart = useCartStore((state) => state.fetchCart);
-  const cartItems = useCartStore((state) => state.getTotalItems());
+  const cartItems = useCartStore((state) => state.items.length);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const categoryPillsRef = React.useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+
+  const bottomNavPills = [
+    { label: "For You", href: "/products" },
+    {
+      label: "Electronics",
+      href: `/products?category=${encodeURIComponent("Electronics")}`,
+    },
+    {
+      label: "Fashion",
+      href: `/products?category=${encodeURIComponent("Fashion")}`,
+    },
+    {
+      label: "Home & Living",
+      href: `/products?category=${encodeURIComponent("Home & Living")}`,
+    },
+    {
+      label: "Sports",
+      href: `/products?category=${encodeURIComponent("Sports")}`,
+    },
+    {
+      label: "Books",
+      href: `/products?category=${encodeURIComponent("Books")}`,
+    },
+    {
+      label: "Beauty",
+      href: `/products?category=${encodeURIComponent("Beauty")}`,
+    },
+    {
+      label: "Food & Gourmet",
+      href: `/products?category=${encodeURIComponent("Food & Gourmet")}`,
+    },
+    {
+      label: "Toys & Games",
+      href: `/products?category=${encodeURIComponent("Toys & Games")}`,
+    },
+    { label: "Trending Now", href: "/trending" },
+    { label: "New Arrivals", href: "/new-arrivals" },
+    { label: "Today's Deals", href: "/deals" },
+  ];
+
+  const isCustomerRole =
+    !user ||
+    user.role === "customer" ||
+    String(user.role).toLowerCase() === "user";
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +136,87 @@ export function Navbar() {
   React.useEffect(() => {
     void fetchCart();
   }, [fetchCart, user?.id, user?.role]);
+
+  React.useEffect(() => {
+    const container = categoryPillsRef.current;
+    if (!container) {
+      return;
+    }
+
+    const isReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (isReducedMotion) {
+      return;
+    }
+
+    const groupSize = 3;
+    const totalGroups = Math.ceil(bottomNavPills.length / groupSize);
+
+    if (totalGroups <= 1) {
+      return;
+    }
+
+    const groupStarts = Array.from(
+      { length: totalGroups },
+      (_, index) => index * groupSize,
+    );
+    // Example for 12 links: 0,3,6,9 then back 6,3.
+    const mobileSequence =
+      groupStarts.length > 1
+        ? [...groupStarts, ...groupStarts.slice(1, -1).reverse()]
+        : groupStarts;
+    let sequenceCursor = 0;
+
+    const scrollToPillIndex = (pillIndex: number) => {
+      const isMobileViewport = window.matchMedia("(max-width: 767px)").matches;
+
+      if (!isMobileViewport) {
+        container.scrollTo({ left: 0, behavior: "smooth" });
+        sequenceCursor = 0;
+        return;
+      }
+
+      const linkElement = container.querySelector<HTMLAnchorElement>(
+        `a[data-pill-index='${pillIndex}']`,
+      );
+
+      if (!linkElement) {
+        return;
+      }
+
+      const containerLeft = container.getBoundingClientRect().left;
+      const linkLeft = linkElement.getBoundingClientRect().left;
+      const delta = linkLeft - containerLeft;
+
+      container.scrollTo({
+        left: container.scrollLeft + delta,
+        behavior: "smooth",
+      });
+    };
+
+    // Keep the first three links visible initially on mobile.
+    scrollToPillIndex(0);
+
+    const intervalId = window.setInterval(() => {
+      sequenceCursor = (sequenceCursor + 1) % mobileSequence.length;
+      scrollToPillIndex(mobileSequence[sequenceCursor]);
+    }, 4800);
+
+    const handleResize = () => {
+      if (!window.matchMedia("(max-width: 767px)").matches) {
+        container.scrollTo({ left: 0, behavior: "smooth" });
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [bottomNavPills.length]);
 
   const handleLogout = async () => {
     await logout();
@@ -206,7 +332,10 @@ export function Navbar() {
           </div>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl mx-8">
+          <form
+            onSubmit={handleSearch}
+            className="hidden md:flex flex-1 max-w-xl mx-8"
+          >
             <div className="w-full relative">
               <input
                 id="search-input"
@@ -226,8 +355,14 @@ export function Navbar() {
                   transition: "border-color .2s",
                 }}
               />
-              <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2">
-                <Search className="w-5 h-5" style={{ color: "var(--text-muted)" }} />
+              <button
+                type="submit"
+                className="absolute left-4 top-1/2 -translate-y-1/2"
+              >
+                <Search
+                  className="w-5 h-5"
+                  style={{ color: "var(--text-muted)" }}
+                />
               </button>
             </div>
           </form>
@@ -249,10 +384,13 @@ export function Navbar() {
             )}
 
             {/* Cart */}
-            {(!user || user.role === "customer") && (
+            {isCustomerRole && (
               <Link
                 href="/customer/cart"
                 id="cart-btn"
+                onClick={() => {
+                  void fetchCart();
+                }}
                 className="inline-flex p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
               >
                 <ShoppingCart className="w-5 h-5" />
@@ -317,7 +455,8 @@ export function Navbar() {
                         onClick={() => setUserMenuOpen(false)}
                       >
                         My Orders
-                      </Link>                      <div className="h-px bg-[var(--border-default)] my-1" />
+                      </Link>{" "}
+                      <div className="h-px bg-[var(--border-default)] my-1" />
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2.5 text-sm font-medium text-[var(--status-error)] hover:bg-[var(--status-error-bg)]"
@@ -502,25 +641,16 @@ export function Navbar() {
 
       {/* ── CATEGORY PILLS BAR ── */}
       <div
+        ref={categoryPillsRef}
         className="border-t border-[var(--border-default)] overflow-x-auto scrollbar-hide"
         style={{ background: "var(--bg-surface)" }}
       >
         <div className="flex items-center gap-0 px-4 sm:px-6 lg:px-8 max-w-[1400px] mx-auto">
-          {[
-            { label: "For You", href: "/products" },
-            { label: "Electronics", href: `/products?category=${encodeURIComponent("Electronics")}` },
-            { label: "Fashion", href: `/products?category=${encodeURIComponent("Fashion")}` },
-            { label: "Home & Living", href: `/products?category=${encodeURIComponent("Home & Living")}` },
-            { label: "Sports", href: `/products?category=${encodeURIComponent("Sports")}` },
-            { label: "Books", href: `/products?category=${encodeURIComponent("Books")}` },
-            { label: "Beauty", href: `/products?category=${encodeURIComponent("Beauty")}` },
-            { label: "Food & Gourmet", href: `/products?category=${encodeURIComponent("Food & Gourmet")}` },
-            { label: "Toys & Games", href: `/products?category=${encodeURIComponent("Toys & Games")}` },
-            { label: "Today's Deals", href: "/products#deals" },
-          ].map((pill) => (
+          {bottomNavPills.map((pill, index) => (
             <Link
               key={pill.label}
               href={pill.href}
+              data-pill-index={index}
               className="shrink-0 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors hover:text-[var(--text-primary)] border-b-2 border-transparent hover:border-[var(--brand-primary)]"
               style={{ color: "var(--text-secondary)" }}
             >

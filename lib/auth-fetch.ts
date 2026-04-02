@@ -86,6 +86,15 @@ export async function authFetch(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Automatically set Content-Type for JSON payloads if not already set
+  if (
+    requestInit.body &&
+    typeof requestInit.body === "string" &&
+    !headers.has("Content-Type")
+  ) {
+    headers.set("Content-Type", "application/json");
+  }
+
   const response = await fetch(input, {
     ...requestInit,
     credentials: requestInit.credentials ?? "include",

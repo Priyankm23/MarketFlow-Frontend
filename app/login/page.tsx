@@ -7,13 +7,12 @@ import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { fetchVendorProfile } from "@/lib/vendor-profile";
 
-type UserRole = "customer" | "vendor" | "delivery" | "admin";
+// No client-side role selection required; server determines user role
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [role, setRole] = useState<UserRole>("customer");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -93,26 +92,7 @@ export default function LoginPage() {
             </p>
           </div>
 
-          {/* Role Selection */}
-          <div className="mb-8 grid grid-cols-2 gap-2 p-1 bg-[var(--bg-sunken)] rounded-xl border border-[var(--border-default)]">
-            {[
-              { value: "customer" as UserRole, label: "Customer" },
-              { value: "vendor" as UserRole, label: "Vendor" },
-            ].map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => setRole(option.value)}
-                className={`py-2 px-4 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                  role === option.value
-                    ? "bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm border border-[var(--border-default)]"
-                    : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+          {/* Role selection removed: login does not require selecting a role */}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
