@@ -75,7 +75,9 @@ export default function ProductDetailPage() {
 
   const fetchOffers = async () => {
     try {
-      const res = await authFetch(`${API_BASE_URL}/flash-deals?productId=${id}`);
+      const res = await authFetch(
+        `${API_BASE_URL}/flash-deals?productId=${id}`,
+      );
       if (res.ok) {
         const data = await res.json();
         setOffers(data.data || []);
@@ -265,7 +267,7 @@ export default function ProductDetailPage() {
         }}
       >
         <div className="p-6">
-          <Link href="/" className="block">
+          <Link href="/vendor/dashboard" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",
@@ -548,11 +550,19 @@ export default function ProductDetailPage() {
                 <div className="space-y-4">
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[var(--bg-sunken)] flex items-center justify-center flex-shrink-0">
-                      <BarChart2 size={16} className="text-[var(--brand-primary)]" />
+                      <BarChart2
+                        size={16}
+                        className="text-[var(--brand-primary)]"
+                      />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">Increase Visibility</p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">Flash deals are featured on the home page and category pages.</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        Increase Visibility
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        Flash deals are featured on the home page and category
+                        pages.
+                      </p>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -560,8 +570,13 @@ export default function ProductDetailPage() {
                       <Bell size={16} className="text-[var(--brand-primary)]" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">Limited Time</p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">Short, high-discount deals (4-24 hours) typically perform best.</p>
+                      <p className="text-sm font-medium text-[var(--text-primary)]">
+                        Limited Time
+                      </p>
+                      <p className="text-xs text-[var(--text-secondary)] mt-1">
+                        Short, high-discount deals (4-24 hours) typically
+                        perform best.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -572,7 +587,10 @@ export default function ProductDetailPage() {
       </main>
 
       {/* FLASH DEAL MODAL */}
-      <Dialog open={isFlashDealModalOpen} onOpenChange={setIsFlashDealModalOpen}>
+      <Dialog
+        open={isFlashDealModalOpen}
+        onOpenChange={setIsFlashDealModalOpen}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle
@@ -596,7 +614,10 @@ export default function ProductDetailPage() {
                 placeholder="e.g. Midnight Madness"
                 value={flashDealData.offerName}
                 onChange={(e) =>
-                  setFlashDealData({ ...flashDealData, offerName: e.target.value })
+                  setFlashDealData({
+                    ...flashDealData,
+                    offerName: e.target.value,
+                  })
                 }
               />
             </div>
@@ -648,7 +669,10 @@ export default function ProductDetailPage() {
                   type="datetime-local"
                   value={flashDealData.startAt}
                   onChange={(e) =>
-                    setFlashDealData({ ...flashDealData, startAt: e.target.value })
+                    setFlashDealData({
+                      ...flashDealData,
+                      startAt: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -661,7 +685,10 @@ export default function ProductDetailPage() {
                   type="datetime-local"
                   value={flashDealData.endAt}
                   onChange={(e) =>
-                    setFlashDealData({ ...flashDealData, endAt: e.target.value })
+                    setFlashDealData({
+                      ...flashDealData,
+                      endAt: e.target.value,
+                    })
                   }
                 />
               </div>

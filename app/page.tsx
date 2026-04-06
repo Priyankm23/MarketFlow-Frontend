@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { Navbar } from "@/components/navbar";
 import { HeroCarousel } from "@/components/hero-carousel";
@@ -311,6 +312,7 @@ const trustBenefits = [
 /* ================================================================== */
 
 export default function HomePage() {
+  const router = useRouter();
   const [trendingProducts, setTrendingProducts] = useState<
     TrendingProductCard[]
   >([]);
@@ -325,6 +327,9 @@ export default function HomePage() {
   const [spotlightVendors, setSpotlightVendors] = useState<any[]>([]);
   const [spotlightLoading, setSpotlightLoading] = useState(true);
   const [countdown, setCountdown] = useState({ h: 4, m: 23, s: 47 });
+  const activeFlashDeals = flashDeals.filter(
+    (deal) => deal.timeTillValidSeconds > 0,
+  );
   const user = useAuthStore((state) => state.user);
   const [heroBanner, setHeroBanner] = useState(0);
   const showCustomerCta = !user || user.role !== "customer";
@@ -332,6 +337,12 @@ export default function HomePage() {
   const heroTouchStartY = useRef<number | null>(null);
   const heroTouchDeltaX = useRef(0);
   const heroTouchDeltaY = useRef(0);
+
+  useEffect(() => {
+    if (user?.role === "vendor") {
+      router.replace("/vendor/dashboard");
+    }
+  }, [router, user?.role]);
 
   const heroBanners = [
     {
@@ -539,10 +550,10 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (flashDeals.length === 0) return;
+    if (activeFlashDeals.length === 0) return;
 
     const minSeconds = Math.min(
-      ...flashDeals.map((d) => d.timeTillValidSeconds),
+      ...activeFlashDeals.map((d) => d.timeTillValidSeconds),
     );
     setCountdown({
       h: Math.floor(minSeconds / 3600),
@@ -562,7 +573,7 @@ export default function HomePage() {
       });
     }, 1000);
     return () => clearInterval(tick);
-  }, [flashDeals]);
+  }, [activeFlashDeals]);
 
   return (
     <div
@@ -759,58 +770,57 @@ export default function HomePage() {
 
       <div className="[&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body">
         {/* ── FLASH DEALS ── */}
-        <section id="deals" className="py-8 sm:py-12 bg-[var(--bg-base)]">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="mb-8">
-              <h2 className="text-3xl sm:text-6xl font-black text-black uppercase tracking-tighter leading-none">
-                Flash{" "}
-                <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
-                  Deals
-                </span>
-              </h2>
-              <div className="mt-6 flex items-start justify-between gap-4">
-                <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest max-w-[220px] sm:max-w-none leading-relaxed">
-                  Limited time &mdash; grab them before they&apos;re gone
-                </p>
-                <Link
-                  href="/products"
-                  className="shrink-0 text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
-                >
-                  View All Catalogue
-                </Link>
+        {(flashDealsLoading || activeFlashDeals.length > 0) && (
+          <section id="deals" className="py-8 sm:py-12 bg-[var(--bg-base)]">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="mb-8">
+                <h2 className="text-3xl sm:text-6xl font-black text-black uppercase tracking-tighter leading-none">
+                  Flash{" "}
+                  <span className="text-red-600 underline decoration-black decoration-4 underline-offset-8">
+                    Deals
+                  </span>
+                </h2>
+                <div className="mt-6 flex items-start justify-between gap-4">
+                  <p className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-widest max-w-[220px] sm:max-w-none leading-relaxed">
+                    Limited time &mdash; grab them before they&apos;re gone
+                  </p>
+                  <Link
+                    href="/products"
+                    className="shrink-0 text-[10px] font-black uppercase tracking-widest text-black border-b-2 border-red-600 pb-0.5 hover:text-red-600 hover:border-black transition-all"
+                  >
+                    View All Catalogue
+                  </Link>
+                </div>
+              </div>
+              {/* Horizontal scroll strip */}
+              <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
+                {flashDealsLoading
+                  ? Array.from({ length: 5 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="flex-none w-[185px] h-[320px] bg-[var(--bg-sunken)] animate-pulse rounded-none"
+                      />
+                    ))
+                  : activeFlashDeals.map((deal) => (
+                      <div key={deal.id} className="flex-none w-[185px]">
+                        <FlashDealCard deal={deal} />
+                      </div>
+                    ))}
+              </div>
+              <div className="sm:hidden flex items-center justify-center gap-2 mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                <span>Swipe for more</span>
+                <ChevronRight
+                  size={12}
+                  className="text-[var(--brand-accent)]"
+                />
+                <ChevronRight
+                  size={12}
+                  className="text-[var(--brand-accent)] -ml-2 opacity-70"
+                />
               </div>
             </div>
-            {/* Horizontal scroll strip */}
-            <div className="flex gap-4 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-              {flashDealsLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-none w-[185px] h-[320px] bg-[var(--bg-sunken)] animate-pulse rounded-none"
-                  />
-                ))
-              ) : flashDeals.length > 0 ? (
-                flashDeals.map((deal) => (
-                  <div key={deal.id} className="flex-none w-[185px]">
-                    <FlashDealCard deal={deal} />
-                  </div>
-                ))
-              ) : (
-                <div className="w-full py-10 text-center text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] border-2 border-dashed border-[var(--border-default)]">
-                  No active flash deals at the moment.
-                </div>
-              )}
-            </div>
-            <div className="sm:hidden flex items-center justify-center gap-2 mt-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-              <span>Swipe for more</span>
-              <ChevronRight size={12} className="text-[var(--brand-accent)]" />
-              <ChevronRight
-                size={12}
-                className="text-[var(--brand-accent)] -ml-2 opacity-70"
-              />
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ── SHOP BY CATEGORY ── */}
         <section

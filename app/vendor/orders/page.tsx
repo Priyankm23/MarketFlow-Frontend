@@ -281,7 +281,7 @@ export default function VendorOrdersPage() {
         }}
       >
         <div className="p-4 sm:p-6 flex items-center justify-between">
-          <Link href="/" className="block">
+          <Link href="/vendor/dashboard" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",

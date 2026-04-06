@@ -379,6 +379,7 @@ export default function VendorProductsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const vendorId = profile?.id || profile?.userId || user?.id || "";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -391,7 +392,8 @@ export default function VendorProductsPage() {
   });
 
   const [isFlashDealModalOpen, setIsFlashDealModalOpen] = useState(false);
-  const [selectedProductForFlashDeal, setSelectedProductForFlashDeal] = useState<VendorProduct | null>(null);
+  const [selectedProductForFlashDeal, setSelectedProductForFlashDeal] =
+    useState<VendorProduct | null>(null);
   const [flashDealSubmitting, setFlashDealSubmitting] = useState(false);
   const [flashDealData, setFlashDealData] = useState({
     offerName: "",
@@ -460,7 +462,14 @@ export default function VendorProductsPage() {
         setProfile(vendorProfile);
 
         if (vendorProfile && isVendorApproved(vendorProfile.status)) {
-          await Promise.all([fetchProducts(), fetchCategories()]);
+          const resolvedVendorId =
+            vendorProfile.id || vendorProfile.userId || user?.id;
+          if (resolvedVendorId) {
+            await Promise.all([
+              fetchProducts(resolvedVendorId),
+              fetchCategories(),
+            ]);
+          }
         }
       } catch (err) {
         console.error(err);
@@ -487,10 +496,10 @@ export default function VendorProductsPage() {
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (currentVendorId: string) => {
     try {
       const response = await authFetch(
-        `${API_BASE_URL}/products?businessName=${profile?.businessName || ""}`,
+        `${API_BASE_URL}/products/vendor/${encodeURIComponent(currentVendorId)}`,
       );
       if (response.ok) {
         const result = await response.json();
@@ -538,7 +547,9 @@ export default function VendorProductsPage() {
           returnPolicy: "",
         });
         setSelectedFiles(null);
-        await fetchProducts();
+        if (vendorId) {
+          await fetchProducts(vendorId);
+        }
       } else {
         const error = await response.json();
         alert(error.message || "Failed to add product");
@@ -682,7 +693,7 @@ export default function VendorProductsPage() {
         } md:translate-x-0`}
       >
         <div className="p-4 sm:p-6 flex items-center justify-between">
-          <Link href="/" className="block">
+          <Link href="/vendor/dashboard" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",
@@ -981,7 +992,10 @@ export default function VendorProductsPage() {
       </main>
 
       {/* FLASH DEAL MODAL */}
-      <Dialog open={isFlashDealModalOpen} onOpenChange={setIsFlashDealModalOpen}>
+      <Dialog
+        open={isFlashDealModalOpen}
+        onOpenChange={setIsFlashDealModalOpen}
+      >
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle
@@ -1005,7 +1019,10 @@ export default function VendorProductsPage() {
                 placeholder="e.g. Midnight Madness"
                 value={flashDealData.offerName}
                 onChange={(e) =>
-                  setFlashDealData({ ...flashDealData, offerName: e.target.value })
+                  setFlashDealData({
+                    ...flashDealData,
+                    offerName: e.target.value,
+                  })
                 }
               />
             </div>
@@ -1057,7 +1074,10 @@ export default function VendorProductsPage() {
                   type="datetime-local"
                   value={flashDealData.startAt}
                   onChange={(e) =>
-                    setFlashDealData({ ...flashDealData, startAt: e.target.value })
+                    setFlashDealData({
+                      ...flashDealData,
+                      startAt: e.target.value,
+                    })
                   }
                 />
               </div>
@@ -1070,7 +1090,10 @@ export default function VendorProductsPage() {
                   type="datetime-local"
                   value={flashDealData.endAt}
                   onChange={(e) =>
-                    setFlashDealData({ ...flashDealData, endAt: e.target.value })
+                    setFlashDealData({
+                      ...flashDealData,
+                      endAt: e.target.value,
+                    })
                   }
                 />
               </div>

@@ -1,124 +1,291 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Navbar } from "@/components/navbar";
-import { useCartStore } from "@/lib/store";
+import { useCartStore, useAuthStore } from "@/lib/store";
+import { authFetch } from "@/lib/auth-fetch";
+import { API_BASE_URL } from "@/lib/config";
 import {
   Trash2,
   Plus,
   Minus,
-  ArrowLeft,
   ArrowRight,
   Loader2,
   ShoppingCart,
-  ShieldCheck,
-  Truck,
-  RotateCcw,
   ChevronRight,
   TicketPercent,
 } from "lucide-react";
 
+type PriceSummary = {
+  subtotal: number;
+  platformFee: number;
+  deliveryFee: number;
+  gst: number;
+  offerDiscount: number;
+  grandTotal: number;
+};
+
+type CartResponse = {
+  status?: string;
+  data?: {
+    pricing?: Partial<PriceSummary>;
+  };
+};
+
+type CartOffer = {
+  id: string;
+  productId: string;
+  offerName?: string;
+  discountPercentage?: number;
+  couponCode?: string;
+  termsAndConditions?: string;
+};
+
+type CartOffersResponse = {
+  status?: string;
+  data?: Record<string, CartOffer[]>;
+};
+
+type AppliedOfferInput = {
+  productId: string;
+  offerId?: string;
+  couponCode?: string;
+};
+
+const APPLIED_OFFERS_STORAGE_KEY = "marketflow-applied-offers";
+
+const EMPTY_PRICING: PriceSummary = {
+  subtotal: 0,
+  platformFee: 0,
+  deliveryFee: 0,
+  gst: 0,
+  offerDiscount: 0,
+  grandTotal: 0,
+};
+
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+
+const toPricing = (pricing?: Partial<PriceSummary>): PriceSummary => ({
+  subtotal: Number(pricing?.subtotal || 0),
+  platformFee: Number(pricing?.platformFee || 0),
+  deliveryFee: Number(pricing?.deliveryFee || 0),
+  gst: Number(pricing?.gst || 0),
+  offerDiscount: Number(pricing?.offerDiscount || 0),
+  grandTotal: Number(pricing?.grandTotal || 0),
+});
+
 export default function CartPage() {
+  const user = useAuthStore((state) => state.user);
   const items = useCartStore((state) => state.items);
   const cartLoading = useCartStore((state) => state.isLoading);
   const fetchCart = useCartStore((state) => state.fetchCart);
   const removeItem = useCartStore((state) => state.removeItem);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
-  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(() => {
-    if (typeof window === "undefined") {
-      return "summer-299";
-    }
-    return sessionStorage.getItem("marketflow-selected-offer") || "summer-299";
-  });
 
-  const mockOffers = [
-    {
-      id: "summer-299",
-      title: "Get ₹299 off on Summer Sale",
-      description: "Flat ₹299 off on your order value",
-      type: "flat" as const,
-      value: 299,
-    },
-    {
-      id: "delivery-first-3",
-      title: "Free delivery on first 3 orders",
-      description: "Delivery charges waived on your first three orders",
-      type: "delivery" as const,
-      value: 0,
-    },
-    {
-      id: "welcome-100",
-      title: "Get ₹100 off on first order",
-      description: "Instant ₹100 discount for new users",
-      type: "flat" as const,
-      value: 100,
-    },
-    {
-      id: "save10-max500",
-      title: "Get 10% off up to ₹500",
-      description: "10% discount capped at ₹500",
-      type: "percent" as const,
-      value: 10,
-      maxDiscount: 500,
-    },
-  ];
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [pricingError, setPricingError] = useState("");
+  const [offersByProduct, setOffersByProduct] = useState<
+    Record<string, CartOffer[]>
+  >({});
+  const [appliedOffers, setAppliedOffers] = useState<
+    Record<string, AppliedOfferInput>
+  >({});
+  const [pricing, setPricing] = useState<PriceSummary>(EMPTY_PRICING);
 
   useEffect(() => {
     void fetchCart();
   }, [fetchCart]);
 
-  const totalPrice = getTotalPrice();
-  const selectedOffer = mockOffers.find(
-    (offer) => offer.id === selectedOfferId,
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const raw = sessionStorage.getItem(APPLIED_OFFERS_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as AppliedOfferInput[];
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const mapped = parsed.reduce<Record<string, AppliedOfferInput>>(
+        (acc, entry) => {
+          if (!entry?.productId) {
+            return acc;
+          }
+
+          acc[entry.productId] = {
+            productId: entry.productId,
+            offerId: entry.offerId,
+            couponCode: entry.couponCode,
+          };
+          return acc;
+        },
+        {},
+      );
+
+      setAppliedOffers(mapped);
+    } catch {
+      // Ignore invalid persisted state.
+    }
+  }, []);
+
+  const appliedOffersList = useMemo(
+    () =>
+      Object.values(appliedOffers).filter((entry) => Boolean(entry.productId)),
+    [appliedOffers],
   );
 
   useEffect(() => {
-    if (!selectedOfferId) {
+    if (typeof window === "undefined") {
       return;
     }
-    sessionStorage.setItem("marketflow-selected-offer", selectedOfferId);
-  }, [selectedOfferId]);
 
-  const discountAmount = (() => {
-    if (!selectedOffer) return 0;
-    if (selectedOffer.type === "flat") {
-      return Math.min(selectedOffer.value, totalPrice);
-    }
-    if (selectedOffer.type === "percent") {
-      const computed = (totalPrice * selectedOffer.value) / 100;
-      return Math.min(
-        computed,
-        selectedOffer.maxDiscount || computed,
-        totalPrice,
-      );
-    }
-    return 0;
-  })();
+    sessionStorage.setItem(
+      APPLIED_OFFERS_STORAGE_KEY,
+      JSON.stringify(appliedOffersList),
+    );
+  }, [appliedOffersList]);
 
-  const platformFee = 29;
-  const gstFee = 39;
-  const deliveryFee = 50;
-  // Temporary UX assumption requested: treat every order as first order, so delivery is waived.
-  const appliedDeliveryFee = 0;
+  useEffect(() => {
+    let isMounted = true;
 
-  const finalTotal = Math.max(
-    0,
-    totalPrice - discountAmount + platformFee + gstFee + appliedDeliveryFee,
+    const fetchBackendPricingAndOffers = async () => {
+      if (!user) {
+        if (isMounted) {
+          setPricing(EMPTY_PRICING);
+          setOffersByProduct({});
+        }
+        return;
+      }
+
+      setPricingLoading(true);
+      setOffersLoading(true);
+      setPricingError("");
+
+      try {
+        const cartEndpoints = [
+          `${API_BASE_URL}/cart`,
+          `${API_BASE_URL}/cart?userId=${user.id}`,
+        ];
+
+        let cartPricing: PriceSummary | null = null;
+        for (const endpoint of cartEndpoints) {
+          const response = await authFetch(endpoint, { method: "GET" });
+          if (!response.ok) {
+            continue;
+          }
+
+          const payload: CartResponse = await response.json().catch(() => ({}));
+          cartPricing = toPricing(payload?.data?.pricing);
+          break;
+        }
+
+        if (!cartPricing) {
+          throw new Error("Unable to load pricing from backend.");
+        }
+
+        const offersResponse = await authFetch(`${API_BASE_URL}/cart/offers`, {
+          method: "GET",
+        });
+
+        let offersMap: Record<string, CartOffer[]> = {};
+        if (offersResponse.ok) {
+          const offersPayload: CartOffersResponse = await offersResponse
+            .json()
+            .catch(() => ({}));
+          offersMap = offersPayload?.data || {};
+        }
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPricing(cartPricing);
+        setOffersByProduct(offersMap);
+
+        setAppliedOffers((prev) => {
+          const sanitized: Record<string, AppliedOfferInput> = {};
+
+          Object.values(prev).forEach((entry) => {
+            const available = offersMap[entry.productId] || [];
+            const matched = available.find(
+              (offer) => offer.id === entry.offerId,
+            );
+
+            if (matched) {
+              sanitized[entry.productId] = {
+                productId: entry.productId,
+                offerId: matched.id,
+                couponCode: matched.couponCode,
+              };
+            }
+          });
+
+          return sanitized;
+        });
+      } catch (error) {
+        if (isMounted) {
+          setPricingError(
+            error instanceof Error
+              ? error.message
+              : "Failed to load pricing details.",
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setPricingLoading(false);
+          setOffersLoading(false);
+        }
+      }
+    };
+
+    void fetchBackendPricingAndOffers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchCart, items.length, user]);
+
+  const handleOfferSelect = (productId: string, offer: CartOffer) => {
+    setAppliedOffers((prev) => {
+      const current = prev[productId];
+      if (current?.offerId === offer.id) {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      }
+
+      return {
+        ...prev,
+        [productId]: {
+          productId,
+          offerId: offer.id,
+          couponCode: offer.couponCode,
+        },
+      };
+    });
+  };
+
+  const hasAnyOffers = Object.values(offersByProduct).some(
+    (offers) => Array.isArray(offers) && offers.length > 0,
   );
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-IN", {
-      maximumFractionDigits: 0,
-    }).format(price);
 
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
       <Navbar />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Breadcrumbs */}
         <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
           <Link href="/" className="hover:text-black">
             Home
@@ -169,7 +336,6 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            {/* Cart Items List */}
             <div className="lg:col-span-8 space-y-6">
               <div className="space-y-4">
                 {items.map((item) => (
@@ -177,7 +343,6 @@ export default function CartPage() {
                     key={item.productId}
                     className="group relative flex flex-col sm:flex-row gap-6 p-5 bg-white border border-[var(--border-default)] rounded-xl transition-all hover:shadow-xl hover:border-black/5"
                   >
-                    {/* Product Image */}
                     <div className="w-full sm:w-32 aspect-square rounded-lg overflow-hidden bg-[var(--bg-sunken)] border border-[var(--border-default)] shrink-0">
                       <img
                         src={
@@ -189,7 +354,6 @@ export default function CartPage() {
                       />
                     </div>
 
-                    {/* Product Info */}
                     <div className="flex-1 flex flex-col justify-between py-1">
                       <div>
                         <div className="flex items-start justify-between gap-4">
@@ -259,7 +423,6 @@ export default function CartPage() {
                 ))}
               </div>
 
-              {/* Promo Section */}
               <div className="p-6 bg-[var(--bg-sunken)] rounded-xl border border-dashed border-[var(--border-default)] space-y-4">
                 <div className="flex items-center gap-2 text-black">
                   <TicketPercent
@@ -267,48 +430,91 @@ export default function CartPage() {
                     className="text-[var(--brand-accent)]"
                   />
                   <span className="text-xs font-black uppercase tracking-widest">
-                    Offers & Coupons
+                    Offers by Product
                   </span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {mockOffers.map((offer) => {
-                    const isSelected = selectedOfferId === offer.id;
 
-                    return (
-                      <button
-                        key={offer.id}
-                        onClick={() => setSelectedOfferId(offer.id)}
-                        className={`text-left p-4 rounded-xl border transition-all ${
-                          isSelected
-                            ? "bg-white border-black shadow-sm"
-                            : "bg-white/70 border-[var(--border-default)] hover:border-black/40"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="text-[11px] font-black uppercase tracking-wide text-black leading-snug">
-                            {offer.title}
+                {offersLoading ? (
+                  <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                    Loading available offers...
+                  </p>
+                ) : !hasAnyOffers ? (
+                  <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                    No active offers available for the current cart items.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    {items.map((item) => {
+                      const offers = offersByProduct[item.productId] || [];
+                      if (offers.length === 0) {
+                        return null;
+                      }
+
+                      return (
+                        <div
+                          key={`offers-${item.productId}`}
+                          className="bg-white border border-[var(--border-default)] rounded-xl p-4 space-y-3"
+                        >
+                          <p className="text-[10px] font-black uppercase tracking-widest text-black">
+                            {item.product?.name || "Product"}
                           </p>
-                          {isSelected && (
-                            <span className="text-[9px] font-black uppercase tracking-widest text-[var(--brand-accent)]">
-                              Selected
-                            </span>
-                          )}
+                          <div className="space-y-2.5">
+                            {offers.map((offer) => {
+                              const isSelected =
+                                appliedOffers[item.productId]?.offerId ===
+                                offer.id;
+
+                              return (
+                                <button
+                                  key={offer.id}
+                                  type="button"
+                                  onClick={() =>
+                                    handleOfferSelect(item.productId, offer)
+                                  }
+                                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                                    isSelected
+                                      ? "bg-red-50 border-red-200"
+                                      : "bg-white border-[var(--border-default)] hover:border-red-200"
+                                  }`}
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <p className="text-[11px] font-black uppercase tracking-wide text-black leading-snug">
+                                        {offer.offerName || "Special Offer"}
+                                      </p>
+                                      {offer.discountPercentage ? (
+                                        <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                          {offer.discountPercentage}% off
+                                          {offer.couponCode
+                                            ? ` • Code: ${offer.couponCode}`
+                                            : ""}
+                                        </p>
+                                      ) : (
+                                        <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                          {offer.couponCode
+                                            ? `Code: ${offer.couponCode}`
+                                            : "Offer available"}
+                                        </p>
+                                      )}
+                                    </div>
+                                    {isSelected && (
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-red-600">
+                                        Selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <p className="text-[10px] font-bold text-[var(--text-muted)] mt-2">
-                          {offer.description}
-                        </p>
-                      </button>
-                    );
-                  })}
-                </div>
-                <p className="text-[10px] font-bold text-zinc-400">
-                  Select one offer above. Backend validation will be integrated
-                  later.
-                </p>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Summary Sidebar */}
             <div className="lg:col-span-4">
               <div className="sticky top-24 space-y-6">
                 <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-6">
@@ -316,42 +522,35 @@ export default function CartPage() {
                     Order Summary
                   </h2>
 
+                  {pricingError && (
+                    <div className="p-3 rounded-lg border border-red-100 bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-widest">
+                      {pricingError}
+                    </div>
+                  )}
+
                   <div className="space-y-4 border-b border-[var(--border-default)] pb-6">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        Bag Total
+                        Subtotal
                       </span>
                       <span className="text-sm font-black text-black">
-                        ₹{formatPrice(totalPrice)}
+                        ₹{formatPrice(pricing.subtotal)}
                       </span>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-green-600 uppercase tracking-widest">
-                          Offer Discount
-                        </span>
-                        <span className="text-sm font-black text-green-600">
-                          -₹{formatPrice(discountAmount)}
-                        </span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                         Platform Fee
                       </span>
                       <span className="text-sm font-black text-black">
-                        ₹{formatPrice(platformFee)}
+                        ₹{formatPrice(pricing.platformFee)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
                         Delivery Fee
                       </span>
-                      <span className="text-xs font-black uppercase tracking-widest">
-                        <span className="text-zinc-400 line-through mr-2">
-                          ₹{formatPrice(deliveryFee)}
-                        </span>
-                        <span className="text-green-600">Free</span>
+                      <span className="text-sm font-black text-black">
+                        ₹{formatPrice(pricing.deliveryFee)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -359,17 +558,31 @@ export default function CartPage() {
                         GST
                       </span>
                       <span className="text-sm font-black text-black">
-                        ₹{formatPrice(gstFee)}
+                        ₹{formatPrice(pricing.gst)}
                       </span>
                     </div>
+                    {pricing.offerDiscount > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-bold text-green-600 uppercase tracking-widest">
+                          Offer Discount
+                        </span>
+                        <span className="text-sm font-black text-green-600">
+                          -₹{formatPrice(pricing.offerDiscount)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-sm font-black text-black uppercase tracking-widest">
-                      Order Total
+                      Total Payable
                     </span>
                     <span className="text-2xl font-black text-black tracking-tighter">
-                      ₹{formatPrice(finalTotal)}
+                      {pricingLoading ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>₹{formatPrice(pricing.grandTotal)}</>
+                      )}
                     </span>
                   </div>
 

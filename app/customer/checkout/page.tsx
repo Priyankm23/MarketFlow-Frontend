@@ -10,7 +10,6 @@ import {
   Package,
   Loader2,
   Clock3,
-  ArrowLeft,
   ShieldCheck,
   MapPin,
   Phone,
@@ -18,10 +17,42 @@ import {
   User,
   CreditCard,
   Hash,
+  TicketPercent,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
 const PAYMENT_WINDOW_SECONDS = 15 * 60;
+const APPLIED_OFFERS_STORAGE_KEY = "marketflow-applied-offers";
+
+type PriceSummary = {
+  subtotal: number;
+  platformFee: number;
+  deliveryFee: number;
+  gst: number;
+  offerDiscount: number;
+  grandTotal: number;
+};
+
+type CartResponse = {
+  status?: string;
+  data?: {
+    pricing?: Partial<PriceSummary>;
+  };
+};
+
+type CartOffer = {
+  id: string;
+  productId: string;
+  offerName?: string;
+  discountPercentage?: number;
+  couponCode?: string;
+  termsAndConditions?: string;
+};
+
+type CartOffersResponse = {
+  status?: string;
+  data?: Record<string, CartOffer[]>;
+};
 
 type ApiProfile = {
   id?: string;
@@ -93,6 +124,21 @@ type InvoiceLineItem = {
   subtotal: number;
 };
 
+type AppliedOfferInput = {
+  productId: string;
+  offerId?: string;
+  couponCode?: string;
+};
+
+const EMPTY_PRICING: PriceSummary = {
+  subtotal: 0,
+  platformFee: 0,
+  deliveryFee: 0,
+  gst: 0,
+  offerDiscount: 0,
+  grandTotal: 0,
+};
+
 const readErrorMessage = async (response: Response) => {
   const payload = await response
     .clone()
@@ -115,49 +161,44 @@ const formatTimer = (secondsLeft: number) => {
   return `${minutes}:${seconds}`;
 };
 
+const formatPrice = (price: number) =>
+  new Intl.NumberFormat("en-IN", {
+    minimumFractionDigits: Number.isInteger(price) ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(price);
+
+const toPricing = (pricing?: Partial<PriceSummary>): PriceSummary => ({
+  subtotal: Number(pricing?.subtotal || 0),
+  platformFee: Number(pricing?.platformFee || 0),
+  deliveryFee: Number(pricing?.deliveryFee || 0),
+  gst: Number(pricing?.gst || 0),
+  offerDiscount: Number(pricing?.offerDiscount || 0),
+  grandTotal: Number(pricing?.grandTotal || 0),
+});
+
 export default function CheckoutPage() {
   const items = useCartStore((state) => state.items);
   const cartLoading = useCartStore((state) => state.isLoading);
   const fetchCart = useCartStore((state) => state.fetchCart);
-  const getTotalPrice = useCartStore((state) => state.getTotalPrice);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [initiatingPayment, setInitiatingPayment] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [checkoutOrders, setCheckoutOrders] = useState<CheckoutOrder[]>([]);
-  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [sessionSecondsLeft, setSessionSecondsLeft] = useState(
     PAYMENT_WINDOW_SECONDS,
   );
 
-  const mockOffers = [
-    {
-      id: "summer-299",
-      type: "flat" as const,
-      value: 299,
-    },
-    {
-      id: "delivery-first-3",
-      type: "delivery" as const,
-      value: 0,
-    },
-    {
-      id: "welcome-100",
-      type: "flat" as const,
-      value: 100,
-    },
-    {
-      id: "save10-max500",
-      type: "percent" as const,
-      value: 10,
-      maxDiscount: 500,
-    },
-  ];
-
-  useEffect(() => {
-    void fetchCart();
-  }, [fetchCart]);
+  const [pricing, setPricing] = useState<PriceSummary>(EMPTY_PRICING);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [offersLoading, setOffersLoading] = useState(false);
+  const [offersByProduct, setOffersByProduct] = useState<
+    Record<string, CartOffer[]>
+  >({});
+  const [appliedOffers, setAppliedOffers] = useState<
+    Record<string, AppliedOfferInput>
+  >({});
 
   const [shipping, setShipping] = useState({
     fullName: "",
@@ -169,6 +210,65 @@ export default function CheckoutPage() {
     state: "",
     postalCode: "",
   });
+
+  useEffect(() => {
+    void fetchCart();
+  }, [fetchCart]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const raw = sessionStorage.getItem(APPLIED_OFFERS_STORAGE_KEY);
+    if (!raw) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as AppliedOfferInput[];
+      if (!Array.isArray(parsed)) {
+        return;
+      }
+
+      const mapped = parsed.reduce<Record<string, AppliedOfferInput>>(
+        (acc, entry) => {
+          if (!entry?.productId) {
+            return acc;
+          }
+
+          acc[entry.productId] = {
+            productId: entry.productId,
+            offerId: entry.offerId,
+            couponCode: entry.couponCode,
+          };
+          return acc;
+        },
+        {},
+      );
+
+      setAppliedOffers(mapped);
+    } catch {
+      // Ignore invalid persisted state.
+    }
+  }, []);
+
+  const appliedOffersList = useMemo(
+    () =>
+      Object.values(appliedOffers).filter((entry) => Boolean(entry.productId)),
+    [appliedOffers],
+  );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    sessionStorage.setItem(
+      APPLIED_OFFERS_STORAGE_KEY,
+      JSON.stringify(appliedOffersList),
+    );
+  }, [appliedOffersList]);
 
   useEffect(() => {
     let isMounted = true;
@@ -286,11 +386,75 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    const persistedOfferId = sessionStorage.getItem(
-      "marketflow-selected-offer",
-    );
-    setSelectedOfferId(persistedOfferId);
-  }, []);
+    let isMounted = true;
+
+    const fetchPricingAndOffers = async () => {
+      setPricingLoading(true);
+      setOffersLoading(true);
+
+      try {
+        const cartResponse = await authFetch(`${API_BASE_URL}/cart`, {
+          method: "GET",
+        });
+
+        if (cartResponse.ok) {
+          const payload: CartResponse = await cartResponse
+            .json()
+            .catch(() => ({}));
+
+          if (isMounted) {
+            setPricing(toPricing(payload?.data?.pricing));
+          }
+        }
+
+        const offersResponse = await authFetch(`${API_BASE_URL}/cart/offers`, {
+          method: "GET",
+        });
+
+        if (offersResponse.ok) {
+          const offersPayload: CartOffersResponse = await offersResponse
+            .json()
+            .catch(() => ({}));
+          const offersMap = offersPayload?.data || {};
+
+          if (isMounted) {
+            setOffersByProduct(offersMap);
+            setAppliedOffers((prev) => {
+              const sanitized: Record<string, AppliedOfferInput> = {};
+
+              Object.values(prev).forEach((entry) => {
+                const available = offersMap[entry.productId] || [];
+                const matched = available.find(
+                  (offer) => offer.id === entry.offerId,
+                );
+
+                if (matched) {
+                  sanitized[entry.productId] = {
+                    productId: entry.productId,
+                    offerId: matched.id,
+                    couponCode: matched.couponCode,
+                  };
+                }
+              });
+
+              return sanitized;
+            });
+          }
+        }
+      } finally {
+        if (isMounted) {
+          setPricingLoading(false);
+          setOffersLoading(false);
+        }
+      }
+    };
+
+    void fetchPricingAndOffers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [items.length]);
 
   useEffect(() => {
     if (step !== 2) {
@@ -312,39 +476,7 @@ export default function CheckoutPage() {
     };
   }, [step]);
 
-  const totalPrice = getTotalPrice();
-  const selectedOffer = mockOffers.find(
-    (offer) => offer.id === selectedOfferId,
-  );
-  const discountAmount = (() => {
-    if (!selectedOffer) return 0;
-    if (selectedOffer.type === "flat") {
-      return Math.min(selectedOffer.value, totalPrice);
-    }
-    if (selectedOffer.type === "percent") {
-      const computed = (totalPrice * selectedOffer.value) / 100;
-      return Math.min(
-        computed,
-        selectedOffer.maxDiscount || computed,
-        totalPrice,
-      );
-    }
-    return 0;
-  })();
-  const platformFee = 29;
-  const gstFee = 39;
-  const deliveryFee = 50;
-  const appliedDeliveryFee = 0;
-  const finalTotal = Math.max(
-    0,
-    totalPrice - discountAmount + platformFee + gstFee + appliedDeliveryFee,
-  );
   const paymentSessionExpired = sessionSecondsLeft <= 0;
-
-  const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-IN", {
-      maximumFractionDigits: 0,
-    }).format(price);
 
   const invoiceLineItems = useMemo<InvoiceLineItem[]>(() => {
     const productNameById = new Map(
@@ -367,10 +499,39 @@ export default function CheckoutPage() {
     );
   }, [checkoutOrders, items]);
 
-  const invoiceTotal = useMemo(
-    () => invoiceLineItems.reduce((sum, item) => sum + item.subtotal, 0),
-    [invoiceLineItems],
+  const invoiceTotalFromOrders = useMemo(
+    () =>
+      checkoutOrders.reduce(
+        (sum, order) => sum + Number(order.totalAmount || 0),
+        0,
+      ),
+    [checkoutOrders],
   );
+
+  const invoiceTotal =
+    invoiceTotalFromOrders > 0
+      ? invoiceTotalFromOrders
+      : invoiceLineItems.reduce((sum, item) => sum + item.subtotal, 0);
+
+  const handleOfferSelect = (productId: string, offer: CartOffer) => {
+    setAppliedOffers((prev) => {
+      const current = prev[productId];
+      if (current?.offerId === offer.id) {
+        const updated = { ...prev };
+        delete updated[productId];
+        return updated;
+      }
+
+      return {
+        ...prev,
+        [productId]: {
+          productId,
+          offerId: offer.id,
+          couponCode: offer.couponCode,
+        },
+      };
+    });
+  };
 
   const handleShippingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -398,10 +559,8 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           shippingAddress,
-          platformFee,
-          deliveryFee: appliedDeliveryFee,
-          gst: gstFee,
-          offerDiscount: discountAmount,
+          paymentMode: "ONLINE",
+          appliedOffers: appliedOffersList,
         }),
       });
 
@@ -508,6 +667,10 @@ export default function CheckoutPage() {
     }
   };
 
+  const hasAnyOffers = Object.values(offersByProduct).some(
+    (offers) => Array.isArray(offers) && offers.length > 0,
+  );
+
   if (cartLoading && items.length === 0) {
     return (
       <div className="min-h-screen bg-[var(--bg-base)]">
@@ -577,7 +740,6 @@ export default function CheckoutPage() {
 
         <div className="grid lg:grid-cols-12 gap-10">
           <div className="lg:col-span-8">
-            {/* Step Indicators */}
             <div className="flex gap-10 mb-12 border-b border-[var(--border-default)] pb-6">
               {[
                 { num: 1, label: "Shipping" },
@@ -768,6 +930,97 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   </div>
+
+                  <div className="p-6 bg-[var(--bg-sunken)] rounded-xl border border-dashed border-[var(--border-default)] space-y-4">
+                    <div className="flex items-center gap-2 text-black">
+                      <TicketPercent
+                        size={18}
+                        className="text-[var(--brand-accent)]"
+                      />
+                      <span className="text-xs font-black uppercase tracking-widest">
+                        Offers by Product
+                      </span>
+                    </div>
+
+                    {offersLoading ? (
+                      <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                        Loading available offers...
+                      </p>
+                    ) : !hasAnyOffers ? (
+                      <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                        No active offers available for the current cart items.
+                      </p>
+                    ) : (
+                      <div className="space-y-4">
+                        {items.map((item) => {
+                          const offers = offersByProduct[item.productId] || [];
+                          if (offers.length === 0) {
+                            return null;
+                          }
+
+                          return (
+                            <div
+                              key={`offers-${item.productId}`}
+                              className="bg-white border border-[var(--border-default)] rounded-xl p-4 space-y-3"
+                            >
+                              <p className="text-[10px] font-black uppercase tracking-widest text-black">
+                                {item.product?.name || "Product"}
+                              </p>
+                              <div className="space-y-2.5">
+                                {offers.map((offer) => {
+                                  const isSelected =
+                                    appliedOffers[item.productId]?.offerId ===
+                                    offer.id;
+
+                                  return (
+                                    <button
+                                      key={offer.id}
+                                      type="button"
+                                      onClick={() =>
+                                        handleOfferSelect(item.productId, offer)
+                                      }
+                                      className={`w-full text-left p-3 rounded-lg border transition-all ${
+                                        isSelected
+                                          ? "bg-red-50 border-red-200"
+                                          : "bg-white border-[var(--border-default)] hover:border-red-200"
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                          <p className="text-[11px] font-black uppercase tracking-wide text-black leading-snug">
+                                            {offer.offerName || "Special Offer"}
+                                          </p>
+                                          {offer.discountPercentage ? (
+                                            <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                              {offer.discountPercentage}% off
+                                              {offer.couponCode
+                                                ? ` • Code: ${offer.couponCode}`
+                                                : ""}
+                                            </p>
+                                          ) : (
+                                            <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                              {offer.couponCode
+                                                ? `Code: ${offer.couponCode}`
+                                                : "Offer available"}
+                                            </p>
+                                          )}
+                                        </div>
+                                        {isSelected && (
+                                          <span className="text-[9px] font-black uppercase tracking-widest text-red-600">
+                                            Selected
+                                          </span>
+                                        )}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {checkoutError && (
@@ -781,7 +1034,7 @@ export default function CheckoutPage() {
 
                 <button
                   type="submit"
-                  disabled={placingOrder}
+                  disabled={placingOrder || pricingLoading}
                   className="w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 disabled:opacity-60 shadow-xl"
                 >
                   {placingOrder ? (
@@ -915,40 +1168,43 @@ export default function CheckoutPage() {
 
                   <div className="border-t border-[var(--border-default)] pt-6 space-y-4">
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                      <span>Bag Total</span>
-                      <span>₹{formatPrice(totalPrice)}</span>
+                      <span>Subtotal</span>
+                      <span>₹{formatPrice(pricing.subtotal)}</span>
                     </div>
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between items-center text-xs font-bold text-green-600 uppercase tracking-widest">
-                        <span>Offer Discount</span>
-                        <span>-₹{formatPrice(discountAmount)}</span>
-                      </div>
-                    )}
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Platform Fee</span>
                       <span className="text-black">
-                        ₹{formatPrice(platformFee)}
+                        ₹{formatPrice(pricing.platformFee)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Delivery Fee</span>
-                      <span>
-                        <span className="text-zinc-400 line-through mr-2">
-                          ₹{formatPrice(deliveryFee)}
-                        </span>
-                        <span className="text-green-600">Free</span>
+                      <span className="text-black">
+                        ₹{formatPrice(pricing.deliveryFee)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>GST</span>
-                      <span className="text-black">₹{formatPrice(gstFee)}</span>
+                      <span className="text-black">
+                        ₹{formatPrice(pricing.gst)}
+                      </span>
                     </div>
+                    {pricing.offerDiscount > 0 && (
+                      <div className="flex justify-between items-center text-xs font-bold text-green-600 uppercase tracking-widest">
+                        <span>Offer Discount</span>
+                        <span>-₹{formatPrice(pricing.offerDiscount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center pt-4 border-t border-[var(--border-default)]">
                       <span className="text-sm font-black text-black uppercase tracking-widest">
-                        Order Total
+                        Total Payable
                       </span>
                       <span className="text-2xl font-black text-black tracking-tighter">
-                        ₹{formatPrice(finalTotal)}
+                        {pricingLoading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>₹{formatPrice(pricing.grandTotal)}</>
+                        )}
                       </span>
                     </div>
                   </div>

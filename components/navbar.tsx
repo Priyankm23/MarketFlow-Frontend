@@ -22,6 +22,95 @@ import {
 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { useCartStore } from "@/lib/store";
+import { authFetch } from "@/lib/auth-fetch";
+import { API_BASE_URL } from "@/lib/config";
+
+type NotificationOrderItem = {
+  product?: {
+    name?: string;
+  };
+};
+
+type NotificationOrderEvent = {
+  status?: string;
+  note?: string;
+  createdAt?: string;
+};
+
+type NotificationOrder = {
+  id: string;
+  status?: string;
+  createdAt?: string;
+  items?: NotificationOrderItem[];
+  events?: NotificationOrderEvent[];
+};
+
+type NotificationOrdersResponse = {
+  data?: NotificationOrder[];
+  message?: string;
+};
+
+const normalizeOrderStatus = (status?: string) =>
+  (status || "PENDING").trim().toUpperCase();
+
+const isCancelledOrder = (status?: string) => {
+  const normalized = normalizeOrderStatus(status);
+  return normalized === "CANCELLED" || normalized === "CANCELED";
+};
+
+const formatOrderStatusLabel = (status?: string) =>
+  normalizeOrderStatus(status).replaceAll("_", " ");
+
+const getLatestOrderEvent = (order: NotificationOrder) => {
+  if (!Array.isArray(order.events) || order.events.length === 0) {
+    return null;
+  }
+
+  return [...order.events].sort((a, b) => {
+    const aTime = new Date(a.createdAt || 0).getTime();
+    const bTime = new Date(b.createdAt || 0).getTime();
+    return bTime - aTime;
+  })[0];
+};
+
+const getOrderActivityTime = (order: NotificationOrder) => {
+  const latestEvent = getLatestOrderEvent(order);
+  const latestEventTime = new Date(latestEvent?.createdAt || 0).getTime();
+  const orderCreatedTime = new Date(order.createdAt || 0).getTime();
+  return Math.max(
+    Number.isFinite(latestEventTime) ? latestEventTime : 0,
+    Number.isFinite(orderCreatedTime) ? orderCreatedTime : 0,
+  );
+};
+
+const getOrderProductLabel = (order: NotificationOrder) => {
+  const names = (order.items || [])
+    .map((item) => item.product?.name?.trim())
+    .filter((name): name is string => Boolean(name));
+
+  if (names.length === 0) {
+    return "Order item";
+  }
+
+  if (names.length <= 2) {
+    return names.join(", ");
+  }
+
+  return `${names[0]}, ${names[1]} +${names.length - 2} more`;
+};
+
+const getLatestLogText = (order: NotificationOrder) => {
+  const latestEvent = getLatestOrderEvent(order);
+  if (latestEvent?.note?.trim()) {
+    return latestEvent.note.trim();
+  }
+
+  if (latestEvent?.status) {
+    return `Status: ${formatOrderStatusLabel(latestEvent.status)}`;
+  }
+
+  return `Status: ${formatOrderStatusLabel(order.status)}`;
+};
 
 const categories = [
   {
@@ -74,9 +163,16 @@ export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
+  const [orderNotifications, setOrderNotifications] = useState<
+    NotificationOrder[]
+  >([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsError, setNotificationsError] = useState("");
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const categoryPillsRef = React.useRef<HTMLDivElement | null>(null);
+  const notificationsMenuRef = React.useRef<HTMLDivElement | null>(null);
   const router = useRouter();
 
   const bottomNavPills = [
@@ -136,6 +232,86 @@ export function Navbar() {
   React.useEffect(() => {
     void fetchCart();
   }, [fetchCart, user?.id, user?.role]);
+
+  React.useEffect(() => {
+    if (!notificationMenuOpen || !user || !isCustomerRole) {
+      return;
+    }
+
+    const fetchOrderNotifications = async () => {
+      setNotificationsLoading(true);
+      setNotificationsError("");
+
+      try {
+        const endpoints = [
+          `${API_BASE_URL}/orders/my-orders`,
+          `${API_BASE_URL}/my-orders`,
+        ];
+
+        let loaded = false;
+        let lastError = "Unable to load order updates.";
+
+        for (const endpoint of endpoints) {
+          const response = await authFetch(endpoint, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            lastError = payload?.message || lastError;
+            continue;
+          }
+
+          const payload: NotificationOrdersResponse = await response
+            .json()
+            .catch(() => ({}));
+          const orders = Array.isArray(payload?.data) ? payload.data : [];
+
+          const activeOrders = orders
+            .filter((order) => !isCancelledOrder(order.status))
+            .sort((a, b) => getOrderActivityTime(b) - getOrderActivityTime(a));
+
+          setOrderNotifications(activeOrders);
+          loaded = true;
+          break;
+        }
+
+        if (!loaded) {
+          throw new Error(lastError);
+        }
+      } catch (error) {
+        setOrderNotifications([]);
+        setNotificationsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load order updates.",
+        );
+      } finally {
+        setNotificationsLoading(false);
+      }
+    };
+
+    void fetchOrderNotifications();
+  }, [notificationMenuOpen, user, isCustomerRole]);
+
+  React.useEffect(() => {
+    if (!notificationMenuOpen) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        notificationsMenuRef.current &&
+        !notificationsMenuRef.current.contains(event.target as Node)
+      ) {
+        setNotificationMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [notificationMenuOpen]);
 
   React.useEffect(() => {
     const container = categoryPillsRef.current;
@@ -240,6 +416,10 @@ export function Navbar() {
     }
   };
 
+  const logoHref = user?.role === "vendor" ? "/vendor/dashboard" : "/";
+  const visibleOrderNotifications = orderNotifications.slice(0, 5);
+  const hasMoreOrderNotifications = orderNotifications.length > 5;
+
   return (
     <nav
       id="main-nav"
@@ -253,7 +433,7 @@ export function Navbar() {
         <div className="flex items-center h-16 sm:h-[72px] gap-2 sm:gap-4">
           {/* Logo */}
           <Link
-            href="/"
+            href={logoHref}
             id="logo"
             className="flex items-center shrink-0"
             style={{ textDecoration: "none" }}
@@ -370,17 +550,99 @@ export function Navbar() {
           {/* Right Actions */}
           <div className="ml-auto flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Notifications */}
-            {user && (
-              <button
-                id="notifications-btn"
-                className="hidden sm:inline-flex p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+            {user && isCustomerRole && (
+              <div
+                className="hidden sm:block relative"
+                ref={notificationsMenuRef}
               >
-                <Bell className="w-5 h-5" />
-                <span
-                  className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                  style={{ background: "var(--brand-accent)" }}
-                />
-              </button>
+                <button
+                  id="notifications-btn"
+                  onClick={() => setNotificationMenuOpen((prev) => !prev)}
+                  className="inline-flex p-2 rounded-lg relative text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] hover:text-[var(--text-primary)]"
+                >
+                  <Bell className="w-5 h-5" />
+                  {orderNotifications.length > 0 && (
+                    <span
+                      className="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1 text-[10px] rounded-full flex items-center justify-center font-bold"
+                      style={{
+                        background: "var(--brand-primary)",
+                        color: "var(--text-inverse)",
+                      }}
+                    >
+                      {orderNotifications.length > 9
+                        ? "9+"
+                        : orderNotifications.length}
+                    </span>
+                  )}
+                </button>
+
+                {notificationMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-xl shadow-lg z-50 overflow-hidden"
+                    style={{
+                      background: "var(--bg-surface)",
+                      border: "1px solid var(--border-default)",
+                      animation: "fadeInUp .15s ease",
+                    }}
+                  >
+                    <div className="px-4 py-3 border-b border-[var(--border-default)]">
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">
+                        Order Updates
+                      </p>
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">
+                        Latest status logs for your active orders
+                      </p>
+                    </div>
+
+                    {notificationsLoading ? (
+                      <p className="px-4 py-4 text-sm text-[var(--text-secondary)]">
+                        Loading updates...
+                      </p>
+                    ) : notificationsError ? (
+                      <p className="px-4 py-4 text-sm text-[var(--status-error)]">
+                        {notificationsError}
+                      </p>
+                    ) : visibleOrderNotifications.length === 0 ? (
+                      <p className="px-4 py-4 text-sm text-[var(--text-secondary)]">
+                        No active order updates right now.
+                      </p>
+                    ) : (
+                      <div className="max-h-[360px] overflow-y-auto">
+                        {visibleOrderNotifications.map((order) => (
+                          <Link
+                            key={order.id}
+                            href={`/customer/orders/${order.id}`}
+                            onClick={() => setNotificationMenuOpen(false)}
+                            className="block px-4 py-3 border-b border-[var(--border-default)] hover:bg-[var(--bg-sunken)] transition-colors"
+                          >
+                            <p className="text-sm font-semibold text-[var(--text-primary)] line-clamp-1">
+                              {getOrderProductLabel(order)}
+                            </p>
+                            <p className="text-xs text-[var(--text-secondary)] mt-1 line-clamp-2">
+                              {getLatestLogText(order)}
+                            </p>
+                            <p className="text-[10px] text-[var(--text-muted)] mt-1 uppercase tracking-wide">
+                              {formatOrderStatusLabel(order.status)}
+                            </p>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+
+                    {hasMoreOrderNotifications && (
+                      <div className="px-4 py-3 bg-[var(--bg-sunken)] border-t border-[var(--border-default)]">
+                        <Link
+                          href="/customer/orders"
+                          onClick={() => setNotificationMenuOpen(false)}
+                          className="text-sm font-semibold text-[var(--brand-primary)] hover:opacity-80"
+                        >
+                          More than 5 updates. Go to My Orders
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Cart */}

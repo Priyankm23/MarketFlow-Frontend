@@ -259,7 +259,7 @@ export default function VendorDashboard() {
         }}
       >
         <div className="p-6">
-          <Link href="/" className="block">
+          <Link href="/vendor/dashboard" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",

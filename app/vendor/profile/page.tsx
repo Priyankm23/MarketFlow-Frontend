@@ -140,7 +140,9 @@ export default function VendorProfilePage() {
     };
   }, [router, user]);
 
-  const handleLogoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -148,32 +150,32 @@ export default function VendorProfilePage() {
     try {
       const formData = new FormData();
       formData.append("logo", file);
-      
+
       let response = await authFetch(`${API_BASE_URL}/vendor/profile/logo`, {
         method: "POST",
         body: formData,
       });
 
       if (response.status === 404) {
-         response = await authFetch(`${API_BASE_URL}/vendors/profile/logo`, {
-            method: "POST",
-            body: formData,
-         });
+        response = await authFetch(`${API_BASE_URL}/vendors/profile/logo`, {
+          method: "POST",
+          body: formData,
+        });
       }
-      
+
       if (!response.ok) {
         throw new Error("Failed to upload logo");
       }
-      
+
       const payload = await response.json().catch(() => ({}));
-      
+
       if (payload?.data && payload.data.logoUrl) {
-         setProfile(payload.data);
+        setProfile(payload.data);
       } else if (payload?.logoUrl && profile) {
-         setProfile({ ...profile, logoUrl: payload.logoUrl });
+        setProfile({ ...profile, logoUrl: payload.logoUrl });
       } else {
-         const updatedProfile = await fetchVendorProfile();
-         if (updatedProfile) setProfile(updatedProfile);
+        const updatedProfile = await fetchVendorProfile();
+        if (updatedProfile) setProfile(updatedProfile);
       }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Error uploading logo");
@@ -213,7 +215,7 @@ export default function VendorProfilePage() {
         }}
       >
         <div className="p-6">
-          <Link href="/" className="block">
+          <Link href="/vendor/dashboard" className="block">
             <h2
               style={{
                 fontFamily: "var(--font-dm-sans)",
@@ -449,26 +451,40 @@ export default function VendorProfilePage() {
                       <div className="relative group shrink-0">
                         <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-2xl border-2 border-[var(--border-default)] bg-[var(--bg-sunken)] overflow-hidden flex items-center justify-center relative shadow-sm">
                           {profile?.logoUrl ? (
-                            <img src={profile.logoUrl} alt="Store Logo" className="w-full h-full object-cover" />
+                            <img
+                              src={profile.logoUrl}
+                              alt="Store Logo"
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <Building2 className="w-8 h-8 text-[var(--text-muted)] opacity-40" />
                           )}
-                          
-                          <div 
-                            className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${isUploadingLogo ? 'opacity-100 bg-white/70' : ''}`} 
-                            onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+
+                          <div
+                            className={`absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer ${isUploadingLogo ? "opacity-100 bg-white/70" : ""}`}
+                            onClick={() =>
+                              !isUploadingLogo && fileInputRef.current?.click()
+                            }
                           >
                             {isUploadingLogo ? (
                               <div className="w-5 h-5 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                               <>
                                 <Camera className="w-5 h-5 text-white mb-1" />
-                                <span className="text-[10px] text-white font-semibold uppercase tracking-wider">Change</span>
+                                <span className="text-[10px] text-white font-semibold uppercase tracking-wider">
+                                  Change
+                                </span>
                               </>
                             )}
                           </div>
                         </div>
-                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleLogoChange} />
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleLogoChange}
+                        />
                       </div>
                       <div>
                         <h4 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] font-body">
@@ -481,39 +497,39 @@ export default function VendorProfilePage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
-                    <div>
-                      <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
-                        Business Name
-                      </p>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        {profile.businessName}
-                      </p>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
+                          Business Name
+                        </p>
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                          {profile.businessName}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
+                          Store Category
+                        </p>
+                        <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--bg-sunken)] text-[var(--text-secondary)] border border-[var(--border-default)]">
+                          {profile.storeCategory}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
+                          Tax ID / GSTIN
+                        </p>
+                        <p className="text-sm text-[var(--text-primary)] font-mono">
+                          {profile.taxId || "Not Provided"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
+                          Vendor ID
+                        </p>
+                        <p className="text-sm text-[var(--text-secondary)] font-mono">
+                          {profile.id}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
-                        Store Category
-                      </p>
-                      <span className="inline-flex px-2.5 py-1 rounded-md text-xs font-medium bg-[var(--bg-sunken)] text-[var(--text-secondary)] border border-[var(--border-default)]">
-                        {profile.storeCategory}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
-                        Tax ID / GSTIN
-                      </p>
-                      <p className="text-sm text-[var(--text-primary)] font-mono">
-                        {profile.taxId || "Not Provided"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
-                        Vendor ID
-                      </p>
-                      <p className="text-sm text-[var(--text-secondary)] font-mono">
-                        {profile.id}
-                      </p>
-                    </div>
-                  </div>
                   </div>
                 </div>
 

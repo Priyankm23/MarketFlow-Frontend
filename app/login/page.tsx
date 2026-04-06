@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
@@ -16,7 +16,24 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const user = useAuthStore((state) => state.user);
   const login = useAuthStore((state) => state.login);
+
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const dashboardMap: Record<string, string> = {
+      customer: "/products",
+      vendor: "/vendor/dashboard",
+      delivery_partner: "/delivery/tasks",
+      delivery: "/delivery/tasks",
+      admin: "/admin/dashboard",
+    };
+
+    router.replace(dashboardMap[user.role.toLowerCase()] || "/products");
+  }, [router, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
