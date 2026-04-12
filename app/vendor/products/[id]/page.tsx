@@ -474,7 +474,7 @@ export default function ProductDetailPage() {
                 onClick={() => setIsFlashDealModalOpen(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity"
               >
-                <Plus size={16} /> Create Flash Deal
+                <Plus size={16} /> Create Offer
               </button>
             </div>
 
@@ -601,7 +601,7 @@ export default function ProductDetailPage() {
                 fontWeight: "normal",
               }}
             >
-              Create Flash Deal
+              Create Offer
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateFlashDeal} className="space-y-4 py-4">

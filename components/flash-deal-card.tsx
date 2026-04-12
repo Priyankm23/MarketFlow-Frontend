@@ -32,6 +32,10 @@ export function FlashDealCard({ deal }: FlashDealCardProps) {
   const product = deal.product;
   const imageUrl =
     product.imageUrls?.[0] || product.imageUrl || "/placeholder-product-1.jpg";
+  const ratingValue = Number(product.rating);
+  const ratingLabel = Number.isFinite(ratingValue)
+    ? ratingValue.toFixed(1)
+    : "N/A";
 
   return (
     <Link
@@ -86,9 +90,7 @@ export function FlashDealCard({ deal }: FlashDealCardProps) {
 
           {/* Rating Badge */}
           <div className="flex items-center gap-1 shrink-0 px-1.5 py-0.5 mb-0.5 text-white bg-black rounded shadow-[0_2px_4px_rgba(0,0,0,0.1)]">
-            <span className="text-[11px] font-black">
-              {product.rating.toFixed(1)}
-            </span>
+            <span className="text-[11px] font-black">{ratingLabel}</span>
             <Star size={9} className="fill-red-600 text-red-600" />
           </div>
         </div>

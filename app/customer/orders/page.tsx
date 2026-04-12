@@ -13,11 +13,12 @@ import {
   ShoppingBag,
   ChevronRight,
   ArrowRight,
-  ExternalLink,
+  CreditCard,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
 const ORDERS_API_BASE_URL = API_BASE_URL;
+const PAYMENT_WINDOW_SECONDS = 15 * 60;
 
 type OrderStatusFilter = "all" | "active" | "delivered" | "cancelled";
 
@@ -37,8 +38,27 @@ type ApiOrder = {
   totalAmount?: number;
   status?: string;
   createdAt?: string;
+  paymentStatus?: string;
+  paymentMode?: string;
+  paymentExpiresAt?: string;
+  expiresAt?: string;
   vendor?: { businessName?: string };
   items?: ApiOrderItem[];
+};
+
+type PaymentIntent = {
+  paymentId?: string;
+  gatewayRef?: string;
+  amount?: number | string;
+  clientSecret?: string;
+  stripeClientSecret?: string;
+  mockCheckoutUrl?: string;
+};
+
+type PaymentIntentResponse = {
+  success?: boolean;
+  message?: string;
+  data?: PaymentIntent;
 };
 
 type ApiOrdersResponse = {
@@ -105,12 +125,89 @@ const formatDate = (value?: string) => {
   });
 };
 
+const parseIsoDate = (value?: string) => {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+};
+
+const getPaymentExpiry = (order: ApiOrder) => {
+  const explicitExpiry = parseIsoDate(
+    order.paymentExpiresAt || order.expiresAt,
+  );
+  if (explicitExpiry) {
+    return explicitExpiry;
+  }
+
+  const createdAt = parseIsoDate(order.createdAt);
+  if (!createdAt) {
+    return null;
+  }
+
+  return new Date(createdAt.getTime() + PAYMENT_WINDOW_SECONDS * 1000);
+};
+
+const getPaymentSecondsLeft = (order: ApiOrder, nowMs = Date.now()) => {
+  const expiresAt = getPaymentExpiry(order);
+  if (!expiresAt) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor((expiresAt.getTime() - nowMs) / 1000));
+};
+
+const formatTimer = (secondsLeft: number) => {
+  const minutes = Math.floor(secondsLeft / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (secondsLeft % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+};
+
+const isPendingPayment = (order: ApiOrder) => {
+  const paymentStatus = (order.paymentStatus || "").trim().toUpperCase();
+  if (
+    ["PENDING", "UNPAID", "REQUIRES_PAYMENT", "AWAITING_PAYMENT"].includes(
+      paymentStatus,
+    )
+  ) {
+    return true;
+  }
+
+  const normalizedOrderStatus = normalizeStatus(order.status).replaceAll(
+    " ",
+    "_",
+  );
+  return ["PENDING", "PAYMENT_PENDING", "AWAITING_PAYMENT", "UNPAID"].includes(
+    normalizedOrderStatus,
+  );
+};
+
+const isOnlinePaymentMode = (order: ApiOrder) => {
+  const paymentMode = (order.paymentMode || "").trim().toUpperCase();
+
+  if (!paymentMode) {
+    return true;
+  }
+
+  if (["COD", "CASH_ON_DELIVERY", "CASH"].includes(paymentMode)) {
+    return false;
+  }
+
+  return true;
+};
+
 export default function OrdersPage() {
   const [selectedStatus, setSelectedStatus] =
     useState<OrderStatusFilter>("all");
   const [orders, setOrders] = useState<ApiOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [paymentErrors, setPaymentErrors] = useState<Record<string, string>>(
+    {},
+  );
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -204,13 +301,86 @@ export default function OrdersPage() {
     [orders],
   );
 
+  const handleCompletePayment = async (
+    order: ApiOrder,
+    event: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!order.id || payingOrderId) {
+      return;
+    }
+
+    setPayingOrderId(order.id);
+    setPaymentErrors((prev) => ({ ...prev, [order.id]: "" }));
+
+    try {
+      const response = await authFetch(
+        `${API_BASE_URL}/payments/${order.id}/intent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      const payload: PaymentIntentResponse = await response
+        .clone()
+        .json()
+        .catch(() => ({}));
+
+      if (!response.ok || !payload?.data) {
+        throw new Error(
+          payload?.message || "Unable to initiate payment for this order",
+        );
+      }
+
+      const secondsLeft = getPaymentSecondsLeft(order);
+
+      sessionStorage.setItem(
+        "marketflow-payment-session",
+        JSON.stringify({
+          createdAt: Date.now(),
+          expiresInSeconds: secondsLeft,
+          intents: [
+            {
+              orderId: order.id,
+              paymentId: payload.data.paymentId,
+              gatewayRef: payload.data.gatewayRef,
+              amount: Number(payload.data.amount || order.totalAmount || 0),
+              mockCheckoutUrl: payload.data.mockCheckoutUrl,
+              clientSecret: payload.data.clientSecret,
+              stripeClientSecret: payload.data.stripeClientSecret,
+            },
+          ],
+        }),
+      );
+
+      window.location.assign("/customer/checkout/gateway");
+    } catch (paymentError) {
+      setPaymentErrors((prev) => ({
+        ...prev,
+        [order.id]:
+          paymentError instanceof Error
+            ? paymentError.message
+            : "Unable to resume payment for this order",
+      }));
+    } finally {
+      setPayingOrderId(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--bg-base)]">
       <Navbar />
 
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-          <Link href="/" className="hover:text-black">Home</Link>
+          <Link href="/" className="hover:text-black">
+            Home
+          </Link>
           <ChevronRight size={12} />
           <span className="text-black">My Orders</span>
         </div>
@@ -269,12 +439,16 @@ export default function OrdersPage() {
         {loading ? (
           <div className="text-center py-24 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
             <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--brand-accent)]" />
-            <p className="text-sm font-black uppercase tracking-widest text-black">Fetching your orders...</p>
+            <p className="text-sm font-black uppercase tracking-widest text-black">
+              Fetching your orders...
+            </p>
           </div>
         ) : error ? (
           <div className="text-center py-20 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
             <Package className="w-12 h-12 mx-auto text-zinc-300 mb-4" />
-            <h3 className="text-lg font-black text-black uppercase tracking-tight">Could not load orders</h3>
+            <h3 className="text-lg font-black text-black uppercase tracking-tight">
+              Could not load orders
+            </h3>
             <p className="text-zinc-500 text-sm mt-2">{error}</p>
           </div>
         ) : filteredOrders.length === 0 ? (
@@ -282,8 +456,12 @@ export default function OrdersPage() {
             <div className="w-20 h-20 bg-[var(--bg-sunken)] rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag size={32} className="text-zinc-300" />
             </div>
-            <h3 className="text-xl font-black text-black uppercase tracking-tight">No orders found</h3>
-            <p className="text-zinc-500 text-sm mt-2 max-w-xs mx-auto">You haven&apos;t placed any orders in this category yet.</p>
+            <h3 className="text-xl font-black text-black uppercase tracking-tight">
+              No orders found
+            </h3>
+            <p className="text-zinc-500 text-sm mt-2 max-w-xs mx-auto">
+              You haven&apos;t placed any orders in this category yet.
+            </p>
             <Link
               href="/products"
               className="mt-8 inline-block px-8 py-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors shadow-lg"
@@ -296,6 +474,12 @@ export default function OrdersPage() {
             {filteredOrders.map((order) => {
               const status = normalizeStatus(order.status);
               const stepIndex = getTimelineStepIndex(order.status);
+              const paymentSecondsLeft = getPaymentSecondsLeft(order);
+              const canResumePayment =
+                isOnlinePaymentMode(order) &&
+                isPendingPayment(order) &&
+                paymentSecondsLeft > 0;
+              const isPayingThisOrder = payingOrderId === order.id;
 
               return (
                 <Link
@@ -308,40 +492,56 @@ export default function OrdersPage() {
                     <p className="text-2xl sm:text-3xl font-black text-black tracking-tighter leading-none">
                       ₹{Number(order.totalAmount || 0).toLocaleString()}
                     </p>
-                    <span className={`inline-flex items-center px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest border ${
-                      isCancelled(order.status) 
-                        ? "bg-red-50 text-red-600 border-red-100" 
-                        : isDelivered(order.status)
-                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                          : "bg-[var(--bg-sunken)] text-black border-[var(--border-default)]"
-                    }`}>
+                    <span
+                      className={`inline-flex items-center px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest border ${
+                        isCancelled(order.status)
+                          ? "bg-red-50 text-red-600 border-red-100"
+                          : isDelivered(order.status)
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                            : "bg-[var(--bg-sunken)] text-black border-[var(--border-default)]"
+                      }`}
+                    >
                       {status.replaceAll("_", " ")}
                     </span>
                   </div>
 
                   <div className="p-6 sm:p-8 space-y-10">
                     {/* Products List - each product full size */}
-                    <div className="space-y-8 pr-0 sm:pr-32"> {/* padding right to avoid overlap with absolute price */}
+                    <div className="space-y-8 pr-0 sm:pr-32">
+                      {" "}
+                      {/* padding right to avoid overlap with absolute price */}
                       {order.items?.map((item, itemIdx) => (
-                        <div key={itemIdx} className="flex flex-col sm:flex-row sm:items-start gap-6 group/item">
+                        <div
+                          key={itemIdx}
+                          className="flex flex-col sm:flex-row sm:items-start gap-6 group/item"
+                        >
                           <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-[var(--bg-sunken)] shrink-0 border border-[var(--border-default)]">
                             <img
-                              src={item.product?.imageUrl || "/placeholder-product-1.jpg"}
+                              src={
+                                item.product?.imageUrl ||
+                                "/placeholder-product-1.jpg"
+                              }
                               alt="Product"
                               className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
                             />
                           </div>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1.5">
-                              <span className="px-2 py-0.5 bg-[var(--brand-accent-soft)] text-[8px] font-black text-[var(--brand-accent)] uppercase tracking-widest rounded">Assured</span>
+                              <span className="px-2 py-0.5 bg-[var(--brand-accent-soft)] text-[8px] font-black text-[var(--brand-accent)] uppercase tracking-widest rounded">
+                                Assured
+                              </span>
                               <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                                Vendor: <span className="text-black">{order.vendor?.businessName || "Verified Vendor"}</span>
+                                Vendor:{" "}
+                                <span className="text-black">
+                                  {order.vendor?.businessName ||
+                                    "Verified Vendor"}
+                                </span>
                               </span>
                             </div>
                             <h3 className="text-xl sm:text-2xl font-black text-black leading-tight tracking-tight uppercase mb-2 max-w-[80%] sm:max-w-none">
                               {item.product?.name || "Product Name"}
                             </h3>
-                            
+
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
                               <span className="text-xs font-medium text-[var(--brand-accent)] uppercase tracking-widest">
                                 Order ID: {order.id.slice(-12).toUpperCase()}
@@ -352,12 +552,13 @@ export default function OrdersPage() {
                               </span>
                             </div>
 
-                            <span className="text-xs font-bold text-zinc-400 uppercase">Qty: {item.quantity}</span>
+                            <span className="text-xs font-bold text-zinc-400 uppercase">
+                              Qty: {item.quantity}
+                            </span>
                           </div>
                         </div>
                       ))}
                     </div>
-
 
                     {shouldShowTimeline(order.status) && (
                       <div className="rounded-xl bg-black p-6 sm:p-8 overflow-hidden">
@@ -367,9 +568,11 @@ export default function OrdersPage() {
                         <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-8 relative">
                           {/* Mobile Vertical Connector Line (placed behind circles) */}
                           <div className="sm:hidden absolute left-[11px] top-2 bottom-2 w-[2px] bg-zinc-800 z-0">
-                            <div 
-                              className="w-full bg-[var(--brand-accent)] transition-all duration-1000" 
-                              style={{ height: `${Math.max(0, Math.min(100, (stepIndex - 1) / (TIMELINE_STEPS.length - 1) * 100))}%` }}
+                            <div
+                              className="w-full bg-[var(--brand-accent)] transition-all duration-1000"
+                              style={{
+                                height: `${Math.max(0, Math.min(100, ((stepIndex - 1) / (TIMELINE_STEPS.length - 1)) * 100))}%`,
+                              }}
                             />
                           </div>
 
@@ -377,24 +580,38 @@ export default function OrdersPage() {
                             const completed = index + 1 <= stepIndex;
                             const isCurrent = index + 1 === stepIndex;
                             return (
-                              <div key={step} className="relative group/step z-10">
+                              <div
+                                key={step}
+                                className="relative group/step z-10"
+                              >
                                 {/* Desktop Horizontal Connector Line */}
                                 {index < TIMELINE_STEPS.length - 1 && (
                                   <div className="hidden sm:block absolute top-[12px] left-6 w-full h-[2px] bg-zinc-800 z-0">
-                                    <div className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${index + 1 < stepIndex ? 'w-full' : 'w-0'}`} />
+                                    <div
+                                      className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${index + 1 < stepIndex ? "w-full" : "w-0"}`}
+                                    />
                                   </div>
                                 )}
                                 <div className="flex sm:flex-col items-center gap-4 sm:gap-4 relative z-10">
-                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
-                                    completed 
-                                      ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_15px_rgba(255,0,0,0.3)]' 
-                                      : 'bg-black border-zinc-800'
-                                  }`}>
-                                    {completed && <CheckCircle2 size={14} className="text-white" />}
+                                  <div
+                                    className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
+                                      completed
+                                        ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_15px_rgba(255,0,0,0.3)]"
+                                        : "bg-black border-zinc-800"
+                                    }`}
+                                  >
+                                    {completed && (
+                                      <CheckCircle2
+                                        size={14}
+                                        className="text-white"
+                                      />
+                                    )}
                                   </div>
-                                  <span className={`text-[12px] sm:text-sm font-black uppercase tracking-tighter sm:text-center transition-colors ${
-                                    completed ? 'text-white' : 'text-zinc-600'
-                                  } ${isCurrent ? 'text-[var(--brand-accent)]' : ''}`}>
+                                  <span
+                                    className={`text-[12px] sm:text-sm font-black uppercase tracking-tighter sm:text-center transition-colors ${
+                                      completed ? "text-white" : "text-zinc-600"
+                                    } ${isCurrent ? "text-[var(--brand-accent)]" : ""}`}
+                                  >
                                     {step}
                                   </span>
                                 </div>
@@ -405,10 +622,39 @@ export default function OrdersPage() {
                       </div>
                     )}
 
-                    <div className="pt-2 flex items-center justify-between border-t border-[var(--border-default)] mt-4 pt-6">
+                    <div className="flex items-center justify-between border-t border-[var(--border-default)] mt-4 pt-6">
+                      <div className="flex items-center gap-3">
+                        {canResumePayment && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              void handleCompletePayment(order, event);
+                            }}
+                            disabled={Boolean(payingOrderId)}
+                            className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-[var(--brand-accent)] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                          >
+                            {isPayingThisOrder ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <CreditCard size={14} />
+                            )}
+                            {isPayingThisOrder
+                              ? "Opening Payment..."
+                              : `Complete Payment (${formatTimer(paymentSecondsLeft)})`}
+                          </button>
+                        )}
+                        {paymentErrors[order.id] && (
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                            {paymentErrors[order.id]}
+                          </p>
+                        )}
+                      </div>
                       <div className="group flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-black group-hover:text-[var(--brand-accent)] transition-colors">
                         View Detailed Order Summary
-                        <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight
+                          size={16}
+                          className="group-hover:translate-x-1 transition-transform"
+                        />
                       </div>
                     </div>
                   </div>

@@ -108,7 +108,7 @@ export default function AdminVendorsPage() {
 
   const handleReviewOffer = async (
     offerId: string,
-    action: "approve" | "reject"
+    action: "approve" | "reject",
   ) => {
     setProcessingId(offerId);
     try {
@@ -117,7 +117,7 @@ export default function AdminVendorsPage() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        }
+        },
       );
 
       if (response.ok) {
@@ -253,7 +253,7 @@ export default function AdminVendorsPage() {
                 {user?.name || "Admin User"}
               </p>
             </div>
-            <button 
+            <button
               onClick={() => logout()}
               className="text-[var(--text-muted)] hover:text-[var(--status-error)] transition-colors"
             >
@@ -293,7 +293,7 @@ export default function AdminVendorsPage() {
                 style={{ color: "var(--text-primary)" }}
               />
             </div>
-            <button 
+            <button
               onClick={fetchPendingOffers}
               className="p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-full transition-colors"
             >
@@ -311,17 +311,17 @@ export default function AdminVendorsPage() {
         {/* PAGE CONTENT */}
         <div className="p-8 max-w-[1200px] w-full">
           <div className="space-y-8">
-            
             {/* FLASH DEAL REQUESTS SECTION */}
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-xl font-bold text-[var(--text-primary)] flex items-center gap-2">
                     <Zap size={20} className="text-red-600 fill-red-600" />
-                    Flash Deal Approval Requests
+                    Offer Approval Requests
                   </h2>
                   <p className="text-sm text-[var(--text-secondary)] mt-1">
-                    Review offers that require manual override or failed automated criteria.
+                    Review offers that require manual override or failed
+                    automated criteria.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -334,21 +334,27 @@ export default function AdminVendorsPage() {
               {loading ? (
                 <div className="py-24 text-center text-[var(--text-secondary)] bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] border-dashed">
                   <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-[var(--brand-primary)]" />
-                  <p className="text-base font-medium">Fetching deal requests...</p>
+                  <p className="text-base font-medium">
+                    Fetching deal requests...
+                  </p>
                 </div>
               ) : pendingOffers.length === 0 ? (
                 <div className="py-24 text-center bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] border-dashed">
                   <div className="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 text-green-600 shadow-inner">
                     <ShieldCheck size={40} />
                   </div>
-                  <h3 className="text-xl font-bold text-[var(--text-primary)]">No Pending Requests</h3>
-                  <p className="text-[var(--text-secondary)] mt-2">All flash deal offers have been successfully reviewed.</p>
+                  <h3 className="text-xl font-bold text-[var(--text-primary)]">
+                    No Pending Requests
+                  </h3>
+                  <p className="text-[var(--text-secondary)] mt-2">
+                    All flash deal offers have been successfully reviewed.
+                  </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                   {pendingOffers.map((item) => (
-                    <div 
-                      key={item.offer.id} 
+                    <div
+                      key={item.offer.id}
                       className="group bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col"
                     >
                       {/* CARD HEADER */}
@@ -359,20 +365,26 @@ export default function AdminVendorsPage() {
                               <Badge className="bg-red-100 text-red-700 hover:bg-red-200 border-none font-black text-[10px] uppercase tracking-wider px-2 py-0.5">
                                 Flash Deal
                               </Badge>
-                              <span className="text-[11px] font-mono text-zinc-400">ID: {item.offer.id.split('-')[0]}...</span>
+                              <span className="text-[11px] font-mono text-zinc-400">
+                                ID: {item.offer.id.split("-")[0]}...
+                              </span>
                             </div>
                             <h3 className="text-lg font-bold text-zinc-900 line-clamp-1 group-hover:text-[var(--brand-primary)] transition-colors">
                               {item.offer.offerName}
                             </h3>
                             <div className="flex items-center gap-1 text-sm text-zinc-500 mt-1">
                               <Users size={14} className="text-zinc-400" />
-                              <span className="font-medium text-zinc-700">{item.vendor.businessName || "Unknown Vendor"}</span>
+                              <span className="font-medium text-zinc-700">
+                                {item.vendor.businessName || "Unknown Vendor"}
+                              </span>
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-1">
                             <div className="text-2xl font-black text-red-600">
                               {item.offer.discountPercentage}%
-                              <span className="text-xs ml-0.5 uppercase tracking-tighter">Off</span>
+                              <span className="text-xs ml-0.5 uppercase tracking-tighter">
+                                Off
+                              </span>
                             </div>
                             {item.offer.couponCode && (
                               <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 text-amber-700 rounded border border-amber-100 text-[10px] font-bold">
@@ -389,33 +401,61 @@ export default function AdminVendorsPage() {
                         {/* LEFT: Product Info */}
                         <div className="space-y-4">
                           <div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">Product Details</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">
+                              Product Details
+                            </span>
                             <div className="space-y-2.5">
                               <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-zinc-100 flex items-center justify-center text-zinc-400 flex-shrink-0">
                                   <Package size={20} />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-zinc-800 truncate">{item.product.name}</p>
-                                  <p className="text-xs font-medium text-zinc-500">₹{Number(item.product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                                  <p className="text-sm font-bold text-zinc-800 truncate">
+                                    {item.product.name}
+                                  </p>
+                                  <p className="text-xs font-medium text-zinc-500">
+                                    ₹
+                                    {Number(
+                                      item.product.price || 0,
+                                    ).toLocaleString(undefined, {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </p>
                                 </div>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <div className="flex flex-col p-2 bg-zinc-50 rounded-lg border border-zinc-100">
-                                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Stock</span>
-                                  <span className={`text-sm font-bold ${item.product.stock > 0 ? 'text-zinc-700' : 'text-red-600'}`}>
+                                  <span className="text-[9px] font-bold text-zinc-400 uppercase">
+                                    Stock
+                                  </span>
+                                  <span
+                                    className={`text-sm font-bold ${item.product.stock > 0 ? "text-zinc-700" : "text-red-600"}`}
+                                  >
                                     {item.product.stock} units
                                   </span>
                                 </div>
                                 <div className="flex flex-col p-2 bg-zinc-50 rounded-lg border border-zinc-100">
-                                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Rating</span>
+                                  <span className="text-[9px] font-bold text-zinc-400 uppercase">
+                                    Rating
+                                  </span>
                                   <div className="flex items-center gap-1">
-                                    <Star size={12} className="text-amber-500 fill-amber-500" />
+                                    <Star
+                                      size={12}
+                                      className="text-amber-500 fill-amber-500"
+                                    />
                                     <span className="text-sm font-bold text-zinc-700">
-                                      {item.criteria.avgRating !== null && item.criteria.avgRating !== undefined ? Number(item.criteria.avgRating).toFixed(1) : "N/A"}
+                                      {item.criteria.avgRating !== null &&
+                                      item.criteria.avgRating !== undefined
+                                        ? Number(
+                                            item.criteria.avgRating,
+                                          ).toFixed(1)
+                                        : "N/A"}
                                     </span>
                                     {item.criteria.ratingCount > 0 && (
-                                      <span className="text-[10px] text-zinc-400 font-medium">({item.criteria.ratingCount})</span>
+                                      <span className="text-[10px] text-zinc-400 font-medium">
+                                        ({item.criteria.ratingCount})
+                                      </span>
                                     )}
                                   </div>
                                 </div>
@@ -424,19 +464,35 @@ export default function AdminVendorsPage() {
                           </div>
 
                           <div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">Timeline</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">
+                              Timeline
+                            </span>
                             <div className="space-y-2">
                               <div className="flex items-center gap-2.5 text-xs text-zinc-600">
                                 <div className="w-6 h-6 rounded flex items-center justify-center bg-green-50 text-green-600">
                                   <Calendar size={12} />
                                 </div>
-                                <span>Starts: <b>{new Date(item.offer.startAt).toLocaleDateString()}</b></span>
+                                <span>
+                                  Starts:{" "}
+                                  <b>
+                                    {new Date(
+                                      item.offer.startAt,
+                                    ).toLocaleDateString()}
+                                  </b>
+                                </span>
                               </div>
                               <div className="flex items-center gap-2.5 text-xs text-zinc-600">
                                 <div className="w-6 h-6 rounded flex items-center justify-center bg-red-50 text-red-600">
                                   <Clock size={12} />
                                 </div>
-                                <span>Ends: <b>{new Date(item.offer.endAt).toLocaleDateString()}</b></span>
+                                <span>
+                                  Ends:{" "}
+                                  <b>
+                                    {new Date(
+                                      item.offer.endAt,
+                                    ).toLocaleDateString()}
+                                  </b>
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -444,12 +500,20 @@ export default function AdminVendorsPage() {
 
                         {/* RIGHT: Criteria / Failing Reasons */}
                         <div className="border-l border-zinc-100 pl-6">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">Approval Criteria</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 block mb-2">
+                            Approval Criteria
+                          </span>
                           {item.criteria.failingReasons.length > 0 ? (
                             <div className="space-y-2">
                               {item.criteria.failingReasons.map((reason) => (
-                                <div key={reason} className="flex items-start gap-2 p-2 bg-red-50/50 rounded-lg border border-red-100/50">
-                                  <AlertTriangle size={14} className="text-red-500 mt-0.5 flex-shrink-0" />
+                                <div
+                                  key={reason}
+                                  className="flex items-start gap-2 p-2 bg-red-50/50 rounded-lg border border-red-100/50"
+                                >
+                                  <AlertTriangle
+                                    size={14}
+                                    className="text-red-500 mt-0.5 flex-shrink-0"
+                                  />
                                   <span className="text-xs font-medium text-red-700 leading-tight">
                                     {formatFailingReason(reason)}
                                   </span>
@@ -462,12 +526,20 @@ export default function AdminVendorsPage() {
                                 </div>
                                 <div className="mt-1 space-y-1">
                                   <div className="flex justify-between text-[11px]">
-                                    <span className="text-zinc-500">Min Rating:</span>
-                                    <span className="font-bold text-zinc-700">{item.criteria.minRating}</span>
+                                    <span className="text-zinc-500">
+                                      Min Rating:
+                                    </span>
+                                    <span className="font-bold text-zinc-700">
+                                      {item.criteria.minRating}
+                                    </span>
                                   </div>
                                   <div className="flex justify-between text-[11px]">
-                                    <span className="text-zinc-500">Min Reviews:</span>
-                                    <span className="font-bold text-zinc-700">{item.criteria.minReviews}</span>
+                                    <span className="text-zinc-500">
+                                      Min Reviews:
+                                    </span>
+                                    <span className="font-bold text-zinc-700">
+                                      {item.criteria.minReviews}
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -477,8 +549,12 @@ export default function AdminVendorsPage() {
                               <div className="w-12 h-12 bg-green-50 rounded-full flex items-center justify-center text-green-600 mb-2">
                                 <Check size={24} />
                               </div>
-                              <p className="text-xs font-bold text-green-700">All Criteria Passed</p>
-                              <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-tighter">Manual review recommended</p>
+                              <p className="text-xs font-bold text-green-700">
+                                All Criteria Passed
+                              </p>
+                              <p className="text-[10px] text-zinc-500 mt-1 uppercase tracking-tighter">
+                                Manual review recommended
+                              </p>
                             </div>
                           )}
                         </div>
@@ -487,7 +563,9 @@ export default function AdminVendorsPage() {
                       {/* CARD FOOTER */}
                       <div className="p-5 bg-zinc-50 border-t border-[var(--border-default)] flex items-center gap-3">
                         <button
-                          onClick={() => handleReviewOffer(item.offer.id, "approve")}
+                          onClick={() =>
+                            handleReviewOffer(item.offer.id, "approve")
+                          }
                           disabled={!!processingId}
                           className="flex-1 h-10 px-4 rounded-xl bg-zinc-900 text-white text-sm font-bold hover:bg-black transition-all shadow-sm hover:shadow active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                         >
@@ -499,7 +577,9 @@ export default function AdminVendorsPage() {
                           Approve Deal
                         </button>
                         <button
-                          onClick={() => handleReviewOffer(item.offer.id, "reject")}
+                          onClick={() =>
+                            handleReviewOffer(item.offer.id, "reject")
+                          }
                           disabled={!!processingId}
                           className="flex-1 h-10 px-4 rounded-xl bg-white border border-zinc-200 text-zinc-700 text-sm font-bold hover:bg-zinc-100 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
                         >
@@ -523,15 +603,19 @@ export default function AdminVendorsPage() {
                 <AlertCircle size={24} />
               </div>
               <div>
-                <h4 className="text-base font-bold text-amber-900 uppercase tracking-widest">Manual Override Protocol</h4>
+                <h4 className="text-base font-bold text-amber-900 uppercase tracking-widest">
+                  Manual Override Protocol
+                </h4>
                 <p className="text-sm text-amber-800 mt-1.5 leading-relaxed opacity-90">
-                  The items listed above have been flagged by the automated validation engine. This occurs when an offer deviates from standard profitability or risk profiles 
-                  (e.g., extreme discounts, low merchant reputation, or inventory inconsistency). 
+                  The items listed above have been flagged by the automated
+                  validation engine. This occurs when an offer deviates from
+                  standard profitability or risk profiles (e.g., extreme
+                  discounts, low merchant reputation, or inventory
+                  inconsistency).
                   <b> Your approval manually overrides these safety checks.</b>
                 </p>
               </div>
             </div>
-
           </div>
         </div>
       </main>

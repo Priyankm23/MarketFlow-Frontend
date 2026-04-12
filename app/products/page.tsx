@@ -106,14 +106,19 @@ export default function ProductsPage() {
 
   const mapApiProductToUi = (item: ApiProduct): Product => {
     const safePrice = Number(item.price || 0);
-    const generatedOriginalPrice = safePrice > 0 ? Math.ceil((safePrice * 1.25) / 10) * 10 : 0;
-    
+    const rawOriginalPrice = Number(
+      (item as ApiProduct & { originalPrice?: number | null }).originalPrice ||
+        0,
+    );
+    const originalPrice =
+      rawOriginalPrice > safePrice ? rawOriginalPrice : undefined;
+
     return {
       id: item.id,
       name: item.name,
       description: item.description,
       price: safePrice,
-      originalPrice: generatedOriginalPrice,
+      originalPrice,
       images: [item.imageUrl || "/placeholder-product-1.jpg"],
       category: item.category?.name || "General",
       subcategory: "General",
@@ -134,14 +139,16 @@ export default function ProductsPage() {
       setLoading(true);
       setError("");
       try {
-        const endpoint = selectedCategory === "All" 
-          ? `${API_BASE_URL}/products?page=${page}&limit=${limit}`
-          : `${API_BASE_URL}/products/category/${encodeURIComponent(selectedCategory)}`;
-        
+        const endpoint =
+          selectedCategory === "All"
+            ? `${API_BASE_URL}/products?page=${page}&limit=${limit}`
+            : `${API_BASE_URL}/products/category/${encodeURIComponent(selectedCategory)}`;
+
         const response = await fetch(endpoint);
         const payload = await response.json();
 
-        if (!response.ok || payload.status !== "success") throw new Error("Could not fetch products");
+        if (!response.ok || payload.status !== "success")
+          throw new Error("Could not fetch products");
 
         if (active) {
           const mapped = (payload.data || []).map(mapApiProductToUi);
@@ -156,17 +163,27 @@ export default function ProductsPage() {
       }
     };
     fetchProducts();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [page, limit, selectedCategory]);
 
   const filteredProducts = useMemo(() => {
-    const minRating = selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
-    let result = products.filter(p => matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating);
-    
+    const minRating =
+      selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
+    let result = products.filter(
+      (p) =>
+        matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating,
+    );
+
     if (sortBy === "price-low") result.sort((a, b) => a.price - b.price);
     else if (sortBy === "price-high") result.sort((a, b) => b.price - a.price);
-    else if (sortBy === "newest") result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
+    else if (sortBy === "newest")
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
     return result;
   }, [products, selectedPriceBand, selectedReviewBand, sortBy]);
 
@@ -185,88 +202,115 @@ export default function ProductsPage() {
       <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* --- BREADCRUMBS --- */}
         <nav className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">
-          <Link href="/" className="hover:text-[var(--brand-accent)] transition-colors">Home</Link>
+          <Link
+            href="/"
+            className="hover:text-[var(--brand-accent)] transition-colors"
+          >
+            Home
+          </Link>
           <span className="opacity-30">/</span>
           <span className="text-black">Catalogue</span>
         </nav>
 
         {/* --- MAIN GRID --- */}
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-10">
-          
           {/* REFINED SIDEBAR */}
           <aside className="h-fit">
             <div className="flex items-center justify-between pb-4 border-b border-[var(--border-default)] lg:mb-0 mb-2">
               <div className="flex items-center gap-2">
                 <Filter size={16} className="text-[var(--brand-accent)]" />
-                <span className="font-bold text-xs uppercase tracking-widest">Refine</span>
+                <span className="font-bold text-xs uppercase tracking-widest">
+                  Refine
+                </span>
               </div>
               {/* Only show collapse on mobile */}
-              <button onClick={() => setIsFilterCollapsed(!isFilterCollapsed)} className="lg:hidden p-2 hover:bg-[var(--bg-sunken)] rounded-lg transition-colors">
-                {isFilterCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+              <button
+                onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
+                className="lg:hidden p-2 hover:bg-[var(--bg-sunken)] rounded-lg transition-colors"
+              >
+                {isFilterCollapsed ? (
+                  <PanelLeftOpen size={18} />
+                ) : (
+                  <PanelLeftClose size={18} />
+                )}
               </button>
             </div>
 
-            <div className={`${isFilterCollapsed ? 'hidden' : 'block'} lg:block space-y-8 lg:mt-6`}>
-                {/* Category Section */}
-                <section>
-                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Category</h4>
-                  <div className="grid grid-cols-1 gap-1.5">
-                    {categories.map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${selectedCategory === cat ? 'bg-black text-white shadow-xl' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]'}`}
-                      >
-                        {cat}
-                        {selectedCategory === cat && <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />}
-                      </button>
-                    ))}
-                  </div>
-                </section>
+            <div
+              className={`${isFilterCollapsed ? "hidden" : "block"} lg:block space-y-8 lg:mt-6`}
+            >
+              {/* Category Section */}
+              <section>
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                  Category
+                </h4>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${selectedCategory === cat ? "bg-black text-white shadow-xl" : "text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]"}`}
+                    >
+                      {cat}
+                      {selectedCategory === cat && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-                {/* Price Section */}
-                <section>
-                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Price</h4>
-                  <div className="space-y-1.5">
-                    {PRICE_BANDS.map(band => (
-                      <button
-                        key={band.value}
-                        onClick={() => setSelectedPriceBand(band.value)}
-                        className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? 'text-black font-black' : 'text-[var(--text-secondary)] opacity-70 hover:opacity-100'}`}
+              {/* Price Section */}
+              <section>
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                  Price
+                </h4>
+                <div className="space-y-1.5">
+                  {PRICE_BANDS.map((band) => (
+                    <button
+                      key={band.value}
+                      onClick={() => setSelectedPriceBand(band.value)}
+                      className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? "text-black font-black" : "text-[var(--text-secondary)] opacity-70 hover:opacity-100"}`}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${selectedPriceBand === band.value ? "border-[var(--brand-accent)]" : "border-zinc-300"}`}
                       >
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${selectedPriceBand === band.value ? 'border-[var(--brand-accent)]' : 'border-zinc-300'}`}>
-                          {selectedPriceBand === band.value && <div className="w-2 h-2 rounded-full bg-[var(--brand-accent)]" />}
-                        </div>
-                        {band.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
+                        {selectedPriceBand === band.value && (
+                          <div className="w-2 h-2 rounded-full bg-[var(--brand-accent)]" />
+                        )}
+                      </div>
+                      {band.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-                {/* Rating Section */}
-                <section>
-                  <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">Rating</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {REVIEW_BANDS.map(band => (
-                      <button
-                        key={band.value}
-                        onClick={() => setSelectedReviewBand(band.value)}
-                        className={`px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${selectedReviewBand === band.value ? 'bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-lg' : 'bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400'}`}
-                      >
-                        {band.label}
-                      </button>
-                    ))}
-                  </div>
-                </section>
+              {/* Rating Section */}
+              <section>
+                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+                  Rating
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {REVIEW_BANDS.map((band) => (
+                    <button
+                      key={band.value}
+                      onClick={() => setSelectedReviewBand(band.value)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${selectedReviewBand === band.value ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-lg" : "bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400"}`}
+                    >
+                      {band.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-                <button 
-                  onClick={resetFilters}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-black text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
-                >
-                  <RefreshCw size={12} />
-                  Reset
-                </button>
-              </div>
+              <button
+                onClick={resetFilters}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-black text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
+              >
+                <RefreshCw size={12} />
+                Reset
+              </button>
+            </div>
           </aside>
 
           {/* PRODUCT LISTING AREA */}
@@ -274,12 +318,16 @@ export default function ProductsPage() {
             {/* Header Controls */}
             <header className="flex items-center justify-between gap-4 py-4 px-1 sm:px-4 border-b border-[var(--border-default)] mb-4">
               <div>
-                <h2 className="text-xs sm:text-sm font-black text-black uppercase tracking-widest">Catalogue</h2>
-                <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">{totalProducts} Items found</p>
+                <h2 className="text-xs sm:text-sm font-black text-black uppercase tracking-widest">
+                  Catalogue
+                </h2>
+                <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">
+                  {totalProducts} Items found
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
-                <select 
+                <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
                   className="bg-transparent text-[10px] sm:text-xs font-black uppercase tracking-widest py-2 pl-2 pr-1 rounded-none outline-none border-none cursor-pointer focus:ring-0"
@@ -295,11 +343,13 @@ export default function ProductsPage() {
             {/* RESULTS GRID */}
             {loading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-                {[...Array(10)].map((_, i) => <ProductCardSkeleton key={i} />)}
+                {[...Array(10)].map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
               </div>
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-y-10 gap-x-6">
-                {filteredProducts.map(product => (
+                {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
@@ -308,17 +358,27 @@ export default function ProductsPage() {
                 <div className="w-20 h-20 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <RefreshCw size={32} className="text-zinc-300" />
                 </div>
-                <h3 className="text-xl font-bold text-black">No matches found</h3>
-                <p className="text-zinc-500 max-w-xs mx-auto mt-2">Try adjusting your filters or clearing them to see all available products.</p>
-                <button onClick={resetFilters} className="mt-8 px-8 py-3 bg-black text-white rounded-full font-bold hover:bg-[var(--brand-accent)] transition-colors shadow-lg">Clear All Filters</button>
+                <h3 className="text-xl font-bold text-black">
+                  No matches found
+                </h3>
+                <p className="text-zinc-500 max-w-xs mx-auto mt-2">
+                  Try adjusting your filters or clearing them to see all
+                  available products.
+                </p>
+                <button
+                  onClick={resetFilters}
+                  className="mt-8 px-8 py-3 bg-black text-white rounded-full font-bold hover:bg-[var(--brand-accent)] transition-colors shadow-lg"
+                >
+                  Clear All Filters
+                </button>
               </div>
             )}
 
             {/* Pagination */}
             {filteredProducts.length > 0 && (
               <div className="pt-10 flex items-center justify-center gap-0">
-                <button 
-                  onClick={() => setPage(p => Math.max(1, p-1))}
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                   className="h-12 px-6 rounded-none border border-[var(--border-default)] bg-white text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 shadow-sm"
                 >
@@ -326,11 +386,15 @@ export default function ProductsPage() {
                 </button>
                 <div className="flex items-center justify-center px-6 h-12 border-y border-[var(--border-default)] bg-[var(--bg-sunken)]">
                   <span className="text-xs font-black text-black">{page}</span>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase mx-1">/</span>
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase">{totalPages}</span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase mx-1">
+                    /
+                  </span>
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                    {totalPages}
+                  </span>
                 </div>
-                <button 
-                  onClick={() => setPage(p => Math.min(totalPages, p+1))}
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                   className="h-12 px-6 rounded-none border border-[var(--border-default)] bg-white text-xs font-bold uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-30 shadow-sm"
                 >

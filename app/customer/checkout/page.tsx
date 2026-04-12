@@ -108,6 +108,8 @@ type PaymentIntent = {
   gatewayRef?: string;
   amount?: number;
   mockCheckoutUrl?: string;
+  clientSecret?: string;
+  stripeClientSecret?: string;
 };
 
 type PaymentIntentResponse = {
@@ -645,6 +647,8 @@ export default function CheckoutPage() {
           gatewayRef: payload.data.gatewayRef,
           amount: Number(payload.data.amount || 0),
           mockCheckoutUrl: payload.data.mockCheckoutUrl,
+          clientSecret: payload.data.clientSecret,
+          stripeClientSecret: payload.data.stripeClientSecret,
         });
       }
 
@@ -1181,12 +1185,6 @@ export default function CheckoutPage() {
                       <span>Delivery Fee</span>
                       <span className="text-black">
                         ₹{formatPrice(pricing.deliveryFee)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                      <span>GST</span>
-                      <span className="text-black">
-                        ₹{formatPrice(pricing.gst)}
                       </span>
                     </div>
                     {pricing.offerDiscount > 0 && (

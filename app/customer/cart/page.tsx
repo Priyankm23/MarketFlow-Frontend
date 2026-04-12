@@ -553,14 +553,6 @@ export default function CartPage() {
                         ₹{formatPrice(pricing.deliveryFee)}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        GST
-                      </span>
-                      <span className="text-sm font-black text-black">
-                        ₹{formatPrice(pricing.gst)}
-                      </span>
-                    </div>
                     {pricing.offerDiscount > 0 && (
                       <div className="flex justify-between items-center">
                         <span className="text-xs font-bold text-green-600 uppercase tracking-widest">

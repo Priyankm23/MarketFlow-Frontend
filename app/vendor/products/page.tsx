@@ -83,6 +83,8 @@ type SortOption =
   | "stock-high"
   | "stock-low";
 
+type OfferMode = "flash" | "other";
+
 const STOCK_FILTER_OPTIONS: Array<{ label: string; value: StockFilter }> = [
   { label: "All", value: "all" },
   { label: "In Stock", value: "in-stock" },
@@ -144,10 +146,12 @@ function ProductCard({
   product,
   onUpdateStock,
   onCreateFlashDeal,
+  onCreateOtherOffer,
 }: {
   product: VendorProduct;
   onUpdateStock: (id: string, newStock: number) => Promise<void>;
   onCreateFlashDeal: (product: VendorProduct) => void;
+  onCreateOtherOffer: (product: VendorProduct) => void;
 }) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [localStock, setLocalStock] = useState(getSafeNumber(product.stock));
@@ -344,6 +348,16 @@ function ProductCard({
               <Tag size={14} />
               Flash Deal
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateOtherOffer(product);
+              }}
+              className="flex-1 py-2 bg-[var(--bg-sunken)] text-[var(--text-primary)] text-xs font-semibold rounded-lg hover:bg-[var(--border-default)] transition-colors flex items-center justify-center gap-2"
+            >
+              <Tag size={14} />
+              Other Offer
+            </button>
             {isStockChanged && (
               <button
                 onClick={handleUpdateClick}
@@ -392,6 +406,7 @@ export default function VendorProductsPage() {
   });
 
   const [isFlashDealModalOpen, setIsFlashDealModalOpen] = useState(false);
+  const [offerMode, setOfferMode] = useState<OfferMode>("flash");
   const [selectedProductForFlashDeal, setSelectedProductForFlashDeal] =
     useState<VendorProduct | null>(null);
   const [flashDealSubmitting, setFlashDealSubmitting] = useState(false);
@@ -409,7 +424,12 @@ export default function VendorProductsPage() {
     if (!selectedProductForFlashDeal) return;
     setFlashDealSubmitting(true);
     try {
-      const response = await authFetch(`${API_BASE_URL}/flash-deals`, {
+      const endpoint =
+        offerMode === "flash"
+          ? `${API_BASE_URL}/flash-deals`
+          : `${API_BASE_URL}/flash-deals/non-flash`;
+
+      const response = await authFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -424,7 +444,11 @@ export default function VendorProductsPage() {
       });
 
       if (response.ok) {
-        alert("Flash deal created successfully!");
+        alert(
+          offerMode === "flash"
+            ? "Flash deal created successfully!"
+            : "Offer created successfully!",
+        );
         setIsFlashDealModalOpen(false);
         setFlashDealData({
           offerName: "",
@@ -436,18 +460,50 @@ export default function VendorProductsPage() {
         });
       } else {
         const error = await response.json();
-        alert(error.message || "Failed to create flash deal");
+        alert(
+          error.message ||
+            (offerMode === "flash"
+              ? "Failed to create flash deal"
+              : "Failed to create offer"),
+        );
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred while creating the flash deal");
+      alert(
+        offerMode === "flash"
+          ? "An error occurred while creating the flash deal"
+          : "An error occurred while creating the offer",
+      );
     } finally {
       setFlashDealSubmitting(false);
     }
   };
 
   const openFlashDealModal = (product: VendorProduct) => {
+    setOfferMode("flash");
     setSelectedProductForFlashDeal(product);
+    setFlashDealData({
+      offerName: "Flash Deal",
+      discountPercentage: "",
+      couponCode: "",
+      startAt: "",
+      endAt: "",
+      termsAndConditions: "",
+    });
+    setIsFlashDealModalOpen(true);
+  };
+
+  const openOtherOfferModal = (product: VendorProduct) => {
+    setOfferMode("other");
+    setSelectedProductForFlashDeal(product);
+    setFlashDealData({
+      offerName: "",
+      discountPercentage: "",
+      couponCode: "",
+      startAt: "",
+      endAt: "",
+      termsAndConditions: "",
+    });
     setIsFlashDealModalOpen(true);
   };
 
@@ -950,6 +1006,7 @@ export default function VendorProductsPage() {
                     product={product}
                     onUpdateStock={onUpdateStock}
                     onCreateFlashDeal={openFlashDealModal}
+                    onCreateOtherOffer={openOtherOfferModal}
                   />
                 ))}
 
@@ -1006,7 +1063,9 @@ export default function VendorProductsPage() {
                 fontWeight: "normal",
               }}
             >
-              Create Flash Deal for {selectedProductForFlashDeal?.name}
+              {offerMode === "flash"
+                ? `Create Flash Deal for ${selectedProductForFlashDeal?.name || ""}`
+                : `Create Offer for ${selectedProductForFlashDeal?.name || ""}`}
             </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateFlashDeal} className="space-y-4 py-4">
@@ -1018,6 +1077,7 @@ export default function VendorProductsPage() {
                 required
                 placeholder="e.g. Midnight Madness"
                 value={flashDealData.offerName}
+                readOnly={offerMode === "flash"}
                 onChange={(e) =>
                   setFlashDealData({
                     ...flashDealData,
@@ -1131,8 +1191,10 @@ export default function VendorProductsPage() {
               >
                 {flashDealSubmitting ? (
                   <Loader2 className="animate-spin" size={16} />
+                ) : offerMode === "flash" ? (
+                  "Create Flash Deal"
                 ) : (
-                  "Create Deal"
+                  "Create Offer"
                 )}
               </button>
             </DialogFooter>
