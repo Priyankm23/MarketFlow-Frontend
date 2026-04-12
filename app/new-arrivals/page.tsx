@@ -19,6 +19,7 @@ type ApiNewArrivalProduct = {
   stock?: number;
   imageUrl?: string | null;
   imageUrls?: string[] | null;
+  averageRating?: number;
   rating?: number;
   reviewCount?: number;
   category?: { name?: string } | null;
@@ -63,6 +64,10 @@ const getNewArrivalsFromPayload = (
 
 const toNewArrivalProductCard = (item: ApiNewArrivalProduct): Product => {
   const safePrice = Number(item.price || 0);
+  const ratingValue = Number(item.averageRating ?? item.rating ?? 0);
+  const safeRating = Number.isFinite(ratingValue)
+    ? Math.min(5, Math.max(0, ratingValue))
+    : 0;
 
   return {
     id: item.id,
@@ -77,7 +82,7 @@ const toNewArrivalProductCard = (item: ApiNewArrivalProduct): Product => {
     stock: Number(item.stock || 0),
     vendorId: item.vendor?.id || "",
     vendorName: cleanBusinessName(item.vendor?.businessName),
-    rating: Number(item.rating || 0),
+    rating: safeRating,
     reviewCount: Number(item.reviewCount || 0),
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt || new Date().toISOString(),

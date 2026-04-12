@@ -57,6 +57,17 @@ type ApiProduct = {
     fourStar?: unknown[] | null;
     fiveStar?: unknown[] | null;
   } | null;
+  reviews?: Array<{
+    id?: string;
+    rating?: number;
+    comment?: string;
+    imageUrls?: string[];
+    createdAt?: string;
+    user?: {
+      id?: string;
+      name?: string;
+    };
+  }> | null;
   brand?: string | null;
   highlights?: string[] | null;
   specifications?: Record<string, string> | null;
@@ -166,6 +177,13 @@ const formatReviewDate = (rawDate: unknown): string => {
   });
 };
 
+const getStarTitle = (star: number) => {
+  const clampedStar = Math.min(5, Math.max(1, Math.round(star)));
+  return `${"★".repeat(clampedStar)}${"☆".repeat(5 - clampedStar)}`;
+};
+
+const isStarOnlyTitle = (value: string) => /^[★☆]+$/.test(value.trim());
+
 const normalizeReviewItem = (
   value: unknown,
   star: number,
@@ -178,7 +196,7 @@ const normalizeReviewItem = (
     return {
       id: `${star}-comment-${index}`,
       author: "Verified customer",
-      title: `${star}-star review`,
+      title: getStarTitle(star),
       comment: commentText,
       date: "Recent",
       helpful: 0,
@@ -214,7 +232,7 @@ const normalizeReviewItem = (
   const title =
     (typeof source.title === "string" && source.title.trim()) ||
     (typeof source.heading === "string" && source.heading.trim()) ||
-    `${star}-star review`;
+    getStarTitle(star);
 
   const helpfulValue = Number(
     source.helpful ?? source.helpfulCount ?? source.likes ?? 0,
@@ -284,6 +302,37 @@ const getCommentsForStar = (
   return commentsCandidate
     .map((entry, index) => normalizeReviewItem(entry, star, index))
     .filter((entry): entry is ReviewItem => Boolean(entry));
+};
+
+const getCommentsFromReviews = (
+  reviews: NonNullable<ApiProduct["reviews"]>,
+) => {
+  const grouped = {
+    oneStarComments: [] as ReviewItem[],
+    twoStarComments: [] as ReviewItem[],
+    threeStarComments: [] as ReviewItem[],
+    fourStarComments: [] as ReviewItem[],
+    fiveStarComments: [] as ReviewItem[],
+  };
+
+  reviews.forEach((review, index) => {
+    const starRaw = Number(review?.rating);
+    const star =
+      Number.isFinite(starRaw) && starRaw >= 1 && starRaw <= 5
+        ? (starRaw as 1 | 2 | 3 | 4 | 5)
+        : 5;
+
+    const normalized = normalizeReviewItem(review, star, index);
+    if (!normalized) return;
+
+    if (star === 1) grouped.oneStarComments.push(normalized);
+    else if (star === 2) grouped.twoStarComments.push(normalized);
+    else if (star === 3) grouped.threeStarComments.push(normalized);
+    else if (star === 4) grouped.fourStarComments.push(normalized);
+    else grouped.fiveStarComments.push(normalized);
+  });
+
+  return grouped;
 };
 
 export default function ProductDetailPage() {
@@ -428,13 +477,16 @@ export default function ProductDetailPage() {
       ? Math.max(0, reviewCountValue)
       : breakdownTotal;
 
-    const commentsByStar = {
-      oneStarComments: getCommentsForStar(item.commentsByStar, 1),
-      twoStarComments: getCommentsForStar(item.commentsByStar, 2),
-      threeStarComments: getCommentsForStar(item.commentsByStar, 3),
-      fourStarComments: getCommentsForStar(item.commentsByStar, 4),
-      fiveStarComments: getCommentsForStar(item.commentsByStar, 5),
-    };
+    const commentsByStar =
+      Array.isArray(item.reviews) && item.reviews.length > 0
+        ? getCommentsFromReviews(item.reviews)
+        : {
+            oneStarComments: getCommentsForStar(item.commentsByStar, 1),
+            twoStarComments: getCommentsForStar(item.commentsByStar, 2),
+            threeStarComments: getCommentsForStar(item.commentsByStar, 3),
+            fourStarComments: getCommentsForStar(item.commentsByStar, 4),
+            fiveStarComments: getCommentsForStar(item.commentsByStar, 5),
+          };
 
     return {
       id: item.id,
@@ -597,8 +649,11 @@ export default function ProductDetailPage() {
               stock: Number(item.stock || 0),
               vendorId: item.vendor?.id || "",
               vendorName: item.vendor?.businessName || "Unknown Vendor",
-              rating: Number.isFinite(Number(item.rating))
-                ? Math.min(5, Math.max(0, Number(item.rating)))
+              rating: Number.isFinite(Number(item.averageRating ?? item.rating))
+                ? Math.min(
+                    5,
+                    Math.max(0, Number(item.averageRating ?? item.rating)),
+                  )
                 : 0,
               reviewCount: Number.isFinite(Number(item.reviewCount))
                 ? Math.max(0, Number(item.reviewCount))
@@ -922,9 +977,19 @@ export default function ProductDetailPage() {
                     {product.name}
                   </h1>
 
-                  <p className="text-sm font-semibold text-[var(--text-secondary)]">
-                    {product.rating.toFixed(1)} |{" "}
-                    {formatPrice(product.reviewCount)} reviews
+                  <p className="text-sm font-semibold text-[var(--text-secondary)] flex items-center gap-1.5">
+                    <span>{product.rating.toFixed(1)}</span>
+                    <span className="text-red-600 tracking-tight" aria-hidden>
+                      {"★".repeat(
+                        Math.min(5, Math.max(0, Math.round(product.rating))),
+                      )}
+                      {"☆".repeat(
+                        5 -
+                          Math.min(5, Math.max(0, Math.round(product.rating))),
+                      )}
+                    </span>
+                    <span>|</span>
+                    <span>{formatPrice(product.reviewCount)} reviews</span>
                   </p>
 
                   <div className="flex flex-wrap items-end gap-3 pt-1">
@@ -1139,7 +1204,13 @@ export default function ProductDetailPage() {
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div>
-                            <p className="text-base font-black text-black">
+                            <p
+                              className={`text-base font-black ${
+                                isStarOnlyTitle(comment.title)
+                                  ? "text-red-600"
+                                  : "text-black"
+                              }`}
+                            >
                               {comment.title}
                             </p>
                             <p className="text-xs text-[var(--text-muted)] mt-1">

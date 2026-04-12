@@ -100,6 +100,7 @@ type ApiTrendingProduct = {
   name?: string;
   price?: string | number;
   reviewCount?: number;
+  averageRating?: number;
   rating?: number;
   imageUrl?: string | null;
   imageUrls?: string[] | null;
@@ -133,6 +134,7 @@ type ApiNewArrivalProduct = {
   stock?: number;
   imageUrl?: string | null;
   imageUrls?: string[] | null;
+  averageRating?: number;
   rating?: number;
   reviewCount?: number;
   category?: { name?: string } | null;
@@ -153,7 +155,7 @@ const toTrendingProductCard = (
 ): TrendingProductCard => {
   const parsedPrice = Number(product.price || 0);
   const safePrice = Number.isFinite(parsedPrice) ? parsedPrice : 0;
-  const parsedRating = Number(product.rating || 0);
+  const parsedRating = Number(product.averageRating ?? product.rating ?? 0);
   const safeRating = Number.isFinite(parsedRating)
     ? Math.max(0, Math.min(5, parsedRating))
     : 0;
@@ -206,6 +208,10 @@ const getNewArrivalsFromPayload = (
 
 const toNewArrivalProductCard = (item: ApiNewArrivalProduct): Product => {
   const safePrice = Number(item.price || 0);
+  const ratingValue = Number(item.averageRating ?? item.rating ?? 0);
+  const safeRating = Number.isFinite(ratingValue)
+    ? Math.min(5, Math.max(0, ratingValue))
+    : 0;
 
   return {
     id: item.id,
@@ -220,7 +226,7 @@ const toNewArrivalProductCard = (item: ApiNewArrivalProduct): Product => {
     stock: Number(item.stock || 0),
     vendorId: item.vendor?.id || "",
     vendorName: cleanBusinessName(item.vendor?.businessName),
-    rating: Number(item.rating || 0),
+    rating: safeRating,
     reviewCount: Number(item.reviewCount || 0),
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt || new Date().toISOString(),

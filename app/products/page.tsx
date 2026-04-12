@@ -70,6 +70,7 @@ type ApiProduct = {
   price: number;
   stock: number;
   imageUrl?: string | null;
+  averageRating?: number | null;
   rating?: number | null;
   reviewCount?: number | null;
   category?: { id?: string; name?: string } | null;
@@ -113,6 +114,11 @@ export default function ProductsPage() {
     const originalPrice =
       rawOriginalPrice > safePrice ? rawOriginalPrice : undefined;
 
+    const ratingValue = Number(item.averageRating ?? item.rating ?? 0);
+    const safeRating = Number.isFinite(ratingValue)
+      ? Math.min(5, Math.max(0, ratingValue))
+      : 0;
+
     return {
       id: item.id,
       name: item.name,
@@ -125,7 +131,7 @@ export default function ProductsPage() {
       stock: item.stock || 0,
       vendorId: item.vendor?.id || "",
       vendorName: item.vendor?.businessName || "Verified Vendor",
-      rating: Number(item.rating) || 0,
+      rating: safeRating,
       reviewCount: Number(item.reviewCount) || 0,
       createdAt: item.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),

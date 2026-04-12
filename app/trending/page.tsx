@@ -16,6 +16,7 @@ type ApiTrendingProduct = {
   name?: string;
   price?: string | number;
   reviewCount?: number;
+  averageRating?: number;
   rating?: number;
   imageUrl?: string | null;
   imageUrls?: string[] | null;
@@ -60,6 +61,10 @@ const getTrendingProductsFromPayload = (
 
 const toTrendingProductCard = (item: ApiTrendingProduct): Product => {
   const safePrice = Number(item.price || 0);
+  const ratingValue = Number(item.averageRating ?? item.rating ?? 0);
+  const safeRating = Number.isFinite(ratingValue)
+    ? Math.min(5, Math.max(0, ratingValue))
+    : 0;
   const categoryName =
     item.category?.name?.trim() || item.categoryName?.trim() || "General";
 
@@ -76,7 +81,7 @@ const toTrendingProductCard = (item: ApiTrendingProduct): Product => {
     stock: 10,
     vendorId: item.vendor?.id || "",
     vendorName: cleanBusinessName(item.vendor?.businessName),
-    rating: Number(item.rating || 0),
+    rating: safeRating,
     reviewCount: Number(item.reviewCount || 0),
     createdAt: item.createdAt || new Date().toISOString(),
     updatedAt: item.updatedAt || new Date().toISOString(),
