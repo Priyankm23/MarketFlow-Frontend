@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store";
 import {
@@ -260,17 +261,14 @@ export default function VendorDashboard() {
       >
         <div className="p-6">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "24px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.01em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-10 w-auto"
+              priority
+            />
             <p
               style={{
                 fontSize: "11px",

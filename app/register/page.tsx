@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 
 export default function RegisterPage() {
@@ -78,12 +79,20 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center px-4 py-12" style={{ fontFamily: "var(--font-dm-sans)" }}>
+    <div
+      className="min-h-screen bg-[var(--bg-base)] flex flex-col items-center justify-center px-4 py-12"
+      style={{ fontFamily: "var(--font-dm-sans)" }}
+    >
       <div className="mb-8 text-center">
         <Link href="/">
-          <h2 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "32px", color: "var(--brand-primary)", letterSpacing: "0.02em", fontWeight: "normal" }}>
-            MarketFlow
-          </h2>
+          <Image
+            src="/logo/logo.png"
+            alt="Markivo"
+            width={178}
+            height={48}
+            priority
+            className="h-10 w-auto"
+          />
         </Link>
       </div>
 
@@ -91,7 +100,13 @@ export default function RegisterPage() {
         <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8 shadow-sm">
           {/* Header */}
           <div className="mb-8">
-            <h1 style={{ fontFamily: "var(--font-instrument-serif)", fontSize: "2rem", color: "var(--text-primary)" }}>
+            <h1
+              style={{
+                fontFamily: "var(--font-instrument-serif)",
+                fontSize: "2rem",
+                color: "var(--text-primary)",
+              }}
+            >
               Create an account
             </h1>
             <p className="text-[var(--text-secondary)] text-sm mt-1">
@@ -165,7 +180,11 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -195,7 +214,11 @@ export default function RegisterPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -238,7 +261,20 @@ export default function RegisterPage() {
                 className="mt-1 rounded border-[var(--border-default)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
               />
               <span className="text-xs text-[var(--text-secondary)] leading-normal">
-                I agree to the <Link href="#" className="text-[var(--brand-primary)] font-bold hover:underline">Terms of Service</Link> and <Link href="#" className="text-[var(--brand-primary)] font-bold hover:underline">Privacy Policy</Link>
+                I agree to the{" "}
+                <Link
+                  href="#"
+                  className="text-[var(--brand-primary)] font-bold hover:underline"
+                >
+                  Terms of Service
+                </Link>{" "}
+                and{" "}
+                <Link
+                  href="#"
+                  className="text-[var(--brand-primary)] font-bold hover:underline"
+                >
+                  Privacy Policy
+                </Link>
               </span>
             </label>
 
@@ -248,7 +284,11 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full py-3 bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-xl font-bold text-sm hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Account"}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Create Account"
+              )}
             </button>
           </form>
 

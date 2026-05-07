@@ -16,13 +16,13 @@ import {
   Mail,
   User,
   CreditCard,
-  Hash,
   TicketPercent,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
 const PAYMENT_WINDOW_SECONDS = 15 * 60;
-const APPLIED_OFFERS_STORAGE_KEY = "marketflow-applied-offers";
+const APPLIED_OFFERS_STORAGE_KEY = "markivo-applied-offers";
+const MANDATORY_DELIVERY_FEE = 40;
 
 type PriceSummary = {
   subtotal: number;
@@ -132,6 +132,8 @@ type AppliedOfferInput = {
   couponCode?: string;
 };
 
+type PaymentMode = "ONLINE" | "COD";
+
 const EMPTY_PRICING: PriceSummary = {
   subtotal: 0,
   platformFee: 0,
@@ -212,6 +214,7 @@ export default function CheckoutPage() {
     state: "",
     postalCode: "",
   });
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>("ONLINE");
 
   useEffect(() => {
     void fetchCart();
@@ -459,7 +462,7 @@ export default function CheckoutPage() {
   }, [items.length]);
 
   useEffect(() => {
-    if (step !== 2) {
+    if (step !== 2 || paymentMode !== "ONLINE") {
       return;
     }
 
@@ -476,7 +479,7 @@ export default function CheckoutPage() {
     return () => {
       window.clearInterval(timer);
     };
-  }, [step]);
+  }, [step, paymentMode]);
 
   const paymentSessionExpired = sessionSecondsLeft <= 0;
 
@@ -514,6 +517,48 @@ export default function CheckoutPage() {
     invoiceTotalFromOrders > 0
       ? invoiceTotalFromOrders
       : invoiceLineItems.reduce((sum, item) => sum + item.subtotal, 0);
+
+  const itemSubtotal = invoiceLineItems.reduce(
+    (sum, item) => sum + item.subtotal,
+    0,
+  );
+
+  const cartSubtotal =
+    pricing.subtotal > 0
+      ? pricing.subtotal
+      : items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const effectiveDeliveryFee = Math.max(
+    MANDATORY_DELIVERY_FEE,
+    Number(pricing.deliveryFee || 0),
+  );
+
+  const cartTotalPayable = Math.max(
+    0,
+    cartSubtotal +
+      pricing.platformFee +
+      effectiveDeliveryFee -
+      pricing.offerDiscount,
+  );
+
+  const reviewSubtotal = itemSubtotal > 0 ? itemSubtotal : invoiceTotal;
+
+  const reviewTotalPayable = Math.max(
+    0,
+    reviewSubtotal +
+      pricing.platformFee +
+      effectiveDeliveryFee -
+      pricing.offerDiscount,
+  );
+
+  const createdOrderIds = checkoutOrders
+    .map((order) => order.id)
+    .filter((orderId): orderId is string => Boolean(orderId));
+  const primaryOrderId = createdOrderIds[0] || "Will appear in My Orders";
+  const createdOrderCount = createdOrderIds.length || 1;
+  const codDisplayTotal =
+    invoiceTotalFromOrders > 0 ? invoiceTotalFromOrders : cartTotalPayable;
+  const isCodSuccess = step === 2 && paymentMode === "COD";
 
   const handleOfferSelect = (productId: string, offer: CartOffer) => {
     setAppliedOffers((prev) => {
@@ -561,7 +606,7 @@ export default function CheckoutPage() {
         },
         body: JSON.stringify({
           shippingAddress,
-          paymentMode: "ONLINE",
+          paymentMode,
           appliedOffers: appliedOffersList,
         }),
       });
@@ -578,13 +623,26 @@ export default function CheckoutPage() {
         ? payload.data
         : payload?.data?.orders;
 
+      if (Array.isArray(orders)) {
+        setCheckoutOrders(orders);
+      }
+
+      if (paymentMode === "COD") {
+        setStep(2);
+        void fetchCart();
+        setPlacingOrder(false);
+        if (typeof window !== "undefined") {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }
+        return;
+      }
+
       if (!Array.isArray(orders) || orders.length === 0) {
         setCheckoutError("Order created but invoice data is missing.");
         setPlacingOrder(false);
         return;
       }
 
-      setCheckoutOrders(orders);
       setSessionSecondsLeft(PAYMENT_WINDOW_SECONDS);
       setStep(2);
       void fetchCart();
@@ -653,7 +711,7 @@ export default function CheckoutPage() {
       }
 
       sessionStorage.setItem(
-        "marketflow-payment-session",
+        "markivo-payment-session",
         JSON.stringify({
           createdAt: Date.now(),
           expiresInSeconds: sessionSecondsLeft,
@@ -743,11 +801,14 @@ export default function CheckoutPage() {
         </h1>
 
         <div className="grid lg:grid-cols-12 gap-10">
-          <div className="lg:col-span-8">
+          <div className={isCodSuccess ? "lg:col-span-12" : "lg:col-span-8"}>
             <div className="flex gap-10 mb-12 border-b border-[var(--border-default)] pb-6">
               {[
                 { num: 1, label: "Shipping" },
-                { num: 2, label: "Confirmation" },
+                {
+                  num: 2,
+                  label: isCodSuccess ? "Placed" : "Confirmation",
+                },
               ].map((s) => (
                 <div key={s.num} className="flex items-center gap-3">
                   <div
@@ -771,7 +832,11 @@ export default function CheckoutPage() {
             </div>
 
             {step === 1 && (
-              <form onSubmit={handleShippingSubmit} className="space-y-10">
+              <form
+                id="checkout-shipping-form"
+                onSubmit={handleShippingSubmit}
+                className="space-y-10"
+              >
                 <div className="space-y-8">
                   <div className="flex items-center gap-3 mb-2">
                     <User size={18} className="text-[var(--brand-accent)]" />
@@ -1039,13 +1104,15 @@ export default function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={placingOrder || pricingLoading}
-                  className="w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 disabled:opacity-60 shadow-xl"
+                  className="hidden lg:flex w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all items-center justify-center gap-3 disabled:opacity-60 shadow-xl"
                 >
                   {placingOrder ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
                     <>
-                      Proceed to Review
+                      {paymentMode === "COD"
+                        ? "Place COD Order"
+                        : "Proceed to Review"}
                       <ChevronRight className="w-5 h-5" />
                     </>
                   )}
@@ -1053,7 +1120,105 @@ export default function CheckoutPage() {
               </form>
             )}
 
-            {step === 2 && (
+            {step === 2 && paymentMode === "COD" && (
+              <div className="max-w-5xl">
+                <div className="p-6 sm:p-10 bg-white border border-[var(--border-default)] rounded-2xl shadow-sm space-y-8 sm:space-y-10">
+                  <div className="text-center space-y-4 sm:space-y-5">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-600">
+                      Cash On Delivery
+                    </p>
+                    <h2 className="text-3xl sm:text-5xl font-black text-black uppercase tracking-tighter">
+                      Order Placed
+                    </h2>
+                    <p className="max-w-2xl mx-auto text-sm font-bold text-zinc-500 leading-relaxed">
+                      Your order has been confirmed. Payment will be collected
+                      at delivery.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Payment Mode
+                      </p>
+                      <p className="text-lg font-black text-black">COD</p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Orders Created
+                      </p>
+                      <p className="text-lg font-black text-black">
+                        {createdOrderCount}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Amount Payable
+                      </p>
+                      <p className="text-lg font-black text-black">
+                        ₹{formatPrice(codDisplayTotal)}
+                      </p>
+                    </div>
+                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Order Reference
+                      </p>
+                      <p className="text-sm font-black text-black break-all">
+                        {primaryOrderId}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="rounded-xl border border-[var(--border-default)] p-6 space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Deliver To
+                      </p>
+                      <p className="text-lg font-black text-black uppercase">
+                        {shipping.fullName}
+                      </p>
+                      <p className="text-sm font-bold text-zinc-600 leading-relaxed">
+                        {shipping.addressLine1},{" "}
+                        {shipping.addressLine2
+                          ? `${shipping.addressLine2}, `
+                          : ""}
+                        {shipping.city}, {shipping.state} -{" "}
+                        {shipping.postalCode}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-[var(--border-default)] p-6 space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                        Contact
+                      </p>
+                      <p className="text-sm font-bold text-zinc-600">
+                        {shipping.email}
+                      </p>
+                      <p className="text-sm font-bold text-zinc-600">
+                        {shipping.phone}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4 pt-2 sm:flex-row">
+                    <Link
+                      href="/products"
+                      className="flex-1 h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 text-center"
+                    >
+                      Continue Shopping
+                    </Link>
+                    <Link
+                      href="/customer/orders"
+                      className="flex-1 h-14 border border-[var(--border-default)] text-black rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--bg-sunken)] transition-all flex items-center justify-center gap-3 text-center"
+                    >
+                      View My Orders
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 2 && paymentMode === "ONLINE" && (
               <div className="space-y-10">
                 <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-sm space-y-8">
                   <div className="flex items-start justify-between">
@@ -1099,13 +1264,13 @@ export default function CheckoutPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-4">
                     <div className="space-y-3">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                      <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-400">
                         Shipping Details
                       </h4>
-                      <p className="text-sm font-black text-black uppercase">
+                      <p className="text-base font-black text-black uppercase">
                         {shipping.fullName}
                       </p>
-                      <p className="text-xs font-bold text-zinc-500 leading-relaxed">
+                      <p className="text-sm font-bold text-zinc-600 leading-relaxed">
                         {shipping.addressLine1},{" "}
                         {shipping.addressLine2
                           ? shipping.addressLine2 + ", "
@@ -1115,32 +1280,60 @@ export default function CheckoutPage() {
                       </p>
                     </div>
                     <div className="space-y-3">
-                      <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                      <h4 className="text-[11px] font-black uppercase tracking-widest text-zinc-400">
                         Contact Info
                       </h4>
-                      <p className="text-xs font-bold text-zinc-500">
+                      <p className="text-sm font-bold text-zinc-600">
                         {shipping.email}
                       </p>
-                      <p className="text-xs font-bold text-zinc-500">
+                      <p className="text-sm font-bold text-zinc-600">
                         {shipping.phone}
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-8 border-t border-[var(--border-default)] flex items-center justify-between">
-                    <span className="text-sm font-black text-zinc-400 uppercase tracking-widest">
-                      Total Invoice
-                    </span>
-                    <span className="text-3xl font-black text-black tracking-tighter">
-                      ₹{formatPrice(invoiceTotal)}
-                    </span>
+                  <div className="pt-8 border-t border-[var(--border-default)] space-y-4">
+                    <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      <span>Subtotal</span>
+                      <span>₹{formatPrice(reviewSubtotal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      <span>Platform Fee</span>
+                      <span className="text-black">
+                        ₹{formatPrice(pricing.platformFee)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                      <span>Delivery Fee</span>
+                      <span className="text-black">
+                        ₹{formatPrice(effectiveDeliveryFee)}
+                      </span>
+                    </div>
+                    {pricing.offerDiscount > 0 && (
+                      <div className="flex justify-between items-center text-xs font-bold text-green-600 uppercase tracking-widest">
+                        <span>Offer Discount</span>
+                        <span>-₹{formatPrice(pricing.offerDiscount)}</span>
+                      </div>
+                    )}
+                    <div className="pt-4 border-t border-[var(--border-default)] flex items-center justify-between">
+                      <span className="text-sm font-black text-zinc-400 uppercase tracking-widest">
+                        Total Payable
+                      </span>
+                      <span className="text-3xl font-black text-black tracking-tighter">
+                        {pricingLoading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>₹{formatPrice(reviewTotalPayable)}</>
+                        )}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-4">
+          {!isCodSuccess && <div className="lg:col-span-4">
             {step === 1 ? (
               <div className="sticky top-24 space-y-6">
                 <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-6">
@@ -1173,7 +1366,7 @@ export default function CheckoutPage() {
                   <div className="border-t border-[var(--border-default)] pt-6 space-y-4">
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Subtotal</span>
-                      <span>₹{formatPrice(pricing.subtotal)}</span>
+                      <span>₹{formatPrice(cartSubtotal)}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Platform Fee</span>
@@ -1184,7 +1377,7 @@ export default function CheckoutPage() {
                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Delivery Fee</span>
                       <span className="text-black">
-                        ₹{formatPrice(pricing.deliveryFee)}
+                        ₹{formatPrice(effectiveDeliveryFee)}
                       </span>
                     </div>
                     {pricing.offerDiscount > 0 && (
@@ -1201,12 +1394,102 @@ export default function CheckoutPage() {
                         {pricingLoading ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
                         ) : (
-                          <>₹{formatPrice(pricing.grandTotal)}</>
+                          <>₹{formatPrice(cartTotalPayable)}</>
                         )}
                       </span>
                     </div>
                   </div>
                 </div>
+
+                <div className="p-6 bg-white border border-[var(--border-default)] rounded-xl shadow-sm space-y-4">
+                  <div className="flex items-center gap-3">
+                    <CreditCard
+                      size={18}
+                      className="text-[var(--brand-accent)]"
+                    />
+                    <h2 className="text-sm font-black uppercase tracking-[0.2em] text-black">
+                      Payment Method
+                    </h2>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      {
+                        value: "ONLINE" as const,
+                        title: "Online Payment",
+                        detail: "Gateway",
+                      },
+                      {
+                        value: "COD" as const,
+                        title: "Cash on Delivery",
+                        detail: "Pay later",
+                      },
+                    ].map((option) => {
+                      const selected = paymentMode === option.value;
+
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setPaymentMode(option.value)}
+                          className={`rounded-xl border p-3 text-left transition-all ${
+                            selected
+                              ? "border-red-600 bg-red-600 text-white"
+                              : "border-[var(--border-default)] bg-white text-black hover:border-red-300"
+                          }`}
+                        >
+                          <div className="flex h-full items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-widest leading-tight">
+                                {option.title}
+                              </p>
+                              <p
+                                className={`mt-2 text-[10px] font-bold ${
+                                  selected
+                                    ? "text-white/80"
+                                    : "text-[var(--text-muted)]"
+                                }`}
+                              >
+                                {option.detail}
+                              </p>
+                            </div>
+                            <div
+                              className={`mt-0.5 h-4 w-4 shrink-0 rounded-full border-2 ${
+                                selected
+                                  ? "border-white bg-white"
+                                  : "border-zinc-300"
+                              }`}
+                            >
+                              <div
+                                className={`m-[3px] h-1.5 w-1.5 rounded-full ${
+                                  selected ? "bg-red-600" : "bg-transparent"
+                                }`}
+                              />
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  form="checkout-shipping-form"
+                  disabled={placingOrder || pricingLoading}
+                  className="lg:hidden w-full h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 disabled:opacity-60 shadow-xl"
+                >
+                  {placingOrder ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      {paymentMode === "COD"
+                        ? "Place COD Order"
+                        : "Proceed to Review"}
+                      <ChevronRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
 
                 <div className="p-6 bg-black rounded-xl text-white space-y-4 border border-zinc-800 shadow-xl">
                   <div className="flex items-center gap-3">
@@ -1215,12 +1498,15 @@ export default function CheckoutPage() {
                       className="text-[var(--brand-accent)]"
                     />
                     <span className="text-[10px] font-black uppercase tracking-widest">
-                      Secure Payment Gateway
+                      {paymentMode === "COD"
+                        ? "Cash On Delivery Selected"
+                        : "Secure Payment Gateway"}
                     </span>
                   </div>
                   <p className="text-[10px] text-zinc-400 font-bold leading-relaxed">
-                    Your transactions are protected with military-grade 256-bit
-                    SSL encryption and fraud prevention systems.
+                    {paymentMode === "COD"
+                      ? "Your order will be confirmed immediately after checkout and payment will be collected at delivery."
+                      : "Your transactions are protected with military-grade 256-bit SSL encryption and fraud prevention systems."}
                   </p>
                 </div>
               </div>
@@ -1266,45 +1552,15 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
-                {checkoutOrders.length > 0 && (
-                  <div className="p-6 bg-white border border-[var(--border-default)] rounded-xl shadow-sm space-y-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="space-y-1">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest text-black flex items-center gap-2">
-                          <Hash className="w-3.5 h-3.5 text-[var(--brand-accent)]" />
-                          Reference IDs
-                        </h4>
-                        <p className="text-[10px] font-bold text-zinc-500">
-                          Keep these IDs handy for payment verification or
-                          support.
-                        </p>
-                      </div>
-                      <span className="px-2.5 py-1 rounded-full bg-[var(--bg-sunken)] border border-[var(--border-default)] text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                        {checkoutOrders.length} order
-                        {checkoutOrders.length > 1 ? "s" : ""}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2.5">
-                      {checkoutOrders.map((order, index) => (
-                        <div
-                          key={order.id || `order-${index}`}
-                          className="flex items-center justify-between gap-3 rounded-lg bg-[var(--bg-sunken)] border border-[var(--border-default)] px-3 py-2.5"
-                        >
-                          <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                            Order #{index + 1}
-                          </span>
-                          <span className="font-mono text-[11px] font-black tracking-wide text-black">
-                            {order.id?.slice(-12) || "---"}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <div className="p-6 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
+                  <p className="text-[11px] sm:text-xs font-black uppercase tracking-widest text-red-600 leading-relaxed text-center">
+                    Payment Not completed within window time will result in
+                    cancellation of order
+                  </p>
+                </div>
               </div>
             )}
-          </div>
+          </div>}
         </div>
       </div>
     </div>

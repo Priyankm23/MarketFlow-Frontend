@@ -183,7 +183,7 @@ export default function AdminVendorsPage() {
                 fontWeight: "normal",
               }}
             >
-              MarketFlow
+              Markivo
             </h2>
             <p
               style={{

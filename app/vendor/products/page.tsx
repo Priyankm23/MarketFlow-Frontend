@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -750,17 +750,14 @@ export default function VendorProductsPage() {
       >
         <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "22px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-9 sm:h-10 w-auto"
+              priority
+            />
             <p
               style={{
                 fontSize: "11px",

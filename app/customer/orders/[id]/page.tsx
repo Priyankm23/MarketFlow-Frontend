@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   CheckCircle2,
-  Circle,
   Loader2,
   Package,
   ChevronRight,
@@ -119,6 +118,9 @@ const formatDate = (value?: string) => {
     minute: "2-digit",
   });
 };
+
+const formatCurrency = (value?: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
 const parseIsoDate = (value?: string) => {
   if (!value) return null;
@@ -330,7 +332,7 @@ export default function OrderDetailsPage() {
       }
 
       sessionStorage.setItem(
-        "marketflow-payment-session",
+        "markivo-payment-session",
         JSON.stringify({
           createdAt: Date.now(),
           expiresInSeconds: paymentSecondsLeft,
@@ -444,17 +446,21 @@ export default function OrderDetailsPage() {
           <div className="lg:col-span-8 space-y-8">
             {/* Tracking Progress (Only if not cancelled) */}
             {!isOrderCancelled && (
-              <section className="bg-black rounded-xl p-8 sm:p-10 shadow-2xl text-white overflow-hidden relative">
-                <div className="flex items-center gap-3 mb-10">
-                  <Truck size={20} className="text-[var(--brand-accent)]" />
-                  <h2 className="text-sm font-black uppercase tracking-[0.2em]">
-                    Delivery Progress
-                  </h2>
+              <section className="bg-white border border-[var(--border-default)] rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden relative">
+                <div className="mb-8 sm:mb-10">
+                  <div className="flex items-center gap-3">
+                    <Truck size={20} className="text-[var(--brand-accent)]" />
+                    <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black">
+                      Delivery Progress
+                    </h2>
+                  </div>
+                  <p className="mt-3 text-sm font-bold text-zinc-500">
+                    Track where your order is right now.
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-10 relative">
-                  {/* Mobile Vertical Connector */}
-                  <div className="sm:hidden absolute left-[11px] top-2 bottom-2 w-[2px] bg-zinc-800 z-0">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-8 sm:gap-x-4 relative">
+                  <div className="sm:hidden absolute left-[15px] top-2 bottom-2 w-[2px] bg-zinc-200 z-0">
                     <div
                       className="w-full bg-[var(--brand-accent)] transition-all duration-1000"
                       style={{
@@ -467,34 +473,50 @@ export default function OrderDetailsPage() {
                     const completed = index + 1 <= stepIndex;
                     const isCurrent = index + 1 === stepIndex;
                     return (
-                      <div key={step} className="relative group/step z-10">
-                        {/* Desktop Horizontal Connector */}
+                      <div key={step} className="relative z-10">
                         {index < TRACKING_STEPS.length - 1 && (
-                          <div className="hidden sm:block absolute top-[12px] left-6 w-full h-[2px] bg-zinc-800 z-0">
+                          <div className="hidden sm:block absolute top-[15px] left-8 w-full h-[2px] bg-zinc-200 z-0">
                             <div
-                              className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${index + 1 < stepIndex ? "w-full" : "w-0"}`}
+                              className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${
+                                index + 1 < stepIndex ? "w-full" : "w-0"
+                              }`}
                             />
                           </div>
                         )}
-                        <div className="flex sm:flex-col items-center gap-4 sm:gap-4 relative z-10">
+                        <div className="flex items-start sm:flex-col sm:items-center gap-4 relative z-10">
                           <div
-                            className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
                               completed
-                                ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_15px_rgba(255,0,0,0.3)]"
-                                : "bg-black border-zinc-800"
+                                ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_0_6px_rgba(255,0,0,0.08)]"
+                                : "bg-white border-zinc-300"
                             }`}
                           >
-                            {completed && (
-                              <CheckCircle2 size={14} className="text-white" />
+                            {completed ? (
+                              <CheckCircle2 size={16} className="text-white" />
+                            ) : (
+                              <div className="w-2.5 h-2.5 rounded-full bg-zinc-300" />
                             )}
                           </div>
-                          <span
-                            className={`text-[12px] sm:text-sm font-black uppercase tracking-tighter sm:text-center transition-colors ${
-                              completed ? "text-white" : "text-zinc-600"
-                            } ${isCurrent ? "text-[var(--brand-accent)]" : ""}`}
-                          >
-                            {step}
-                          </span>
+                          <div className="min-w-0 sm:text-center">
+                            <p
+                              className={`text-sm sm:text-[15px] font-black uppercase leading-tight ${
+                                isCurrent
+                                  ? "text-[var(--brand-accent)]"
+                                  : completed
+                                    ? "text-black"
+                                    : "text-zinc-500"
+                              }`}
+                            >
+                              {step}
+                            </p>
+                            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
+                              {index + 1 < stepIndex
+                                ? "Completed"
+                                : isCurrent
+                                  ? "Current step"
+                                  : "Pending"}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     );
@@ -505,12 +527,12 @@ export default function OrderDetailsPage() {
 
             {/* Order Items */}
             <section className="bg-white border border-[var(--border-default)] rounded-xl shadow-sm overflow-hidden">
-              <div className="px-8 py-6 border-b border-[var(--border-default)] flex items-center justify-between">
-                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-black flex items-center gap-3">
+              <div className="px-6 sm:px-8 py-6 border-b border-[var(--border-default)] flex items-center justify-between gap-4">
+                <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black flex items-center gap-3">
                   <Package size={18} className="text-[var(--brand-accent)]" />
                   Order Items
                 </h2>
-                <span className="text-xs font-black uppercase text-zinc-400">
+                <span className="text-sm font-black uppercase text-zinc-400">
                   {order.items?.length} items
                 </span>
               </div>
@@ -518,9 +540,9 @@ export default function OrderDetailsPage() {
                 {order.items?.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-6 flex flex-col sm:flex-row items-center gap-6 group hover:bg-[var(--bg-sunken)] transition-colors"
+                    className="p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6 group hover:bg-[var(--bg-sunken)] transition-colors"
                   >
-                    <div className="w-20 h-20 rounded-xl overflow-hidden bg-[var(--bg-sunken)] border border-[var(--border-default)] shrink-0">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-[var(--bg-sunken)] border border-[var(--border-default)] shrink-0">
                       <img
                         src={
                           item.product?.imageUrl || "/placeholder-product-1.jpg"
@@ -530,58 +552,57 @@ export default function OrderDetailsPage() {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-black uppercase tracking-tight text-black line-clamp-1">
+                      <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black line-clamp-2">
                         {item.product?.name}
                       </h3>
-                      <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">
+                      <p className="text-sm font-bold text-zinc-400 uppercase mt-2 tracking-wide">
                         Vendor: {order.vendor?.businessName}
                       </p>
                     </div>
-                    <div className="flex items-center gap-10">
-                      <div className="text-center">
-                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                    <div className="grid grid-cols-3 gap-5 sm:gap-8 w-full lg:w-auto lg:min-w-[380px]">
+                      <div className="text-left lg:text-center">
+                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
                           Price
                         </p>
-                        <p className="text-sm font-black text-black">
-                          ₹{Number(item.price).toLocaleString()}
+                        <p className="text-xl sm:text-2xl font-black text-black">
+                          {formatCurrency(item.price)}
                         </p>
                       </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                      <div className="text-left lg:text-center">
+                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
                           Qty
                         </p>
-                        <p className="text-sm font-black text-black">
+                        <p className="text-xl sm:text-2xl font-black text-black">
                           x{item.quantity}
                         </p>
                       </div>
-                      <div className="text-right min-w-[80px]">
-                        <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                      <div className="text-left lg:text-right min-w-[90px]">
+                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
                           Subtotal
                         </p>
-                        <p className="text-sm font-black text-black">
-                          ₹
-                          {Number(
+                        <p className="text-xl sm:text-2xl font-black text-black">
+                          {formatCurrency(
                             (item.price || 0) * (item.quantity || 0),
-                          ).toLocaleString()}
+                          )}
                         </p>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="p-8 bg-[var(--bg-sunken)] flex items-center justify-between">
-                <span className="text-sm font-black uppercase tracking-widest text-zinc-400">
+              <div className="p-6 sm:p-8 bg-[var(--bg-sunken)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="text-lg sm:text-xl font-black uppercase tracking-widest text-zinc-400">
                   Total Order Amount
                 </span>
-                <span className="text-3xl font-black text-black tracking-tighter">
-                  ₹{Number(order.totalAmount).toLocaleString()}
+                <span className="text-4xl sm:text-5xl font-black text-black tracking-tighter">
+                  {formatCurrency(order.totalAmount)}
                 </span>
               </div>
             </section>
 
             {/* Events Timeline */}
-            <section className="bg-white border border-[var(--border-default)] rounded-xl p-8 shadow-sm">
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-black mb-8 flex items-center gap-3">
+            <section className="bg-white border border-[var(--border-default)] rounded-xl p-6 sm:p-8 shadow-sm">
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black mb-8 flex items-center gap-3">
                 <Clock3 size={18} className="text-[var(--brand-accent)]" />
                 Detailed Log
               </h2>
@@ -595,16 +616,16 @@ export default function OrderDetailsPage() {
                       <div className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-[var(--brand-accent)] transition-colors" />
                     </div>
                     <div className="flex-1 pb-6">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs font-black uppercase tracking-tight text-black">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+                        <p className="text-base font-black uppercase tracking-tight text-black">
                           {event.status?.replaceAll("_", " ")}
                         </p>
-                        <span className="text-[10px] font-bold text-zinc-400 uppercase">
+                        <span className="text-xs font-bold text-zinc-400 uppercase">
                           {formatDate(event.createdAt)}
                         </span>
                       </div>
                       {event.note && (
-                        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-tighter leading-relaxed">
+                        <p className="text-sm font-bold text-zinc-500 leading-relaxed">
                           {event.note}
                         </p>
                       )}
@@ -621,15 +642,15 @@ export default function OrderDetailsPage() {
               <div className="space-y-6">
                 <div className="flex items-center gap-3">
                   <MapPin size={18} className="text-[var(--brand-accent)]" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-black">
+                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-black">
                     Delivery Destination
                   </h3>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm font-black text-black uppercase">
+                  <p className="text-xl font-black text-black uppercase">
                     {order.shippingFullName}
                   </p>
-                  <p className="text-xs font-bold text-zinc-500 leading-relaxed uppercase tracking-tighter">
+                  <p className="text-sm font-bold text-zinc-500 leading-relaxed">
                     {order.shippingAddressLine1},{" "}
                     {order.shippingAddressLine2
                       ? order.shippingAddressLine2 + ", "
@@ -648,10 +669,10 @@ export default function OrderDetailsPage() {
             </div>
 
             <div className="p-8 bg-black rounded-xl text-white shadow-xl space-y-6 border border-zinc-800">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand-accent)]">
+              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--brand-accent)]">
                 Customer Support
               </h3>
-              <p className="text-xs font-bold text-zinc-400 leading-relaxed uppercase tracking-tighter">
+              <p className="text-sm font-bold text-zinc-300 leading-relaxed">
                 Having issues with this order? Our support team is available
                 24/7 to assist you with delivery and quality concerns.
               </p>

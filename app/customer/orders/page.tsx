@@ -340,7 +340,7 @@ export default function OrdersPage() {
       const secondsLeft = getPaymentSecondsLeft(order);
 
       sessionStorage.setItem(
-        "marketflow-payment-session",
+        "markivo-payment-session",
         JSON.stringify({
           createdAt: Date.now(),
           expiresInSeconds: secondsLeft,

@@ -46,7 +46,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ==========================================================
-   MarketFlow Design System — Refined Violet
+   Markivo Design System — Refined Violet
    Fraunces (display) + Inter (UI)
    Primary: #4F46E5 | Headlines: #1A1A2E | Body: #3D3D4E
    Surface: #F6F5FF | Borders: #E0DEFB
@@ -99,7 +99,7 @@
     var(--font-dm-sans), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: var(--font-dm-mono), monospace;
 
-  /* NEW MARKETFLOW DESIGN SYSTEM VARIABLES */
+  /* NEW MARKIVO DESIGN SYSTEM VARIABLES */
   /* Base */
   --bg-base: #fafafa;
   --bg-surface: #ffffff;

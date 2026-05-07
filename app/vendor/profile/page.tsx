@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
@@ -216,17 +217,14 @@ export default function VendorProfilePage() {
       >
         <div className="p-6">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "24px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-10 w-auto"
+              priority
+            />
             <p
               style={{
                 fontSize: "11px",
@@ -415,7 +413,7 @@ export default function VendorProfilePage() {
                       style={{ color: "var(--text-secondary)" }}
                     >
                       {approved
-                        ? "Your store is active and live on MarketFlow. You have full access to all vendor features."
+                        ? "Your store is active and live on Markivo. You have full access to all vendor features."
                         : status === "REJECTED"
                           ? "Unfortunately, your application was rejected. Please review your details and documents."
                           : "Your store profile and documents are currently being reviewed by our team. Approval usually takes 24-48 hours."}

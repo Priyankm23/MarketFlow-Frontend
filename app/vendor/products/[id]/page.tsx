@@ -277,7 +277,7 @@ export default function ProductDetailPage() {
                 fontWeight: "normal",
               }}
             >
-              MarketFlow
+              Markivo
             </h2>
           </Link>
         </div>

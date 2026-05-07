@@ -8,22 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { ProductCard } from "@/components/product-card";
 import { ProductCardSkeleton } from "@/components/skeleton-loader";
 import { Product } from "@/lib/types";
-import {
-  ArrowRight,
-  BadgeCheck,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
-  ShieldCheck,
-  Star,
-  Truck,
-  Filter,
-  RefreshCw,
-  LayoutGrid,
-  List,
-} from "lucide-react";
+import { ChevronDown, RefreshCw } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
 const DEFAULT_CATEGORIES = [
@@ -70,9 +55,12 @@ type ApiProduct = {
   price: number;
   stock: number;
   imageUrl?: string | null;
+  imageUrls?: string[] | null;
   averageRating?: number | null;
   rating?: number | null;
   reviewCount?: number | null;
+  categoryName?: string | null;
+  businessName?: string | null;
   category?: { id?: string; name?: string } | null;
   vendor?: { id?: string; businessName?: string } | null;
   createdAt?: string;
@@ -80,12 +68,14 @@ type ApiProduct = {
 
 export default function ProductsPage() {
   const searchParams = useSearchParams();
+  const searchQuery = (searchParams.get("search") || "").trim();
 
   const [sortBy, setSortBy] = useState("featured");
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedBrand, setSelectedBrand] = useState("all");
   const [selectedPriceBand, setSelectedPriceBand] = useState("all");
   const [selectedReviewBand, setSelectedReviewBand] = useState("all");
-  const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
@@ -99,10 +89,8 @@ export default function ProductsPage() {
 
   useEffect(() => {
     const category = searchParams.get("category");
-    if (category) {
-      setSelectedCategory(category);
-      setPage(1);
-    }
+    setSelectedCategory(category || "All");
+    setPage(1);
   }, [searchParams]);
 
   const mapApiProductToUi = (item: ApiProduct): Product => {
@@ -125,12 +113,16 @@ export default function ProductsPage() {
       description: item.description,
       price: safePrice,
       originalPrice,
-      images: [item.imageUrl || "/placeholder-product-1.jpg"],
-      category: item.category?.name || "General",
+      images:
+        Array.isArray(item.imageUrls) && item.imageUrls.length > 0
+          ? item.imageUrls
+          : [item.imageUrl || "/placeholder-product-1.jpg"],
+      category: item.category?.name || item.categoryName || "General",
       subcategory: "General",
       stock: item.stock || 0,
       vendorId: item.vendor?.id || "",
-      vendorName: item.vendor?.businessName || "Verified Vendor",
+      vendorName:
+        item.vendor?.businessName || item.businessName || "Verified Vendor",
       rating: safeRating,
       reviewCount: Number(item.reviewCount) || 0,
       createdAt: item.createdAt || new Date().toISOString(),
@@ -145,8 +137,10 @@ export default function ProductsPage() {
       setLoading(true);
       setError("");
       try {
-        const endpoint =
-          selectedCategory === "All"
+        const isSearchMode = searchQuery.length > 0;
+        const endpoint = isSearchMode
+          ? `${API_BASE_URL}/products/search?q=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}`
+          : selectedCategory === "All"
             ? `${API_BASE_URL}/products?page=${page}&limit=${limit}`
             : `${API_BASE_URL}/products/category/${encodeURIComponent(selectedCategory)}`;
 
@@ -172,14 +166,33 @@ export default function ProductsPage() {
     return () => {
       active = false;
     };
-  }, [page, limit, selectedCategory]);
+  }, [page, limit, selectedCategory, searchQuery]);
+
+  const availableBrands = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach((product) => {
+      if (product.vendorName) {
+        set.add(product.vendorName);
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  const getFilterButtonClass = (isActive: boolean) =>
+    `px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide border transition-colors ${
+      isActive
+        ? "bg-red-600 text-white border-red-600"
+        : "bg-white text-[var(--text-primary)] border-[var(--border-default)] hover:border-red-300 hover:text-red-600"
+    }`;
 
   const filteredProducts = useMemo(() => {
     const minRating =
       selectedReviewBand === "all" ? 0 : Number(selectedReviewBand);
     let result = products.filter(
       (p) =>
-        matchesPriceBand(p.price, selectedPriceBand) && p.rating >= minRating,
+        matchesPriceBand(p.price, selectedPriceBand) &&
+        p.rating >= minRating &&
+        (selectedBrand === "all" || p.vendorName === selectedBrand),
     );
 
     if (sortBy === "price-low") result.sort((a, b) => a.price - b.price);
@@ -191,10 +204,11 @@ export default function ProductsPage() {
       );
 
     return result;
-  }, [products, selectedPriceBand, selectedReviewBand, sortBy]);
+  }, [products, selectedPriceBand, selectedReviewBand, selectedBrand, sortBy]);
 
   const resetFilters = () => {
     setSelectedCategory("All");
+    setSelectedBrand("all");
     setSelectedPriceBand("all");
     setSelectedReviewBand("all");
     setSortBy("featured");
@@ -219,103 +233,130 @@ export default function ProductsPage() {
         </nav>
 
         {/* --- MAIN GRID --- */}
-        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-10">
-          {/* REFINED SIDEBAR */}
-          <aside className="h-fit">
-            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-default)] lg:mb-0 mb-2">
-              <div className="flex items-center gap-2">
-                <Filter size={16} className="text-[var(--brand-accent)]" />
-                <span className="font-bold text-xs uppercase tracking-widest">
-                  Refine
-                </span>
-              </div>
-              {/* Only show collapse on mobile */}
+        <div className="mt-4 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-10">
+          <aside className="h-fit lg:sticky lg:top-24 border border-[var(--border-default)] bg-white">
+            <div className="hidden lg:flex items-center justify-between px-5 py-4 border-b border-[var(--border-default)]">
+              <p className="text-[12px] font-black uppercase tracking-widest text-[var(--text-primary)]">
+                Filters
+              </p>
               <button
-                onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
-                className="lg:hidden p-2 hover:bg-[var(--bg-sunken)] rounded-lg transition-colors"
+                type="button"
+                onClick={resetFilters}
+                className="text-[12px] font-black uppercase tracking-widest text-pink-500 hover:text-red-600"
               >
-                {isFilterCollapsed ? (
-                  <PanelLeftOpen size={18} />
-                ) : (
-                  <PanelLeftClose size={18} />
-                )}
+                Clear All
               </button>
             </div>
 
-            <div
-              className={`${isFilterCollapsed ? "hidden" : "block"} lg:block space-y-8 lg:mt-6`}
+            <button
+              type="button"
+              onClick={() => setIsMobileFiltersOpen((prev) => !prev)}
+              className="lg:hidden w-full flex items-center justify-between px-4 py-3 border-b border-[var(--border-default)]"
             >
-              {/* Category Section */}
-              <section>
-                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
-                  Category
-                </h4>
-                <div className="grid grid-cols-1 gap-1.5">
+              <span className="text-[12px] font-black uppercase tracking-widest text-[var(--text-primary)]">
+                Filters
+              </span>
+              <ChevronDown
+                size={16}
+                className={`text-[var(--text-secondary)] transition-transform ${isMobileFiltersOpen ? "rotate-180" : "rotate-0"}`}
+              />
+            </button>
+
+            <div
+              className={`${isMobileFiltersOpen ? "block" : "hidden"} lg:block px-5 py-4 space-y-6`}
+            >
+              <div className="lg:hidden flex justify-end">
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="text-[11px] font-black uppercase tracking-widest text-pink-500 hover:text-red-600"
+                >
+                  Clear All
+                </button>
+              </div>
+
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-wider text-[var(--text-primary)] mb-3">
+                  Categories
+                </p>
+                <div className="flex flex-wrap gap-2">
                   {categories.map((cat) => (
                     <button
                       key={cat}
+                      type="button"
                       onClick={() => setSelectedCategory(cat)}
-                      className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs font-bold transition-all ${selectedCategory === cat ? "bg-black text-white shadow-xl" : "text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)]"}`}
+                      className={getFilterButtonClass(selectedCategory === cat)}
                     >
                       {cat}
-                      {selectedCategory === cat && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-accent)]" />
-                      )}
                     </button>
                   ))}
                 </div>
-              </section>
+              </div>
 
-              {/* Price Section */}
-              <section>
-                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-wider text-[var(--text-primary)] mb-3">
+                  Brand
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedBrand("all")}
+                    className={getFilterButtonClass(selectedBrand === "all")}
+                  >
+                    All
+                  </button>
+                  {availableBrands.map((brand) => (
+                    <button
+                      key={brand}
+                      type="button"
+                      onClick={() => setSelectedBrand(brand)}
+                      className={getFilterButtonClass(selectedBrand === brand)}
+                    >
+                      {brand}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-wider text-[var(--text-primary)] mb-3">
                   Price
-                </h4>
-                <div className="space-y-1.5">
+                </p>
+                <div className="flex flex-wrap gap-2">
                   {PRICE_BANDS.map((band) => (
                     <button
                       key={band.value}
+                      type="button"
                       onClick={() => setSelectedPriceBand(band.value)}
-                      className={`w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-[11px] transition-all ${selectedPriceBand === band.value ? "text-black font-black" : "text-[var(--text-secondary)] opacity-70 hover:opacity-100"}`}
+                      className={getFilterButtonClass(
+                        selectedPriceBand === band.value,
+                      )}
                     >
-                      <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${selectedPriceBand === band.value ? "border-[var(--brand-accent)]" : "border-zinc-300"}`}
-                      >
-                        {selectedPriceBand === band.value && (
-                          <div className="w-2 h-2 rounded-full bg-[var(--brand-accent)]" />
-                        )}
-                      </div>
                       {band.label}
                     </button>
                   ))}
                 </div>
-              </section>
+              </div>
 
-              {/* Rating Section */}
-              <section>
-                <h4 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest mb-4">
+              <div>
+                <p className="text-[12px] font-black uppercase tracking-wider text-[var(--text-primary)] mb-3">
                   Rating
-                </h4>
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {REVIEW_BANDS.map((band) => (
                     <button
                       key={band.value}
+                      type="button"
                       onClick={() => setSelectedReviewBand(band.value)}
-                      className={`px-3 py-1.5 rounded-full text-[10px] font-black border transition-all ${selectedReviewBand === band.value ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] text-white shadow-lg" : "bg-white border-[var(--border-default)] text-zinc-500 hover:border-zinc-400"}`}
+                      className={getFilterButtonClass(
+                        selectedReviewBand === band.value,
+                      )}
                     >
                       {band.label}
                     </button>
                   ))}
                 </div>
-              </section>
-
-              <button
-                onClick={resetFilters}
-                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-zinc-100 text-black text-[10px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm"
-              >
-                <RefreshCw size={12} />
-                Reset
-              </button>
+              </div>
             </div>
           </aside>
 
@@ -325,10 +366,12 @@ export default function ProductsPage() {
             <header className="flex items-center justify-between gap-4 py-4 px-1 sm:px-4 border-b border-[var(--border-default)] mb-4">
               <div>
                 <h2 className="text-xs sm:text-sm font-black text-black uppercase tracking-widest">
-                  Catalogue
+                  {searchQuery ? "Search Results" : "Catalogue"}
                 </h2>
                 <p className="text-[9px] sm:text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-tighter">
-                  {totalProducts} Items found
+                  {searchQuery
+                    ? `${totalProducts} item(s) found for "${searchQuery}"`
+                    : `${totalProducts} Items found`}
                 </p>
               </div>
 

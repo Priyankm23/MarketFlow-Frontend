@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                 fontWeight: "normal",
               }}
             >
-              MarketFlow
+              Markivo
             </h2>
             <p
               style={{
@@ -386,7 +386,7 @@ export default function AdminDashboard() {
               <StatCard
                 label="Total Revenue"
                 value="45,23,000"
-                prefix="₹"
+                prefix="?"
                 delta="+15% this month"
                 deltaType="up"
                 icon={IndianRupee}

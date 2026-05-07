@@ -1,10 +1,10 @@
-# MarketFlow - Multi-Vendor E-Commerce Platform
+# Markivo - Multi-Vendor E-Commerce Platform
 
-A premium, production-ready multi-vendor marketplace built with Next.js 16, React 19, Tailwind CSS v4, and TypeScript. MarketFlow connects customers, vendors, delivery partners, and administrators in a seamless ecosystem.
+A premium, production-ready multi-vendor marketplace built with Next.js 16, React 19, Tailwind CSS v4, and TypeScript. Markivo connects customers, vendors, delivery partners, and administrators in a seamless ecosystem.
 
 ## Overview
 
-MarketFlow is a comprehensive e-commerce platform with four distinct user portals, each with specialized features and workflows:
+Markivo is a comprehensive e-commerce platform with four distinct user portals, each with specialized features and workflows:
 
 - **Customer Portal**: Browse, search, purchase, and track orders
 - **Vendor Portal**: Manage products, process orders, and track analytics
@@ -347,7 +347,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Support
 
-For support, email support@marketflow.com or create an issue on GitHub.
+For support, email support@markivo.com or create an issue on GitHub.
 
 ## Acknowledgments
 

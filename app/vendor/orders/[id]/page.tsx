@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
@@ -14,9 +15,7 @@ import { VendorProfileData } from "@/lib/types";
 import {
   ArrowLeft,
   BarChart2,
-  Boxes,
   CalendarClock,
-  CircleCheck,
   ClipboardList,
   LayoutDashboard,
   Loader2,
@@ -168,6 +167,81 @@ const getStockState = (availableStock: number | null, orderedQty: number) => {
 const formatCurrency = (value?: number) => {
   return `₹${Number(value || 0).toLocaleString("en-IN")}`;
 };
+
+const formatMoney = (value?: number) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+function MetricTile({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | number;
+  hint?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-white/80 px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-2 text-base font-semibold text-foreground break-words">
+            {value}
+          </p>
+          {hint ? (
+            <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+          ) : null}
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailField({
+  icon: Icon,
+  label,
+  lines,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  lines: string[];
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-secondary/20 px-4 py-3">
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-muted-foreground">
+          <Icon className="h-4 w-4" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            {label}
+          </p>
+          {lines.map((line, index) => (
+            <p
+              key={`${label}-${index}`}
+              className={`break-words text-sm ${index === 0 ? "mt-1.5 font-semibold text-foreground" : "mt-1 text-muted-foreground"}`}
+            >
+              {line}
+            </p>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const normalizeComparable = (value?: string | number | null) =>
+  String(value ?? "")
+    .trim()
+    .replace(/\s+/g, "")
+    .toLowerCase();
 
 export default function VendorOrderDetailsPage() {
   const user = useAuthStore((state) => state.user);
@@ -435,6 +509,23 @@ export default function VendorOrderDetailsPage() {
     normalizedStatus === "CANCELLED" || normalizedStatus === "CANCELED";
 
   const orderItems = order?.items || [];
+  const orderStatusLabel = (order?.status || "PENDING").replaceAll("_", " ");
+  const customerName = order?.user?.name?.trim() || "";
+  const customerEmail = order?.user?.email?.trim() || "";
+  const customerPhone = order?.user?.phone ? String(order.user.phone).trim() : "";
+  const shippingRecipient = order?.shippingFullName?.trim() || "";
+  const shippingEmail = order?.shippingEmail?.trim() || "";
+  const shippingPhone = order?.shippingPhoneNumber?.trim() || "";
+  const showShippingRecipient =
+    !!shippingRecipient &&
+    normalizeComparable(shippingRecipient) !==
+      normalizeComparable(customerName);
+  const shippingContactLines = [shippingEmail, shippingPhone].filter(
+    (line) =>
+      !!line &&
+      normalizeComparable(line) !== normalizeComparable(customerEmail) &&
+      normalizeComparable(line) !== normalizeComparable(customerPhone),
+  );
   const totalUnitsToPrepare = orderItems.reduce(
     (acc, item) => acc + Math.max(1, Number(item.quantity || 1)),
     0,
@@ -470,6 +561,15 @@ export default function VendorOrderDetailsPage() {
       const bt = new Date(b.createdAt || 0).getTime();
       return bt - at;
     })[0];
+  }, [order?.events]);
+
+  const timelineEvents = useMemo(() => {
+    const events = order?.events || [];
+    return [...events].sort((a, b) => {
+      const at = new Date(a.createdAt || 0).getTime();
+      const bt = new Date(b.createdAt || 0).getTime();
+      return bt - at;
+    });
   }, [order?.events]);
 
   const latestDeliveryUpdate = useMemo(() => {
@@ -637,17 +737,14 @@ export default function VendorOrderDetailsPage() {
       >
         <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "22px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-9 sm:h-10 w-auto"
+              priority
+            />
             <p
               style={{
                 fontSize: "11px",
@@ -824,93 +921,73 @@ export default function VendorOrderDetailsPage() {
                 className="rounded-2xl border p-5 sm:p-6"
                 style={{
                   background:
-                    "linear-gradient(135deg, rgba(79,70,229,0.08) 0%, rgba(255,255,255,0.95) 60%)",
+                    "linear-gradient(135deg, rgba(79,70,229,0.10) 0%, rgba(255,255,255,0.96) 55%)",
                   borderColor: "var(--border-default)",
                 }}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
                       Order Workbench
                     </p>
                     <p className="font-mono text-sm sm:text-base text-foreground break-all">
                       {order.id}
                     </p>
+                    <p className="max-w-2xl text-sm text-muted-foreground">
+                      Review customer details, prepare line items, and move the
+                      order forward from one place.
+                    </p>
                   </div>
                   <span
                     className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getOrderStatusTone(order.status)}`}
                   >
-                    {(order.status || "PENDING").replaceAll("_", " ")}
+                    {orderStatusLabel}
                   </span>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-border bg-background px-3 py-3">
-                    <p className="text-xs text-muted-foreground">Created At</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">
-                      {formatDate(order.createdAt)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background px-3 py-3">
-                    <p className="text-xs text-muted-foreground">
-                      Order Status
-                    </p>
-                    <p className="text-sm font-semibold text-foreground mt-1">
-                      {(order.status || "PENDING").replaceAll("_", " ")}
-                    </p>
-                  </div>
-                  <div className="rounded-xl border border-border bg-background px-3 py-3">
-                    <p className="text-xs text-muted-foreground">Line Items</p>
-                    <p className="text-sm font-semibold text-foreground mt-1">
-                      {orderItems.length}
-                    </p>
-                  </div>
+                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                  <MetricTile
+                    icon={CalendarClock}
+                    label="Created At"
+                    value={formatDate(order.createdAt)}
+                  />
+                  <MetricTile
+                    icon={Package}
+                    label="Line Items"
+                    value={orderItems.length}
+                    hint={`${totalUnitsToPrepare} unit${totalUnitsToPrepare === 1 ? "" : "s"} to prepare`}
+                  />
+                  <MetricTile
+                    icon={Wallet}
+                    label="Order Amount"
+                    value={formatMoney(order.totalAmount)}
+                  />
                 </div>
               </section>
 
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
                 <div className="xl:col-span-2 space-y-6">
-                  <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                     <div className="rounded-xl border border-border bg-card p-5">
                       <h2 className="text-lg font-semibold text-foreground">
                         Customer
                       </h2>
                       <div className="mt-4 space-y-3 text-sm">
-                        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Name
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5">
-                              {order.user?.name || "Unknown"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <Mail className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Email
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5 break-all">
-                              {order.user?.email || "-"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <Phone className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Phone
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5">
-                              {order.user?.phone
-                                ? String(order.user.phone)
-                                : "-"}
-                            </p>
-                          </div>
-                        </div>
+                        <DetailField
+                          icon={User}
+                          label="Name"
+                          lines={[customerName || "Unknown customer"]}
+                        />
+                        <DetailField
+                          icon={Mail}
+                          label="Email"
+                          lines={[customerEmail || "-"]}
+                        />
+                        <DetailField
+                          icon={Phone}
+                          label="Phone"
+                          lines={[customerPhone || "-"]}
+                        />
                       </div>
                     </div>
 
@@ -919,47 +996,32 @@ export default function VendorOrderDetailsPage() {
                         Shipping Destination
                       </h2>
                       <div className="mt-4 space-y-3 text-sm">
-                        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <User className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Recipient
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5">
-                              {order.shippingFullName || "-"}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <p className="text-xs text-muted-foreground">
-                            Contact
-                          </p>
-                          <p className="font-semibold text-foreground mt-0.5 break-all">
-                            {order.shippingEmail || "-"}
-                          </p>
-                          <p className="font-semibold text-foreground mt-0.5">
-                            {order.shippingPhoneNumber || "-"}
-                          </p>
-                        </div>
-                        <div className="flex items-start gap-2 rounded-lg border border-border bg-secondary/30 px-3 py-2.5">
-                          <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Address
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5">
-                              {order.shippingAddressLine1 || "-"}
-                              {order.shippingAddressLine2
+                        {showShippingRecipient ? (
+                          <DetailField
+                            icon={User}
+                            label="Recipient"
+                            lines={[shippingRecipient]}
+                          />
+                        ) : null}
+                        {shippingContactLines.length > 0 ? (
+                          <DetailField
+                            icon={Mail}
+                            label="Contact"
+                            lines={shippingContactLines}
+                          />
+                        ) : null}
+                        <DetailField
+                          icon={MapPin}
+                          label="Address"
+                          lines={[
+                            `${order.shippingAddressLine1 || "-"}${
+                              order.shippingAddressLine2
                                 ? `, ${order.shippingAddressLine2}`
-                                : ""}
-                            </p>
-                            <p className="font-semibold text-foreground mt-0.5">
-                              {order.shippingCity || "-"},{" "}
-                              {order.shippingState || "-"}{" "}
-                              {order.shippingPostalCode || "-"}
-                            </p>
-                          </div>
-                        </div>
+                                : ""
+                            }`,
+                            `${order.shippingCity || "-"}, ${order.shippingState || "-"} ${order.shippingPostalCode || "-"}`,
+                          ]}
+                        />
                       </div>
                     </div>
                   </section>
@@ -995,8 +1057,8 @@ export default function VendorOrderDetailsPage() {
                             key={item.id || `${order.id}-${idx}`}
                             className="rounded-xl border border-border bg-background px-4 py-4"
                           >
-                            <div className="flex flex-col sm:flex-row gap-4">
-                              <div className="h-20 w-20 rounded-lg overflow-hidden bg-secondary shrink-0">
+                            <div className="flex flex-col gap-4 sm:flex-row">
+                              <div className="h-20 w-20 rounded-lg overflow-hidden border border-border bg-secondary shrink-0">
                                 {item.product?.imageUrl ? (
                                   <img
                                     src={item.product.imageUrl}
@@ -1013,9 +1075,19 @@ export default function VendorOrderDetailsPage() {
 
                               <div className="flex-1 min-w-0">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <p className="font-semibold text-foreground truncate">
-                                    {item.product?.name || "Product"}
-                                  </p>
+                                  <div className="min-w-0">
+                                    <p className="font-semibold text-foreground truncate">
+                                      {item.product?.name || "Product"}
+                                    </p>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      Unit price{" "}
+                                      <span className="font-medium text-foreground">
+                                        {formatMoney(
+                                          item.product?.price ?? item.price ?? 0,
+                                        )}
+                                      </span>
+                                    </p>
+                                  </div>
                                   <span
                                     className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${stockState.className}`}
                                   >
@@ -1023,8 +1095,8 @@ export default function VendorOrderDetailsPage() {
                                   </span>
                                 </div>
 
-                                <div className="mt-3 grid grid-cols-2 md:grid-cols-2 gap-2 text-xs">
-                                  <div className="rounded-lg border border-border bg-card px-2.5 py-2">
+                                <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
+                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
                                     <p className="text-muted-foreground">
                                       Ordered Qty
                                     </p>
@@ -1032,7 +1104,7 @@ export default function VendorOrderDetailsPage() {
                                       {orderedQty}
                                     </p>
                                   </div>
-                                  <div className="rounded-lg border border-border bg-card px-2.5 py-2">
+                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
                                     <p className="text-muted-foreground">
                                       Available
                                     </p>
@@ -1040,6 +1112,17 @@ export default function VendorOrderDetailsPage() {
                                       {availableStock === null
                                         ? "-"
                                         : availableStock}
+                                    </p>
+                                  </div>
+                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
+                                    <p className="text-muted-foreground">
+                                      Line Total
+                                    </p>
+                                    <p className="font-semibold text-foreground mt-0.5">
+                                      {formatMoney(
+                                        (item.product?.price ?? item.price ?? 0) *
+                                          orderedQty,
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -1056,16 +1139,20 @@ export default function VendorOrderDetailsPage() {
                       Order Events Timeline
                     </h2>
                     <div className="mt-4 space-y-3">
-                      {(order.events || []).length === 0 ? (
+                      {timelineEvents.length === 0 ? (
                         <p className="text-sm text-muted-foreground">
                           No events available.
                         </p>
                       ) : (
-                        (order.events || []).map((event, idx) => (
+                        timelineEvents.map((event, idx) => (
                           <div
                             key={event.id || `${order.id}-event-${idx}`}
-                            className="rounded-lg border border-border bg-secondary/20 px-3 py-3"
+                            className="relative rounded-xl border border-border bg-secondary/10 px-4 py-4 pl-11"
                           >
+                            {idx !== timelineEvents.length - 1 ? (
+                              <div className="absolute bottom-0 left-4 top-7 w-px bg-border" />
+                            ) : null}
+                            <div className="absolute left-[11px] top-5 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-100" />
                             <p className="text-sm font-semibold text-foreground">
                               {(
                                 event.status ||
@@ -1122,21 +1209,26 @@ export default function VendorOrderDetailsPage() {
                     </section>
                   ) : !isPackedOrBeyond ? (
                     <section className="rounded-xl border border-border bg-card p-5">
-                      <h3 className="text-base font-semibold text-foreground">
-                        Packing Control
-                      </h3>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-semibold text-foreground">
+                            Packing Control
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Confirm packing before dispatch is enabled.
+                          </p>
+                        </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                          <Package className="h-4 w-4" />
+                        </div>
+                      </div>
                       <p className="mt-3 text-sm text-muted-foreground">
                         Pack this order first. Dispatch becomes available only
                         after packing is confirmed.
                       </p>
 
-                      <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
-                        Current fulfillment state:{" "}
-                        {(order.status || "PENDING").replaceAll("_", " ")}.
-                      </div>
-
                       {latestDeliveryUpdate ? (
-                        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                           {latestDeliveryUpdate}
                         </div>
                       ) : null}
@@ -1161,46 +1253,23 @@ export default function VendorOrderDetailsPage() {
                     </section>
                   ) : (
                     <section className="rounded-xl border border-border bg-card p-5">
-                      <h3 className="text-base font-semibold text-foreground">
-                        Dispatch Readiness
-                      </h3>
-                      <div className="mt-4 space-y-2.5 text-sm">
-                        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/20 px-3 py-2">
-                          <span className="inline-flex items-center gap-2 text-muted-foreground">
-                            <Boxes className="h-4 w-4" />
-                            Total Units
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {totalUnitsToPrepare}
-                          </span>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-semibold text-foreground">
+                            Dispatch Readiness
+                          </h3>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            Packaging is complete. You can now trigger delivery
+                            assignment.
+                          </p>
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/20 px-3 py-2">
-                          <span className="inline-flex items-center gap-2 text-muted-foreground">
-                            <CalendarClock className="h-4 w-4" />
-                            Created On
-                          </span>
-                          <span className="font-semibold text-foreground text-xs">
-                            {formatDate(order.createdAt)}
-                          </span>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                          <Truck className="h-4 w-4" />
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border border-border bg-secondary/20 px-3 py-2">
-                          <span className="inline-flex items-center gap-2 text-muted-foreground">
-                            <Wallet className="h-4 w-4" />
-                            Order Amount
-                          </span>
-                          <span className="font-semibold text-foreground">
-                            {formatCurrency(order.totalAmount)}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
-                        Current fulfillment state:{" "}
-                        {(order.status || "PENDING").replaceAll("_", " ")}.
                       </div>
 
                       {latestDeliveryUpdate ? (
-                        <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
                           {latestDeliveryUpdate}
                         </div>
                       ) : null}
@@ -1226,26 +1295,6 @@ export default function VendorOrderDetailsPage() {
                       ) : null}
                     </section>
                   )}
-
-                  <section className="rounded-xl border border-border bg-card p-5">
-                    <h3 className="text-base font-semibold text-foreground">
-                      Fulfillment Snapshot
-                    </h3>
-                    <div className="mt-4 space-y-2 text-sm">
-                      <p className="flex items-start gap-2 text-foreground">
-                        <CircleCheck className="h-4 w-4 mt-0.5 text-emerald-600" />
-                        Recipient: {order.shippingFullName || "-"}
-                      </p>
-                      <p className="flex items-start gap-2 text-foreground break-all">
-                        <Mail className="h-4 w-4 mt-0.5 text-indigo-700" />
-                        {order.shippingEmail || "-"}
-                      </p>
-                      <p className="flex items-start gap-2 text-foreground">
-                        <Phone className="h-4 w-4 mt-0.5 text-indigo-700" />
-                        {order.shippingPhoneNumber || "-"}
-                      </p>
-                    </div>
-                  </section>
 
                   {isCancelled && (
                     <section className="rounded-xl border border-red-200 bg-red-50 p-5">

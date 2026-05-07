@@ -267,13 +267,13 @@ const featuredVendors = [
 
 const testimonials = [
   {
-    text: '"MarketFlow made it so easy to find quality products from local vendors. The delivery was fast and the products exceeded expectations!"',
+    text: '"Markivo made it so easy to find quality products from local vendors. The delivery was fast and the products exceeded expectations!"',
     name: "Priya Sharma",
     role: "Regular Shopper",
     initials: "PS",
   },
   {
-    text: '"As a vendor, MarketFlow helped me reach thousands of customers I never had access to. My revenue grew 3x in the first month."',
+    text: '"As a vendor, Markivo helped me reach thousands of customers I never had access to. My revenue grew 3x in the first month."',
     name: "Rajesh Kumar",
     role: "Verified Vendor",
     initials: "RK",
@@ -1142,18 +1142,15 @@ export default function HomePage() {
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-12 mb-20">
               <div className="col-span-2">
-                <h2
-                  style={{
-                    fontFamily: "var(--font-dm-sans)",
-                    fontSize: "28px",
-                    color: "var(--brand-accent)",
-                    letterSpacing: "0.02em",
-                    fontWeight: "bold",
-                  }}
-                  className="mb-6"
-                >
-                  MarketFlow
-                </h2>
+                <Link href="/" className="inline-flex items-center mb-6">
+                  <Image
+                    src="/logo/logo.png"
+                    alt="Markivo"
+                    width={172}
+                    height={46}
+                    className="h-11 w-auto"
+                  />
+                </Link>
                 <p className="text-[var(--text-secondary)] leading-relaxed max-w-xs">
                   The most trusted bridge between offline commerce and digital
                   convenience in India.
@@ -1247,7 +1244,7 @@ export default function HomePage() {
             </div>
             <div className="pt-8 border-t border-[var(--border-default)] flex flex-col sm:flex-row justify-between items-center gap-4">
               <p className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
-                © 2026 MarketFlow. All rights reserved. Built for India.
+                © 2026 Markivo. All rights reserved. Built for India.
               </p>
               <div className="flex gap-6">
                 <Link

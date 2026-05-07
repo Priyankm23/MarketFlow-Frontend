@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store";
 import {
@@ -97,6 +98,9 @@ const getOrderStatusTone = (status?: string) => {
 
   return "bg-secondary text-foreground";
 };
+
+const isCancelledOrder = (status?: string) =>
+  (status || "").toUpperCase().includes("CANCEL");
 
 export default function VendorOrdersPage() {
   const user = useAuthStore((state) => state.user);
@@ -206,10 +210,9 @@ export default function VendorOrdersPage() {
       return normalized.includes("PENDING") || normalized.includes("PROCESS");
     }).length;
 
-    const cancelledOrders = orders.filter((order) => {
-      const normalized = (order.status || "").toUpperCase();
-      return normalized.includes("CANCEL");
-    }).length;
+    const cancelledOrders = orders.filter((order) =>
+      isCancelledOrder(order.status),
+    ).length;
 
     const totalRevenue = orders.reduce(
       (sum, order) => sum + Number(order.totalAmount || 0),
@@ -223,6 +226,11 @@ export default function VendorOrdersPage() {
       totalRevenue,
     };
   }, [orders]);
+
+  const activeOrders = useMemo(
+    () => orders.filter((order) => !isCancelledOrder(order.status)),
+    [orders],
+  );
 
   const navItems = [
     { href: "/vendor/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -282,17 +290,14 @@ export default function VendorOrdersPage() {
       >
         <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "22px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-9 sm:h-10 w-auto"
+              priority
+            />
             <p
               style={{
                 fontSize: "11px",
@@ -507,13 +512,15 @@ export default function VendorOrdersPage() {
                 </div>
               </div>
 
-              {orders.length === 0 ? (
+              {activeOrders.length === 0 ? (
                 <div className="bg-card border border-border rounded-xl p-10 text-center">
                   <PackageSearch className="w-10 h-10 mx-auto text-muted-foreground" />
-                  <h2 className="text-xl font-semibold mt-4">No orders yet</h2>
+                  <h2 className="text-xl font-semibold mt-4">
+                    No active orders
+                  </h2>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Your store is active. Orders will appear here as soon as
-                    customers start purchasing your products.
+                    Your store is active. New and in-progress orders will appear
+                    here as soon as customers start purchasing your products.
                   </p>
                   <div className="mt-4">
                     <Link
@@ -526,16 +533,7 @@ export default function VendorOrdersPage() {
                 </div>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
-                  {orders.map((order) => {
-                    const normalizedStatus = (order.status || "").toUpperCase();
-                    const latestEvent = order.events?.[0];
-                    const isCancelled =
-                      normalizedStatus === "CANCELLED" ||
-                      normalizedStatus === "CANCELED";
-                    const cancellationReason =
-                      latestEvent?.note?.trim() ||
-                      "Order was cancelled by the system or customer.";
-
+                  {activeOrders.map((order) => {
                     return (
                       <article
                         key={order.id}
@@ -604,17 +602,6 @@ export default function VendorOrdersPage() {
                             </p>
                           )}
                         </div>
-
-                        {isCancelled && (
-                          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                              Cancelled
-                            </p>
-                            <p className="text-sm text-red-700/90 mt-1">
-                              {cancellationReason}
-                            </p>
-                          </div>
-                        )}
 
                         <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
                           <p className="text-sm text-muted-foreground">Total</p>

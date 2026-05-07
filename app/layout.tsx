@@ -23,13 +23,12 @@ const dmMono = DM_Mono({
   weight: ["400", "500"],
 });
 
-
 export const metadata: Metadata = {
-  title: "MarketFlow \u2014 Where Local Shops Become Global",
+  title: "Markivo \u2014 Where Local Shops Become Global",
   description:
-    "Discover products you'll love from verified offline vendors. Shop with fast delivery, secure payments, and thousands of curated products on MarketFlow.",
+    "Discover products you'll love from verified offline vendors. Shop with fast delivery, secure payments, and thousands of curated products on Markivo.",
   generator: "Next.js",
-  applicationName: "MarketFlow",
+  applicationName: "Markivo",
   keywords: [
     "marketplace",
     "e-commerce",
@@ -40,28 +39,16 @@ export const metadata: Metadata = {
     "online marketplace",
   ],
   icons: {
-    icon: [
-      {
-        url: "/platformLogo.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/platformLogo.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: [{ url: "/logo/favicon.png", type: "image/png" }],
+    shortcut: "/logo/favicon.png",
+    apple: "/logo/favicon.png",
   },
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://marketflow.com",
-    siteName: "MarketFlow",
-    title: "MarketFlow \u2014 Where Local Shops Become Global",
+    url: "https://markivo.com",
+    siteName: "Markivo",
+    title: "Markivo \u2014 Where Local Shops Become Global",
     description:
       "Discover products you'll love from verified offline vendors. Shop with fast delivery, secure payments, and thousands of curated products.",
   },
@@ -93,7 +80,6 @@ export default function RootLayout({
           href="https://fonts.gstatic.com"
           crossOrigin="anonymous"
         />
-
       </head>
       <body className="font-body antialiased">
         <AuthGuard>

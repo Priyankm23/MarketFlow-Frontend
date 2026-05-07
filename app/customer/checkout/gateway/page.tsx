@@ -169,7 +169,7 @@ export default function StripeGatewayPage() {
   const [loadingFallbackSecret, setLoadingFallbackSecret] = useState(false);
 
   useEffect(() => {
-    const raw = sessionStorage.getItem("marketflow-payment-session");
+    const raw = sessionStorage.getItem("markivo-payment-session");
     if (!raw) {
       setLoadingSession(false);
       return;
@@ -300,7 +300,7 @@ export default function StripeGatewayPage() {
 
   const onSuccess = () => {
     setSuccess(true);
-    sessionStorage.removeItem("marketflow-payment-session");
+    sessionStorage.removeItem("markivo-payment-session");
 
     window.setTimeout(() => {
       window.location.assign(`/customer/orders/${firstOrderId}`);

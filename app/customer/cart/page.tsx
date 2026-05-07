@@ -53,7 +53,7 @@ type AppliedOfferInput = {
   couponCode?: string;
 };
 
-const APPLIED_OFFERS_STORAGE_KEY = "marketflow-applied-offers";
+const APPLIED_OFFERS_STORAGE_KEY = "markivo-applied-offers";
 
 const EMPTY_PRICING: PriceSummary = {
   subtotal: 0,

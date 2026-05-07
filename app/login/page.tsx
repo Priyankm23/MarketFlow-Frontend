@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
@@ -77,17 +78,14 @@ export default function LoginPage() {
     >
       <div className="mb-8 text-center">
         <Link href="/">
-          <h2
-            style={{
-              fontFamily: "var(--font-instrument-serif)",
-              fontSize: "32px",
-              color: "var(--brand-primary)",
-              letterSpacing: "0.02em",
-              fontWeight: "normal",
-            }}
-          >
-            MarketFlow
-          </h2>
+          <Image
+            src="/logo/logo.png"
+            alt="Markivo"
+            width={178}
+            height={48}
+            priority
+            className="h-10 w-auto"
+          />
         </Link>
       </div>
 

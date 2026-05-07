@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -47,6 +48,20 @@ type NotificationOrder = {
 
 type NotificationOrdersResponse = {
   data?: NotificationOrder[];
+  message?: string;
+};
+
+type SearchProduct = {
+  id: string;
+  name?: string;
+  description?: string;
+  imageUrl?: string | null;
+  imageUrls?: string[] | null;
+};
+
+type SearchProductsResponse = {
+  status?: string;
+  data?: SearchProduct[];
   message?: string;
 };
 
@@ -171,8 +186,17 @@ export function Navbar() {
   const [notificationsError, setNotificationsError] = useState("");
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [liveSearchResults, setLiveSearchResults] = useState<SearchProduct[]>(
+    [],
+  );
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
   const categoryPillsRef = React.useRef<HTMLDivElement | null>(null);
   const notificationsMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const searchFormRef = React.useRef<HTMLFormElement | null>(null);
+  const activeSearchControllerRef = React.useRef<AbortController | null>(null);
+  const latestSearchRequestIdRef = React.useRef(0);
   const router = useRouter();
 
   const bottomNavPills = [
@@ -222,11 +246,89 @@ export function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     const q = searchQuery.trim();
-    if (q) router.push(`/products?search=${encodeURIComponent(q)}`);
+    if (q) {
+      setShowSearchSuggestions(false);
+      setMobileMenuOpen(false);
+      router.push(`/products?search=${encodeURIComponent(q)}`);
+    }
+  };
+
+  const handleSuggestionSelect = (productId: string) => {
+    setShowSearchSuggestions(false);
+    setMobileMenuOpen(false);
+    router.push(`/products/${productId}`);
   };
 
   React.useEffect(() => {
     setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    const query = searchQuery.trim();
+
+    if (query.length < 2) {
+      setLiveSearchResults([]);
+      setSearchError("");
+      setSearchLoading(false);
+      if (activeSearchControllerRef.current) {
+        activeSearchControllerRef.current.abort();
+      }
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      if (activeSearchControllerRef.current) {
+        activeSearchControllerRef.current.abort();
+      }
+
+      const controller = new AbortController();
+      activeSearchControllerRef.current = controller;
+      const requestId = ++latestSearchRequestIdRef.current;
+
+      setSearchLoading(true);
+      setSearchError("");
+
+      try {
+        const endpoint = `${API_BASE_URL}/products/search?q=${encodeURIComponent(query)}&limit=6`;
+        const response = await fetch(endpoint, { signal: controller.signal });
+        const payload: SearchProductsResponse = await response
+          .json()
+          .catch(() => ({}));
+
+        if (requestId !== latestSearchRequestIdRef.current) {
+          return;
+        }
+
+        if (!response.ok || payload.status !== "success") {
+          throw new Error(payload.message || "Unable to fetch products");
+        }
+
+        setLiveSearchResults(Array.isArray(payload.data) ? payload.data : []);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        setLiveSearchResults([]);
+        setSearchError(
+          error instanceof Error ? error.message : "Unable to fetch products",
+        );
+      } finally {
+        if (requestId === latestSearchRequestIdRef.current) {
+          setSearchLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  React.useEffect(() => {
+    return () => {
+      if (activeSearchControllerRef.current) {
+        activeSearchControllerRef.current.abort();
+      }
+    };
   }, []);
 
   React.useEffect(() => {
@@ -312,6 +414,24 @@ export function Navbar() {
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, [notificationMenuOpen]);
+
+  React.useEffect(() => {
+    if (!showSearchSuggestions) {
+      return;
+    }
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        searchFormRef.current &&
+        !searchFormRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [showSearchSuggestions]);
 
   React.useEffect(() => {
     const container = categoryPillsRef.current;
@@ -438,17 +558,14 @@ export function Navbar() {
             className="flex items-center shrink-0"
             style={{ textDecoration: "none" }}
           >
-            <h2
-              className="!text-[2rem] sm:!text-[2.25rem] !leading-none"
-              style={{
-                fontFamily: "var(--font-instrument-serif)",
-                color: "var(--brand-accent)",
-                letterSpacing: "0.02em",
-                fontWeight: "normal",
-              }}
-            >
-              MarketFlow
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={178}
+              height={48}
+              priority
+              className="h-10 sm:h-12 w-auto"
+            />
           </Link>
 
           {/* Category Dropdown */}
@@ -513,6 +630,7 @@ export function Navbar() {
 
           {/* Search Bar */}
           <form
+            ref={searchFormRef}
             onSubmit={handleSearch}
             className="hidden md:flex flex-1 max-w-xl mx-8"
           >
@@ -521,7 +639,16 @@ export function Navbar() {
                 id="search-input"
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  const nextValue = e.target.value;
+                  setSearchQuery(nextValue);
+                  setShowSearchSuggestions(nextValue.trim().length >= 2);
+                }}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2) {
+                    setShowSearchSuggestions(true);
+                  }
+                }}
                 placeholder="Search for products, brands, vendors..."
                 className="w-full pl-11 pr-4 py-2.5 outline-none"
                 style={{
@@ -544,6 +671,70 @@ export function Navbar() {
                   style={{ color: "var(--text-muted)" }}
                 />
               </button>
+
+              {showSearchSuggestions && searchQuery.trim().length >= 2 && (
+                <div
+                  className="absolute left-0 right-0 mt-2 rounded-2xl overflow-hidden z-50"
+                  style={{
+                    background: "var(--bg-surface)",
+                    border: "1px solid var(--border-default)",
+                    boxShadow: "0 16px 34px rgba(0, 0, 0, 0.12)",
+                  }}
+                >
+                  {searchLoading ? (
+                    <div className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                      Searching products...
+                    </div>
+                  ) : searchError ? (
+                    <div className="px-4 py-3 text-sm text-[var(--status-error)]">
+                      {searchError}
+                    </div>
+                  ) : liveSearchResults.length === 0 ? (
+                    <div className="px-4 py-3 text-sm text-[var(--text-secondary)]">
+                      No products matched your search.
+                    </div>
+                  ) : (
+                    <div className="max-h-[360px] overflow-y-auto">
+                      {liveSearchResults.map((product) => {
+                        const previewImage =
+                          product.imageUrl ||
+                          (Array.isArray(product.imageUrls)
+                            ? product.imageUrls[0]
+                            : null) ||
+                          "/placeholder-product-1.jpg";
+
+                        return (
+                          <button
+                            key={product.id}
+                            type="button"
+                            onClick={() => handleSuggestionSelect(product.id)}
+                            className="w-full px-3 py-2.5 flex items-start gap-3 text-left hover:bg-[var(--bg-sunken)] transition-colors border-b border-[var(--border-default)] last:border-b-0"
+                          >
+                            <div className="relative w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-[var(--bg-sunken)]">
+                              <Image
+                                src={previewImage}
+                                alt={product.name || "Product"}
+                                fill
+                                sizes="48px"
+                                className="object-cover"
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-[var(--text-primary)] truncate">
+                                {product.name || "Unnamed Product"}
+                              </p>
+                              <p className="text-xs text-[var(--text-secondary)] truncate mt-0.5">
+                                {product.description ||
+                                  "No description available"}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </form>
 
@@ -756,7 +947,7 @@ export function Navbar() {
                     id="become-vendor-btn"
                     className="px-4 py-2 hidden sm:inline-flex items-center gap-1.5 text-sm font-medium bg-[var(--brand-primary)] text-[var(--text-inverse)] rounded-lg hover:opacity-90 transition-opacity"
                   >
-                    Sell on MarketFlow
+                    Sell on Markivo
                   </Link>
                 </div>
               ))}
@@ -778,9 +969,11 @@ export function Navbar() {
 
         {mobileMenuOpen && (
           <div className="md:hidden pb-3">
-            <div className="relative">
+            <form onSubmit={handleSearch} className="relative">
               <input
                 type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
                 className="w-full pl-10 pr-4 py-2.5 outline-none"
                 style={{
@@ -792,11 +985,60 @@ export function Navbar() {
                   color: "#1A1A2E",
                 }}
               />
-              <Search
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
-                style={{ color: "#9CA3AF" }}
-              />
-            </div>
+              <button
+                type="submit"
+                className="absolute left-3 top-1/2 -translate-y-1/2"
+              >
+                <Search className="w-4 h-4" style={{ color: "#9CA3AF" }} />
+              </button>
+            </form>
+
+            {searchQuery.trim().length >= 2 && (
+              <div className="mt-2 rounded-xl border border-[var(--border-default)] overflow-hidden bg-[var(--bg-surface)]">
+                {searchLoading ? (
+                  <div className="px-3 py-2 text-xs text-[var(--text-secondary)]">
+                    Searching products...
+                  </div>
+                ) : liveSearchResults.length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-[var(--text-secondary)]">
+                    No products matched your search.
+                  </div>
+                ) : (
+                  liveSearchResults.slice(0, 4).map((product) => (
+                    <button
+                      key={product.id}
+                      type="button"
+                      onClick={() => handleSuggestionSelect(product.id)}
+                      className="w-full px-3 py-2 flex items-center gap-3 text-left border-b border-[var(--border-default)] last:border-b-0"
+                    >
+                      <div className="relative w-10 h-10 rounded-md overflow-hidden shrink-0 bg-[var(--bg-sunken)]">
+                        <Image
+                          src={
+                            product.imageUrl ||
+                            (Array.isArray(product.imageUrls)
+                              ? product.imageUrls[0]
+                              : null) ||
+                            "/placeholder-product-1.jpg"
+                          }
+                          alt={product.name || "Product"}
+                          fill
+                          sizes="40px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[var(--text-primary)] truncate">
+                          {product.name || "Unnamed Product"}
+                        </p>
+                        <p className="text-[11px] text-[var(--text-secondary)] truncate">
+                          {product.description || "No description available"}
+                        </p>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
           </div>
         )}
 
