@@ -29,7 +29,6 @@ import {
   ShoppingBag,
   Truck,
   User,
-  Wallet,
   X,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
@@ -183,7 +182,7 @@ function MetricTile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-white/80 px-4 py-4">
+    <div className="rounded-xl border border-border bg-card px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -196,7 +195,7 @@ function MetricTile({
             <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
           ) : null}
         </div>
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[var(--bg-sunken)] text-[var(--text-secondary)]">
           <Icon className="h-4 w-4" />
         </div>
       </div>
@@ -216,7 +215,7 @@ function DetailField({
   return (
     <div className="rounded-xl border border-border bg-secondary/20 px-4 py-3">
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-muted-foreground">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-muted-foreground shadow-sm">
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0">
@@ -509,7 +508,7 @@ export default function VendorOrderDetailsPage() {
     normalizedStatus === "CANCELLED" || normalizedStatus === "CANCELED";
 
   const orderItems = order?.items || [];
-  const orderStatusLabel = (order?.status || "PENDING").replaceAll("_", " ");
+  const orderStatusLabel = (order?.status || "PENDING").replace(/_/g, " ");
   const customerName = order?.user?.name?.trim() || "";
   const customerEmail = order?.user?.email?.trim() || "";
   const customerPhone = order?.user?.phone ? String(order.user.phone).trim() : "";
@@ -587,7 +586,7 @@ export default function VendorOrderDetailsPage() {
     if (!isDeliveryState) return "";
 
     if (note) return note;
-    return `Latest delivery status: ${statusValue.replaceAll("_", " ")}.`;
+    return `Latest delivery status: ${statusValue.replace(/_/g, " ")}.`;
   }, [latestOrderEvent]);
 
   const markOrderPacked = async () => {
@@ -687,7 +686,7 @@ export default function VendorOrderDetailsPage() {
 
       const extras: string[] = [];
       if (payload.stage) {
-        extras.push(`Stage: ${payload.stage.replaceAll("_", " ")}`);
+        extras.push(`Stage: ${payload.stage.replace(/_/g, " ")}`);
       }
       if (typeof payload.pickupEtaMinutes === "number") {
         extras.push(`Pickup ETA: ${payload.pickupEtaMinutes} min`);
@@ -875,14 +874,14 @@ export default function VendorOrderDetailsPage() {
 
           <Link
             href="/vendor/orders"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Orders
           </Link>
         </header>
 
-        <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full space-y-6">
+        <div className="p-4 sm:p-5 md:p-6 max-w-7xl w-full space-y-5 text-[15px] sm:text-base">
           {loading && (
             <div className="bg-card border border-border rounded-xl p-8 text-center">
               <Loader2 className="w-6 h-6 animate-spin mx-auto mb-3 text-primary" />
@@ -916,86 +915,216 @@ export default function VendorOrderDetailsPage() {
           )}
 
           {!loading && !error && approved && order && (
-            <div className="space-y-6">
-              <section
-                className="rounded-2xl border p-5 sm:p-6"
-                style={{
-                  background:
-                    "linear-gradient(135deg, rgba(79,70,229,0.10) 0%, rgba(255,255,255,0.96) 55%)",
-                  borderColor: "var(--border-default)",
-                }}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="space-y-3">
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                      Order Workbench
-                    </p>
-                    <p className="font-mono text-sm sm:text-base text-foreground break-all">
-                      {order.id}
-                    </p>
-                    <p className="max-w-2xl text-sm text-muted-foreground">
-                      Review customer details, prepare line items, and move the
-                      order forward from one place.
-                    </p>
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+              <div className="xl:col-span-2 space-y-5">
+                {/* 1. Order Items first as requested */}
+                <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+                  <div className="flex items-center justify-between gap-3 border-b border-border pb-5 mb-5">
+                    <h2 className="text-xl font-bold text-foreground">
+                      Order Items
+                    </h2>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-bold">
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      Manifest
+                    </span>
                   </div>
-                  <span
-                    className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${getOrderStatusTone(order.status)}`}
-                  >
-                    {orderStatusLabel}
-                  </span>
-                </div>
 
-                <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-                  <MetricTile
-                    icon={CalendarClock}
-                    label="Created At"
-                    value={formatDate(order.createdAt)}
-                  />
-                  <MetricTile
-                    icon={Package}
-                    label="Line Items"
-                    value={orderItems.length}
-                    hint={`${totalUnitsToPrepare} unit${totalUnitsToPrepare === 1 ? "" : "s"} to prepare`}
-                  />
-                  <MetricTile
-                    icon={Wallet}
-                    label="Order Amount"
-                    value={formatMoney(order.totalAmount)}
-                  />
-                </div>
-              </section>
+                  <div className="space-y-3">
+                    {orderItems.map((item, idx) => {
+                      const orderedQty = Math.max(
+                        1,
+                        Number(item.quantity || 1),
+                      );
+                      const availableStock =
+                        typeof item.product?.stock === "number"
+                          ? item.product.stock
+                          : null;
+                      const stockState = getStockState(
+                        availableStock,
+                        orderedQty,
+                      );
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-                <div className="xl:col-span-2 space-y-6">
-                  <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-                    <div className="rounded-xl border border-border bg-card p-5">
-                      <h2 className="text-lg font-semibold text-foreground">
-                        Customer
+                      return (
+                        <article
+                          key={item.id || `${order.id}-${idx}`}
+                          className="rounded-xl border border-border bg-background p-4 hover:shadow-md transition-shadow"
+                        >
+                          <div className="flex flex-col gap-5 sm:flex-row">
+                            <div className="h-32 w-32 sm:h-36 sm:w-36 rounded-xl overflow-hidden border border-border bg-secondary shrink-0 shadow-sm">
+                              {item.product?.imageUrl ? (
+                                <img
+                                  src={item.product.imageUrl}
+                                  alt={item.product?.name || "Product"}
+                                  className="h-full w-full object-cover"
+                                  loading="lazy"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                              <div>
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="text-lg font-bold text-foreground truncate">
+                                      {item.product?.name || "Product"}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                      Unit Price:{" "}
+                                      <span className="font-bold text-foreground">
+                                        {formatMoney(
+                                          item.product?.price ?? item.price ?? 0,
+                                        )}
+                                      </span>
+                                    </p>
+                                  </div>
+                                  <span
+                                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${stockState.className}`}
+                                  >
+                                    {stockState.label}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 grid grid-cols-1 gap-3 text-xs sm:grid-cols-3">
+                                <div className="rounded-xl border border-border bg-secondary/10 px-3 py-2.5">
+                                  <p className="text-muted-foreground font-medium">
+                                    Quantity
+                                  </p>
+                                  <p className="text-base font-bold text-foreground mt-0.5">
+                                    {orderedQty}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border bg-secondary/10 px-3 py-2.5">
+                                  <p className="text-muted-foreground font-medium">
+                                    In Stock
+                                  </p>
+                                  <p className="text-base font-bold text-foreground mt-0.5">
+                                    {availableStock === null
+                                      ? "-"
+                                      : availableStock}
+                                  </p>
+                                </div>
+                                <div className="rounded-xl border border-border bg-primary/5 px-3 py-2.5 border-primary/10">
+                                  <p className="text-primary font-medium">
+                                    Line Total
+                                  </p>
+                                  <p className="text-base font-bold text-primary mt-0.5">
+                                    {formatMoney(
+                                      (item.product?.price ?? item.price ?? 0) *
+                                        orderedQty,
+                                    )}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-6 border-t border-border pt-5 flex justify-end">
+                    <div className="w-full sm:w-64 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="font-bold">
+                          {formatMoney(
+                            orderItems.reduce(
+                              (acc, item) =>
+                                acc +
+                                (item.product?.price ?? item.price ?? 0) *
+                                  Math.max(1, Number(item.quantity || 1)),
+                              0,
+                            ),
+                          )}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Platform Fee</span>
+                        <span className="font-bold text-primary">₹29</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Delivery Fee</span>
+                        <span className="font-bold text-primary">₹40</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold border-t border-border pt-2 mt-2">
+                        <span>Total</span>
+                        <span className="text-primary">{formatMoney(order.totalAmount)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 2. Order Invoice (Overview + Addresses) second */}
+                <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-5 border-b border-border pb-6">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                        Order Invoice
+                      </p>
+                      <h2 className="text-2xl sm:text-3xl font-bold text-foreground">
+                        #{order.id.slice(-12).toUpperCase()}
                       </h2>
-                      <div className="mt-4 space-y-3 text-sm">
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarClock className="h-3.5 w-3.5" />
+                          {formatDate(order.createdAt)}
+                        </div>
+                        <span className="h-3.5 w-px bg-border hidden sm:block" />
+                        <div className="flex items-center gap-1.5">
+                          <Package className="h-3.5 w-3.5" />
+                          {orderItems.length} item{orderItems.length === 1 ? "" : "s"}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-start sm:items-end gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold shadow-sm ${getOrderStatusTone(order.status)}`}
+                      >
+                        {orderStatusLabel}
+                      </span>
+                      <p className="text-2xl font-bold text-foreground">
+                        {formatMoney(order.totalAmount)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        Inc. ₹29 Platform & ₹40 Delivery Fees
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div className="space-y-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1.5">
+                        Bill To
+                      </h3>
+                      <div className="space-y-2">
                         <DetailField
                           icon={User}
-                          label="Name"
+                          label="Customer Name"
                           lines={[customerName || "Unknown customer"]}
                         />
                         <DetailField
                           icon={Mail}
-                          label="Email"
+                          label="Email Address"
                           lines={[customerEmail || "-"]}
                         />
                         <DetailField
                           icon={Phone}
-                          label="Phone"
+                          label="Phone Number"
                           lines={[customerPhone || "-"]}
                         />
                       </div>
                     </div>
 
-                    <div className="rounded-xl border border-border bg-card p-5">
-                      <h2 className="text-lg font-semibold text-foreground">
-                        Shipping Destination
-                      </h2>
-                      <div className="mt-4 space-y-3 text-sm">
+                    <div className="space-y-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-1.5">
+                        Ship To
+                      </h3>
+                      <div className="space-y-2">
                         {showShippingRecipient ? (
                           <DetailField
                             icon={User}
@@ -1003,16 +1132,9 @@ export default function VendorOrderDetailsPage() {
                             lines={[shippingRecipient]}
                           />
                         ) : null}
-                        {shippingContactLines.length > 0 ? (
-                          <DetailField
-                            icon={Mail}
-                            label="Contact"
-                            lines={shippingContactLines}
-                          />
-                        ) : null}
                         <DetailField
                           icon={MapPin}
-                          label="Address"
+                          label="Shipping Address"
                           lines={[
                             `${order.shippingAddressLine1 || "-"}${
                               order.shippingAddressLine2
@@ -1022,297 +1144,238 @@ export default function VendorOrderDetailsPage() {
                             `${order.shippingCity || "-"}, ${order.shippingState || "-"} ${order.shippingPostalCode || "-"}`,
                           ]}
                         />
+                        {shippingContactLines.length > 0 ? (
+                          <DetailField
+                            icon={Phone}
+                            label="Shipping Contact"
+                            lines={shippingContactLines}
+                          />
+                        ) : null}
                       </div>
                     </div>
-                  </section>
+                  </div>
+                </section>
 
-                  <section className="rounded-xl border border-border bg-card p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <h2 className="text-lg font-semibold text-foreground">
-                        Product Preparation Sheet
-                      </h2>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-100 text-indigo-700 px-3 py-1 text-xs font-semibold">
-                        <ClipboardList className="h-3.5 w-3.5" />
-                        Packing View
-                      </span>
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      {orderItems.map((item, idx) => {
-                        const orderedQty = Math.max(
-                          1,
-                          Number(item.quantity || 1),
-                        );
-                        const availableStock =
-                          typeof item.product?.stock === "number"
-                            ? item.product.stock
-                            : null;
-                        const stockState = getStockState(
-                          availableStock,
-                          orderedQty,
-                        );
-
-                        return (
-                          <article
-                            key={item.id || `${order.id}-${idx}`}
-                            className="rounded-xl border border-border bg-background px-4 py-4"
-                          >
-                            <div className="flex flex-col gap-4 sm:flex-row">
-                              <div className="h-20 w-20 rounded-lg overflow-hidden border border-border bg-secondary shrink-0">
-                                {item.product?.imageUrl ? (
-                                  <img
-                                    src={item.product.imageUrl}
-                                    alt={item.product?.name || "Product"}
-                                    className="h-full w-full object-cover"
-                                    loading="lazy"
-                                  />
-                                ) : (
-                                  <div className="h-full w-full flex items-center justify-center text-xs text-muted-foreground">
-                                    No Image
-                                  </div>
-                                )}
-                              </div>
-
-                              <div className="flex-1 min-w-0">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <p className="font-semibold text-foreground truncate">
-                                      {item.product?.name || "Product"}
-                                    </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                      Unit price{" "}
-                                      <span className="font-medium text-foreground">
-                                        {formatMoney(
-                                          item.product?.price ?? item.price ?? 0,
-                                        )}
-                                      </span>
-                                    </p>
-                                  </div>
-                                  <span
-                                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${stockState.className}`}
-                                  >
-                                    {stockState.label}
-                                  </span>
-                                </div>
-
-                                <div className="mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
-                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
-                                    <p className="text-muted-foreground">
-                                      Ordered Qty
-                                    </p>
-                                    <p className="font-semibold text-foreground mt-0.5">
-                                      {orderedQty}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
-                                    <p className="text-muted-foreground">
-                                      Available
-                                    </p>
-                                    <p className="font-semibold text-foreground mt-0.5">
-                                      {availableStock === null
-                                        ? "-"
-                                        : availableStock}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-lg border border-border bg-card px-3 py-2.5">
-                                    <p className="text-muted-foreground">
-                                      Line Total
-                                    </p>
-                                    <p className="font-semibold text-foreground mt-0.5">
-                                      {formatMoney(
-                                        (item.product?.price ?? item.price ?? 0) *
-                                          orderedQty,
-                                      )}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  </section>
-
-                  <section className="rounded-xl border border-border bg-card p-5">
-                    <h2 className="text-lg font-semibold text-foreground">
-                      Order Events Timeline
-                    </h2>
-                    <div className="mt-4 space-y-3">
-                      {timelineEvents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No events available.
-                        </p>
-                      ) : (
-                        timelineEvents.map((event, idx) => (
-                          <div
-                            key={event.id || `${order.id}-event-${idx}`}
-                            className="relative rounded-xl border border-border bg-secondary/10 px-4 py-4 pl-11"
-                          >
-                            {idx !== timelineEvents.length - 1 ? (
-                              <div className="absolute bottom-0 left-4 top-7 w-px bg-border" />
-                            ) : null}
-                            <div className="absolute left-[11px] top-5 h-2.5 w-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-100" />
-                            <p className="text-sm font-semibold text-foreground">
-                              {(
-                                event.status ||
-                                order.status ||
-                                "PENDING"
-                              ).replaceAll("_", " ")}
-                            </p>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {event.note || "No event note"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {formatDate(event.createdAt)}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </section>
-                </div>
-
-                <aside className="xl:sticky xl:top-24 space-y-4">
-                  {normalizedStatus === "READY_FOR_PICKUP" ? (
-                    <section className="rounded-xl border border-indigo-200 bg-indigo-50 p-5">
-                      <h3 className="text-base font-semibold text-indigo-900">
-                        Delivery Agent Details
-                      </h3>
-                      {deliveryAgent && deliveryAgent.user ? (
-                        <div className="mt-4 space-y-3 text-sm">
-                          <div className="rounded-lg border border-indigo-100 bg-white/60 px-3 py-2.5">
-                            <p className="text-xs text-indigo-700/70">
-                              Agent Name
-                            </p>
-                            <p className="font-semibold text-indigo-900 mt-0.5">
-                              {deliveryAgent.user.name || "Unknown"}
-                            </p>
-                          </div>
-                          <div className="rounded-lg border border-indigo-100 bg-white/60 px-3 py-2.5">
-                            <p className="text-xs text-indigo-700/70">
-                              Contact
-                            </p>
-                            <p className="font-semibold text-indigo-900 mt-0.5">
-                              {deliveryAgent.user.phone || "-"}
-                            </p>
-                            <p className="font-semibold text-indigo-900 mt-0.5 break-all">
-                              {deliveryAgent.user.email || "-"}
-                            </p>
+                {/* 3. Order Timeline third */}
+                <section className="rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+                  <h2 className="text-xl font-bold text-foreground border-b border-border pb-3 mb-5">
+                    Order Timeline
+                  </h2>
+                  <div className="space-y-3">
+                    {timelineEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No events available.
+                      </p>
+                    ) : (
+                      timelineEvents.map((event, idx) => (
+                        <div
+                          key={event.id || `${order.id}-event-${idx}`}
+                          className="relative rounded-xl border border-border bg-secondary/5 p-4 pl-12 shadow-sm"
+                        >
+                          {idx !== timelineEvents.length - 1 ? (
+                            <div className="absolute bottom-0 left-5 top-8 w-px bg-border" />
+                          ) : null}
+                          <div className="absolute left-3.5 top-5 h-3 w-3 rounded-full bg-primary ring-6 ring-primary/10 shadow-sm" />
+                          <p className="text-base font-bold text-foreground">
+                            {(
+                              event.status ||
+                              order.status ||
+                              "PENDING"
+                            ).replace(/_/g, " ")}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1.5">
+                            {event.note || "No event note"}
+                          </p>
+                          <div className="flex items-center gap-1.5 mt-2.5 text-xs text-muted-foreground">
+                            <CalendarClock className="h-3.5 w-3.5" />
+                            {formatDate(event.createdAt)}
                           </div>
                         </div>
-                      ) : (
-                        <div className="mt-4 text-sm text-indigo-700">
-                          Fetching agent details...
-                        </div>
-                      )}
-                    </section>
-                  ) : !isPackedOrBeyond ? (
-                    <section className="rounded-xl border border-border bg-card p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold text-foreground">
-                            Packing Control
-                          </h3>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Confirm packing before dispatch is enabled.
+                      ))
+                    )}
+                  </div>
+                </section>
+              </div>
+
+              {/* Action Panel alongside items on PC */}
+              <aside className="xl:sticky xl:top-24 space-y-5">
+                {normalizedStatus === "READY_FOR_PICKUP" ? (
+                  <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-indigo-500">
+                    <h3 className="text-base font-bold text-indigo-900 flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Delivery Agent
+                    </h3>
+                    {deliveryAgent && deliveryAgent.user ? (
+                      <div className="mt-5 space-y-3">
+                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                            Agent Name
+                          </p>
+                          <p className="text-base font-bold text-foreground mt-0.5">
+                            {deliveryAgent.user.name || "Unknown"}
                           </p>
                         </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                            Contact Number
+                          </p>
+                          <p className="text-base font-bold text-foreground mt-0.5">
+                            {deliveryAgent.user.phone || "-"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                            Email Address
+                          </p>
+                          <p className="text-sm font-bold text-foreground mt-0.5 break-all">
+                            {deliveryAgent.user.email || "-"}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-5 flex flex-col items-center justify-center py-6 text-center text-muted-foreground bg-secondary/10 rounded-xl border border-dashed border-border">
+                        <Loader2 className="h-5 w-5 animate-spin mb-2.5 text-primary" />
+                        <p className="text-xs font-medium">Fetching agent details...</p>
+                      </div>
+                    )}
+                  </section>
+                ) : !isPackedOrBeyond ? (
+                  <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-primary">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Packing Control
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Confirm packing before dispatch.
+                        </p>
+                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
+                        <Package className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <p className="mt-3.5 text-sm text-muted-foreground leading-relaxed">
+                      Pack this order first. Dispatch becomes available only
+                      after packing is confirmed.
+                    </p>
+
+                    {latestDeliveryUpdate ? (
+                      <div className="mt-3.5 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-primary font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <BarChart2 className="h-3.5 w-3.5" />
+                          {latestDeliveryUpdate}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      className="mt-5 w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-primary px-5 py-3 text-base font-bold text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={markOrderPacked}
+                      disabled={!canPackOrder || isPacking}
+                    >
+                      {isPacking ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Packing...
+                        </>
+                      ) : (
+                        <>
                           <Package className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <p className="mt-3 text-sm text-muted-foreground">
-                        Pack this order first. Dispatch becomes available only
-                        after packing is confirmed.
-                      </p>
+                          Pack Order
+                        </>
+                      )}
+                    </button>
 
-                      {latestDeliveryUpdate ? (
-                        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                    {packMessage ? (
+                      <div
+                        className={`mt-3.5 rounded-lg px-3 py-2 text-xs font-medium ${
+                          packStatus === "error"
+                            ? "bg-red-50 text-red-700 border border-red-100"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        }`}
+                      >
+                        {packMessage}
+                      </div>
+                    ) : null}
+                  </section>
+                ) : (
+                  <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-emerald-500">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-base font-bold text-foreground">
+                          Dispatch Readiness
+                        </h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Packaging complete. Trigger delivery.
+                        </p>
+                      </div>
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 shadow-sm">
+                        <Truck className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    {latestDeliveryUpdate ? (
+                      <div className="mt-3.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700 font-medium">
+                        <div className="flex items-center gap-1.5">
+                          <BarChart2 className="h-3.5 w-3.5" />
                           {latestDeliveryUpdate}
                         </div>
-                      ) : null}
+                      </div>
+                    ) : null}
 
-                      <button
-                        type="button"
-                        className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        onClick={markOrderPacked}
-                        disabled={!canPackOrder || isPacking}
-                      >
-                        <Package className="h-4 w-4" />
-                        {isPacking ? "Packing..." : "Pack"}
-                      </button>
-
-                      {packMessage ? (
-                        <p
-                          className={`mt-2 text-xs ${packStatus === "error" ? "text-red-700" : "text-emerald-700"}`}
-                        >
-                          {packMessage}
-                        </p>
-                      ) : null}
-                    </section>
-                  ) : (
-                    <section className="rounded-xl border border-border bg-card p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <h3 className="text-base font-semibold text-foreground">
-                            Dispatch Readiness
-                          </h3>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            Packaging is complete. You can now trigger delivery
-                            assignment.
-                          </p>
-                        </div>
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
+                    <button
+                      type="button"
+                      className="mt-5 w-full inline-flex items-center justify-center gap-2.5 rounded-xl bg-emerald-600 px-5 py-3 text-base font-bold text-white hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-200 disabled:cursor-not-allowed disabled:opacity-50"
+                      onClick={markReadyToDeliver}
+                      disabled={!canMarkReady || isMarkingReady}
+                    >
+                      {isMarkingReady ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Assigning...
+                        </>
+                      ) : (
+                        <>
                           <Truck className="h-4 w-4" />
-                        </div>
-                      </div>
+                          Ready to Deliver
+                        </>
+                      )}
+                    </button>
 
-                      {latestDeliveryUpdate ? (
-                        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                          {latestDeliveryUpdate}
-                        </div>
-                      ) : null}
-
-                      <button
-                        type="button"
-                        className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        onClick={markReadyToDeliver}
-                        disabled={!canMarkReady || isMarkingReady}
+                    {actionMessage ? (
+                      <div
+                        className={`mt-3.5 rounded-lg px-3 py-2 text-xs font-medium ${
+                          actionStatus === "error"
+                            ? "bg-red-50 text-red-700 border border-red-100"
+                            : "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                        }`}
                       >
-                        <Truck className="h-4 w-4" />
-                        {isMarkingReady
-                          ? "Assigning Partner..."
-                          : "Ready to Deliver"}
-                      </button>
+                        {actionMessage}
+                      </div>
+                    ) : null}
+                  </section>
+                )}
 
-                      {actionMessage ? (
-                        <p
-                          className={`mt-2 text-xs ${actionStatus === "error" ? "text-red-700" : "text-emerald-700"}`}
-                        >
-                          {actionMessage}
-                        </p>
-                      ) : null}
-                    </section>
-                  )}
-
-                  {isCancelled && (
-                    <section className="rounded-xl border border-red-200 bg-red-50 p-5">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
-                        Cancelled Verdict
-                      </p>
-                      <p className="text-sm font-semibold text-red-700 mt-1">
-                        Order Cancelled
-                      </p>
-                      <p className="text-sm text-red-700/90 mt-1">
-                        Reason:{" "}
+                {isCancelled && (
+                  <section className="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-md border-t-4 border-t-red-500">
+                    <div className="flex items-center gap-2 text-red-700 font-bold mb-2.5">
+                      <X className="h-4 w-4" />
+                      <span className="uppercase tracking-wider text-[10px]">Cancelled Verdict</span>
+                    </div>
+                    <p className="text-lg font-bold text-red-700">
+                      Order Cancelled
+                    </p>
+                    <p className="text-sm text-red-700/90 mt-2.5 leading-relaxed">
+                      Reason:{" "}
+                      <span className="font-medium">
                         {order.events?.[0]?.note?.trim() ||
                           "Order was cancelled by the system or customer."}
-                      </p>
-                    </section>
-                  )}
-                </aside>
-              </div>
+                      </span>
+                    </p>
+                  </section>
+                )}
+              </aside>
             </div>
           )}
         </div>

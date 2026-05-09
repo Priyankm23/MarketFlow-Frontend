@@ -1,13 +1,36 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { authFetch } from "@/lib/auth-fetch";
 import { DeliveryHeader } from "@/components/delivery-header";
-import { Bike, Clock3, Loader2, MapPin, Phone, Route } from "lucide-react";
+import { 
+  Bike, 
+  Clock3, 
+  Loader2, 
+  MapPin, 
+  Phone, 
+  Route, 
+  TrendingUp, 
+  Wallet, 
+  Star, 
+  Navigation,
+  CheckCircle2,
+  ChevronRight,
+  AlertCircle,
+  ShoppingBag,
+  User,
+  MoreVertical,
+  X,
+  Target,
+  Zap
+} from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
 const DELIVERY_API_BASE_URL = `${API_BASE_URL}/delivery`;
+
+// --- TYPES ---
 
 type ApiAssignedTask = {
   id: string;
@@ -63,6 +86,7 @@ type DeliveryTask = {
   vendorName: string;
   pickupAddress: string;
   deliveryAddress: string;
+  customerName: string;
   customerPhone: string;
   status: "assigned" | "picked_up" | "in_transit" | "packed" | "delivered";
   amount: number;
@@ -71,11 +95,22 @@ type DeliveryTask = {
   itemCount: number;
 };
 
+// --- MOCK DATA ---
+const MOCK_EARNINGS = {
+  today: 840,
+  target: 1200,
+  week: 5200,
+  ordersCompleted: 12,
+  rating: 4.8
+};
+
+// --- HELPERS ---
+
 const statusTone: Record<DeliveryTask["status"], string> = {
-  assigned: "bg-indigo-100 text-indigo-700",
+  assigned: "bg-orange-100 text-orange-700",
   picked_up: "bg-blue-100 text-blue-700",
   in_transit: "bg-emerald-100 text-emerald-700",
-  packed: "bg-indigo-100 text-indigo-700",
+  packed: "bg-orange-100 text-orange-700",
   delivered: "bg-emerald-100 text-emerald-700",
 };
 
@@ -101,6 +136,116 @@ const mapTaskStatus = (status?: string): DeliveryTask["status"] => {
   if (normalized === "PACKED") return "packed";
   return "assigned";
 };
+
+// --- SUB-COMPONENTS ---
+
+/**
+ * LEAFLET MAP COMPONENT
+ * Dynamically loads Leaflet from CDN to show a real map.
+ */
+function LeafletMap({ className }: { className?: string }) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  useEffect(() => {
+    // Only load if not already present
+    if (typeof window === "undefined") return;
+    
+    const loadLeaflet = () => {
+      if ((window as any).L) {
+        setMapLoaded(true);
+        return;
+      }
+
+      // Add CSS
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+      document.head.appendChild(link);
+
+      // Add JS
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+      script.async = true;
+      script.onload = () => setMapLoaded(true);
+      document.head.appendChild(script);
+    };
+
+    loadLeaflet();
+  }, []);
+
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current) return;
+
+    const L = (window as any).L;
+    if (!L) return;
+
+    // Initialize map
+    // Using a default coordinate (Surat, Gujarat center for context)
+    const map = L.map(mapRef.current, {
+      zoomControl: false,
+      attributionControl: false
+    }).setView([21.1702, 72.8311], 13);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+    // Mock markers
+    const pickupIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: #ea580c; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(234,88,12,0.5)"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+
+    const dropIcon = L.divIcon({
+      className: 'custom-div-icon',
+      html: `<div style="background-color: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(239,68,68,0.5)"></div>`,
+      iconSize: [12, 12],
+      iconAnchor: [6, 6]
+    });
+
+    L.marker([21.175, 72.835], { icon: pickupIcon }).addTo(map);
+    L.marker([21.165, 72.825], { icon: dropIcon }).addTo(map);
+
+    return () => {
+      map.remove();
+    };
+  }, [mapLoaded]);
+
+  return (
+    <div className={`relative bg-slate-100 rounded-3xl overflow-hidden border border-border group ${className}`}>
+      <div ref={mapRef} className="w-full h-full z-0" />
+      
+      <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+        {!mapLoaded && (
+          <div className="flex flex-col items-center gap-2 text-slate-400">
+             <Loader2 size={24} className="animate-spin" />
+             <p className="text-[10px] font-bold uppercase tracking-widest">Loading Live Map</p>
+          </div>
+        )}
+      </div>
+
+      {/* OVERLAYS */}
+      <div className="absolute top-4 left-4 z-10">
+        <div className="bg-white/95 backdrop-blur-md shadow-xl rounded-2xl px-4 py-2 flex items-center gap-2 border border-white">
+          <Navigation size={16} className="text-orange-600 animate-pulse" />
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-800">
+            Real-time Navigation
+          </span>
+        </div>
+      </div>
+
+      <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
+        <div className="bg-white/95 backdrop-blur-md rounded-2xl px-4 py-2 shadow-lg border border-white text-[10px] font-black text-orange-700 flex items-center gap-2">
+          <Route size={14} /> 2.4 KM LEFT
+        </div>
+        <div className="bg-orange-600 text-white rounded-2xl px-4 py-2 shadow-xl text-[10px] font-black flex items-center gap-2">
+          <Clock3 size={14} /> 8 MINS
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DeliveryDashboardPage() {
   const [tasks, setTasks] = useState<DeliveryTask[]>([]);
@@ -187,10 +332,10 @@ export default function DeliveryDashboardPage() {
             pickupAddress: pickupAddress || "Pickup address not available",
             deliveryAddress:
               deliveryAddress || "Delivery address not available",
+            customerName: task.user?.name || "Customer",
             customerPhone: task.user?.phone ? String(task.user.phone) : "-",
             status: mapTaskStatus(task.status),
             amount: Number(task.totalAmount || 0),
-            // Placeholder distance until geo service is integrated.
             distanceKm: 1.5 + index * 0.9,
             createdAt: task.createdAt,
             itemCount,
@@ -318,7 +463,7 @@ export default function DeliveryDashboardPage() {
         setTaskMessage(
           task.id,
           "error",
-          payload.message || "Unable to submit response.",
+          payload?.message || "Unable to submit response.",
         );
         return;
       }
@@ -326,7 +471,7 @@ export default function DeliveryDashboardPage() {
       setTaskMessage(
         task.id,
         "success",
-        payload.message || "Response recorded.",
+        payload?.message || "Response recorded.",
       );
 
       if (accept) {
@@ -367,7 +512,7 @@ export default function DeliveryDashboardPage() {
 
     try {
       const response = await authFetch(
-        `${toApiV1BaseUrl(API_BASE_URL)}/orders/${task.orderId}/status`,
+        `${API_BASE_URL}/orders/${task.orderId}/status`,
         {
           method: "PATCH",
           headers: {
@@ -419,42 +564,6 @@ export default function DeliveryDashboardPage() {
     }
   };
 
-  const stats = useMemo(() => {
-    const active = tasks.length;
-    const transit = tasks.filter((task) => task.status === "in_transit").length;
-    const totalDistance = tasks.reduce((sum, task) => sum + task.distanceKm, 0);
-    return {
-      active,
-      transit,
-      totalDistance,
-    };
-  }, [tasks]);
-
-  const etaAnalytics = useMemo(() => {
-    const raw =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem("delivery_eta_tracking")
-        : null;
-
-    const parsed = raw
-      ? (JSON.parse(raw) as Record<
-          string,
-          { acceptedAt: number; etaMinutes: number }
-        >)
-      : {};
-
-    const values = Object.values(parsed).map((item) => item.etaMinutes);
-    const avgEta =
-      values.length > 0
-        ? values.reduce((sum, value) => sum + value, 0) / values.length
-        : 0;
-
-    return {
-      tracked: values.length,
-      averageEta: avgEta,
-    };
-  }, [acceptedTaskIds]);
-
   const formatCountdown = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
@@ -462,244 +571,293 @@ export default function DeliveryDashboardPage() {
     return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   };
 
+  const activeTask = tasks.find(t => t.status !== 'delivered');
+
   return (
-    <div className="min-h-screen bg-background px-4 py-6 sm:px-6 md:px-8">
+    <div className="min-h-screen bg-slate-50 font-body pb-24" style={{ fontFamily: "var(--font-dm-sans)" }}>
       <DeliveryHeader
-        title="Delivery Dashboard"
-        subtitle="Live assigned tasks based on your partner profile and coverage setup."
+        title="Active Workspace"
+        subtitle="Live deliveries and daily performance."
       />
 
-      <div className="mx-auto max-w-6xl space-y-6">
-        {loading ? (
-          <section className="mt-6 rounded-2xl border border-border bg-card p-8 text-center">
-            <Loader2 className="h-7 w-7 animate-spin mx-auto text-indigo-600" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              Loading assigned tasks...
-            </p>
-          </section>
-        ) : null}
+      <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
+        {/* PREMIUM EARNINGS CARD */}
+        <section className="bg-slate-950 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200 text-white relative overflow-hidden group">
+          {/* Animated Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-transparent opacity-50" />
+          <div className="absolute top-0 right-0 p-8">
+             <div className="h-16 w-16 rounded-full bg-orange-600/10 border border-orange-500/20 flex items-center justify-center animate-pulse">
+                <Zap size={32} className="text-orange-500 fill-orange-500/20" />
+             </div>
+          </div>
+          
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-8">
+              <span className="h-2 w-2 rounded-full bg-orange-500 animate-ping" />
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500">Live Earnings Today</p>
+            </div>
+            
+            <div className="flex items-end gap-3 mb-8">
+              <span className="text-6xl font-black tracking-tighter">₹{MOCK_EARNINGS.today}</span>
+              <div className="mb-2">
+                 <div className="flex items-center gap-1 text-emerald-400 text-xs font-bold">
+                    <TrendingUp size={14} /> +12%
+                 </div>
+              </div>
+            </div>
 
-        {!loading && error ? (
-          <section className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
-            <p className="text-sm font-medium text-red-700">{error}</p>
-            {profileMissing ? (
-              <Link
-                href="/delivery/tasks"
-                className="mt-3 inline-flex rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700"
-              >
-                Complete Coverage Setup
-              </Link>
-            ) : null}
-          </section>
-        ) : null}
+            <div className="space-y-4">
+               <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-widest text-slate-500 mb-1 px-1">
+                  <span>Daily Progress</span>
+                  <span>{Math.round((MOCK_EARNINGS.today / MOCK_EARNINGS.target) * 100)}%</span>
+               </div>
+               <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 shadow-inner">
+                  <div 
+                    className="h-full bg-gradient-to-r from-orange-600 to-orange-400 transition-all duration-1000 rounded-full shadow-[0_0_15px_rgba(234,88,12,0.3)]" 
+                    style={{ width: `${(MOCK_EARNINGS.today / MOCK_EARNINGS.target) * 100}%` }}
+                  />
+               </div>
+            </div>
 
-        {!loading && !error ? (
-          <>
-            <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <h1 className="font-body text-2xl sm:text-3xl font-semibold text-foreground tracking-normal">
-                    Delivery Dashboard
-                  </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Mock assigned delivery tasks for partner workflow.
-                  </p>
-                </div>
-                <div className="rounded-xl bg-indigo-100 p-2.5 text-indigo-700">
-                  <Bike className="h-5 w-5" />
+            <div className="mt-8 grid grid-cols-2 gap-4">
+              <div className="bg-slate-900/50 rounded-2xl p-4 border border-slate-800 hover:border-orange-500/30 transition-all group/stat">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 group-hover/stat:text-orange-500 transition-colors">Orders</p>
+                <p className="text-2xl font-black">{MOCK_EARNINGS.ordersCompleted}</p>
+              </div>
+              <div className="bg-slate-900/50 rounded-2xl p-4 border border-slate-800 hover:border-orange-500/30 transition-all group/stat">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1 group-hover/stat:text-orange-500 transition-colors">Rating</p>
+                <div className="flex items-center gap-2">
+                   <p className="text-2xl font-black">{MOCK_EARNINGS.rating}</p>
+                   <Star size={18} className="fill-orange-500 text-orange-500" />
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
 
-              <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border border-border bg-secondary/20 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground">Active Tasks</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">
-                    {stats.active}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-secondary/20 px-3 py-2.5">
-                  <p className="text-xs text-muted-foreground">In Transit</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">
-                    {stats.transit}
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-secondary/20 px-3 py-2.5 col-span-2 md:col-span-1">
-                  <p className="text-xs text-muted-foreground">
-                    Distance Today
-                  </p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">
-                    {stats.totalDistance.toFixed(1)} km
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border bg-secondary/20 px-3 py-2.5 col-span-2 md:col-span-1">
-                  <p className="text-xs text-muted-foreground">Avg ETA</p>
-                  <p className="mt-1 text-lg font-semibold text-foreground">
-                    {etaAnalytics.tracked > 0
-                      ? `${etaAnalytics.averageEta.toFixed(0)} min`
-                      : "-"}
-                  </p>
-                </div>
+        {/* LOADING & ERROR STATES */}
+        {loading && (
+          <div className="flex flex-col items-center py-12 text-slate-400">
+            <Loader2 className="animate-spin mb-3 text-orange-600" size={32} />
+            <p className="text-xs font-bold uppercase tracking-widest">Scanning for Assignments...</p>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-rose-50 border border-rose-100 rounded-[2rem] p-6 flex items-start gap-4 text-rose-700 shadow-sm">
+            <div className="bg-rose-100 p-2 rounded-xl">
+              <AlertCircle size={20} className="shrink-0" />
+            </div>
+            <div className="text-sm">
+              <p className="font-bold text-base">Network Alert</p>
+              <p className="mt-1 opacity-80 font-medium">{error}</p>
+              {profileMissing && (
+                 <Link
+                 href="/delivery/tasks"
+                 className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-700 transition-colors shadow-lg shadow-orange-200"
+               >
+                 Set Coverage <ChevronRight size={14} />
+               </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* LIVE TASK FOCUS */}
+        {activeTask && (
+          <section className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xl font-black text-slate-900 tracking-tight">Active Delivery</h2>
+              <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100 shadow-sm">
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Connected</span>
               </div>
-            </section>
+            </div>
 
-            <section className="space-y-3">
-              {tasks.map((task) => {
-                const isAccepted =
-                  acceptedTaskIds.includes(task.id) ||
-                  task.status === "picked_up" ||
-                  task.status === "in_transit";
-                const canRespond =
-                  task.status === "assigned" || task.status === "packed";
-                const canComplete = isAccepted && task.status !== "delivered";
+            <LeafletMap className="h-80 shadow-2xl shadow-slate-200 ring-4 ring-white" />
 
-                return (
-                  <article
-                    key={task.id}
-                    className="rounded-xl border border-border bg-card p-4 sm:p-5"
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                          Task
-                        </p>
-                        <p className="font-semibold text-foreground mt-1">
-                          {task.id}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Order {task.orderId}
-                        </p>
+            <div className="bg-white rounded-[2.5rem] border border-border shadow-xl overflow-hidden group">
+              <div className="p-8">
+                <div className="flex items-start justify-between mb-8">
+                  <div>
+                    <div className="flex items-center gap-2">
+                       <ShoppingBag size={14} className="text-orange-600" />
+                       <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-[0.2em]">Package ID</p>
+                    </div>
+                    <p className="text-lg font-black text-slate-950 mt-1 tracking-tight">#{activeTask.orderId.slice(-8).toUpperCase()}</p>
+                  </div>
+                  <div className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-sm ${statusTone[activeTask.status]}`}>
+                    {statusLabel[activeTask.status]}
+                  </div>
+                </div>
+
+                <div className="space-y-8">
+                  {/* TIMELINE STYLE ADDRESSES */}
+                  <div className="relative pl-10 space-y-10">
+                    <div className="absolute left-4 top-3 bottom-3 w-px border-l-2 border-dashed border-slate-100" />
+                    
+                    <div className="relative">
+                      <div className="absolute -left-10 top-0.5 w-8 h-8 rounded-2xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 z-10 shadow-sm">
+                        <div className="w-2.5 h-2.5 rounded-full bg-orange-600 shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone[task.status]}`}
-                      >
-                        {statusLabel[task.status]}
-                      </span>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Store Pickup</p>
+                      <p className="text-base font-black text-slate-900 mt-1">{activeTask.vendorName}</p>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 font-medium">{activeTask.pickupAddress}</p>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
-                      <div className="rounded-lg border border-border bg-secondary/20 p-3">
-                        <p className="text-xs text-muted-foreground">Pickup</p>
-                        <p className="font-medium text-foreground mt-1">
-                          {task.vendorName}
-                        </p>
-                        <p className="text-foreground mt-1 flex items-start gap-1.5">
-                          <MapPin className="h-4 w-4 mt-0.5 text-indigo-700" />
-                          {task.pickupAddress}
-                        </p>
+                    <div className="relative">
+                      <div className="absolute -left-10 top-0.5 w-8 h-8 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 z-10 shadow-sm">
+                        <MapPin size={16} className="fill-rose-600 text-white stroke-[3]" />
                       </div>
-
-                      <div className="rounded-lg border border-border bg-secondary/20 p-3">
-                        <p className="text-xs text-muted-foreground">
-                          Drop Location
-                        </p>
-                        <p className="text-foreground mt-1 flex items-start gap-1.5">
-                          <Route className="h-4 w-4 mt-0.5 text-indigo-700" />
-                          {task.deliveryAddress}
-                        </p>
-                        <p className="text-foreground mt-2 flex items-center gap-1.5">
-                          <Phone className="h-4 w-4 text-indigo-700" />
-                          {task.customerPhone}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-                      <div className="rounded-md border border-border bg-background p-2">
-                        <p className="text-muted-foreground">Amount</p>
-                        <p className="font-semibold text-foreground mt-0.5">
-                          ₹{task.amount.toLocaleString("en-IN")}
-                        </p>
-                      </div>
-                      <div className="rounded-md border border-border bg-background p-2">
-                        <p className="text-muted-foreground">Distance</p>
-                        <p className="font-semibold text-foreground mt-0.5">
-                          {task.distanceKm.toFixed(1)} km
-                        </p>
-                      </div>
-                      <div className="rounded-md border border-border bg-background p-2">
-                        <p className="text-muted-foreground">Action</p>
-                        <p className="font-semibold text-foreground mt-0.5">
-                          {task.status === "assigned" ||
-                          task.status === "packed"
-                            ? "Pick Up"
-                            : task.status === "picked_up"
-                              ? "Start Route"
-                              : "Deliver"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {acceptedTaskIds.includes(task.id) ? (
-                      <div className="mt-3 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs text-indigo-700">
-                        ETA Timer:{" "}
-                        {formatCountdown(countdownById[task.id] || 0)}
-                      </div>
-                    ) : null}
-
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {canRespond && !isAccepted ? (
-                        <>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                            onClick={() =>
-                              void handleAssignmentResponse(task, true)
-                            }
-                            disabled={respondingTaskId === task.id}
-                          >
-                            {respondingTaskId === task.id
-                              ? "Submitting..."
-                              : "Accept"}
-                          </button>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center rounded-md bg-white px-3 py-2 text-xs font-semibold text-red-700 border border-red-200 hover:bg-red-50 disabled:opacity-60 disabled:cursor-not-allowed"
-                            onClick={() =>
-                              void handleAssignmentResponse(task, false)
-                            }
-                            disabled={respondingTaskId === task.id}
-                          >
-                            {respondingTaskId === task.id
-                              ? "Submitting..."
-                              : "Reject"}
-                          </button>
-                        </>
-                      ) : null}
-
-                      {canComplete ? (
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed"
-                          onClick={() => void markDeliveryCompleted(task)}
-                          disabled={completingTaskId === task.id}
-                        >
-                          {completingTaskId === task.id
-                            ? "Completing..."
-                            : "Delivery Completed"}
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Customer Drop</p>
+                      <p className="text-base font-black text-slate-900 mt-1">{activeTask.customerName}</p>
+                      <p className="text-xs text-slate-500 mt-2 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-100 font-medium">{activeTask.deliveryAddress}</p>
+                      
+                      <div className="mt-6 flex items-center gap-3">
+                        <button className="flex-1 flex items-center justify-center gap-3 bg-slate-950 text-white px-5 py-4 rounded-[1.5rem] text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95">
+                          <Phone size={16} className="fill-white" /> Call Customer
                         </button>
-                      ) : null}
+                        <button className="h-14 w-14 flex items-center justify-center bg-white border border-slate-200 rounded-[1.5rem] text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm">
+                          <MoreVertical size={20} />
+                        </button>
+                      </div>
                     </div>
+                  </div>
+                </div>
+              </div>
 
-                    {taskMessageById[task.id] ? (
-                      <p
-                        className={`mt-2 text-xs ${taskMessageById[task.id].kind === "error" ? "text-red-700" : "text-emerald-700"}`}
-                      >
-                        {taskMessageById[task.id].text}
-                      </p>
-                    ) : null}
-                  </article>
-                );
-              })}
-            </section>
+              <div className="bg-orange-50/30 px-8 py-7 flex items-center justify-between border-t border-orange-100/50">
+                <div className="flex items-center gap-8">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Payload</p>
+                    <p className="text-sm font-black text-slate-800 tracking-tight">{activeTask.itemCount} Units</p>
+                  </div>
+                  <div className="w-px h-10 bg-orange-200/50" />
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Earning</p>
+                    <p className="text-sm font-black text-orange-600 tracking-tight">₹{activeTask.amount}</p>
+                  </div>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    if (activeTask.status === 'assigned') void handleAssignmentResponse(activeTask, true);
+                    else void markDeliveryCompleted(activeTask);
+                  }}
+                  disabled={respondingTaskId === activeTask.id || completingTaskId === activeTask.id}
+                  className="bg-orange-600 text-white px-8 py-4 rounded-[1.75rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-orange-200 hover:bg-orange-700 transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {respondingTaskId === activeTask.id || completingTaskId === activeTask.id ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : activeTask.status === 'assigned' ? (
+                    <>Accept <ChevronRight size={18} /></>
+                  ) : (
+                    <>Delivered <CheckCircle2 size={18} /></>
+                  )}
+                </button>
+              </div>
 
-            <section className="rounded-xl border border-border bg-card p-4 text-xs text-muted-foreground flex items-center gap-2">
-              <Clock3 className="h-4 w-4" />
-              Task list is loaded from /delivery/tasks/assigned. Distance values
-              are temporary until map distance service is integrated.
-            </section>
-          </>
-        ) : null}
+              {acceptedTaskIds.includes(activeTask.id) && (
+                <div className="px-8 py-5 bg-orange-600 text-white flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Clock3 size={18} className="animate-pulse" />
+                    <span className="text-xs font-black uppercase tracking-[0.2em]">Est. Time Arrival</span>
+                  </div>
+                  <span className="text-2xl font-mono font-black tracking-tighter">
+                    {formatCountdown(countdownById[activeTask.id] || 0)}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {taskMessageById[activeTask.id] && (
+              <div className={`p-5 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest text-center border-2 animate-in fade-in zoom-in ${
+                taskMessageById[activeTask.id].kind === "error" ? "bg-rose-50 border-rose-100 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700"
+              }`}>
+                {taskMessageById[activeTask.id].text}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* UPCOMING QUEUE */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-xl font-black text-slate-900 tracking-tight">Assignment Queue</h2>
+            <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+              {tasks.filter(t => t.status === 'assigned' && t.id !== activeTask?.id).length} Orders
+            </span>
+          </div>
+
+          {tasks.filter(t => t.status === 'assigned' && t.id !== activeTask?.id).length === 0 && (
+            <div className="bg-white rounded-[2.5rem] p-12 text-center border border-dashed border-slate-200 shadow-sm">
+              <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-slate-100 shadow-inner">
+                <CheckCircle2 size={40} className="text-slate-200" />
+              </div>
+              <p className="text-base font-black text-slate-900">Queue is Clear</p>
+              <p className="text-xs text-slate-400 mt-2 max-w-[220px] mx-auto font-medium leading-relaxed">System will notify you once a new order is matched with your location.</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-4">
+            {tasks.filter(t => t.status === 'assigned' && t.id !== activeTask?.id).map(task => (
+              <div key={task.id} className="bg-white rounded-[2rem] p-6 border border-border shadow-sm flex items-center gap-6 hover:shadow-md transition-all group active:scale-[0.98] border-l-4 border-l-orange-500">
+                <div className="w-16 h-16 rounded-[1.25rem] bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0 group-hover:bg-orange-100 transition-colors">
+                  <ShoppingBag size={28} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-sm font-black text-slate-950 truncate tracking-tight">{task.vendorName}</p>
+                    <p className="text-xs font-black text-orange-600 tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg">₹{task.amount}</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <MapPin size={12} className="text-slate-300" />
+                    <p className="text-[11px] font-bold truncate uppercase tracking-tight">{task.deliveryAddress}</p>
+                  </div>
+                </div>
+                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:text-orange-600 group-hover:bg-orange-50 transition-all">
+                   <ChevronRight size={20} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* PERFORMANCE TIPS */}
+        {!loading && (
+          <section className="bg-orange-600 rounded-[2.5rem] p-8 text-white shadow-xl shadow-orange-100 relative overflow-hidden">
+             <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+             <div className="relative z-10 flex items-start gap-5">
+                <div className="bg-white/20 p-3 rounded-2xl">
+                   <Target size={24} className="text-white" />
+                </div>
+                <div>
+                   <p className="text-xs font-black uppercase tracking-[0.2em] text-orange-200 mb-1">Partner Mastery</p>
+                   <p className="text-sm font-bold leading-relaxed">
+                     Completing {Math.max(0, MOCK_EARNINGS.ordersCompleted - 8)} more orders before 9 PM will unlock the "Prime Partner" bonus for tomorrow.
+                   </p>
+                </div>
+             </div>
+          </section>
+        )}
       </div>
+
+      {/* STICKY BOTTOM NAV (MOBILE) */}
+      <nav className="fixed bottom-0 inset-x-0 h-20 bg-white/90 backdrop-blur-2xl border-t border-slate-100 px-10 flex items-center justify-around z-50 md:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+        <button className="flex flex-col items-center gap-1.5 text-orange-600 relative group">
+          <div className="absolute -top-1 w-1 h-1 rounded-full bg-orange-600" />
+          <Bike size={24} className="stroke-[2.5]" />
+          <span className="text-[10px] font-black uppercase tracking-tighter">Live</span>
+        </button>
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-orange-400 transition-all active:scale-90">
+          <TrendingUp size={24} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">Earnings</span>
+        </button>
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 hover:text-orange-400 transition-all active:scale-90">
+          <User size={24} />
+          <span className="text-[10px] font-black uppercase tracking-tighter">Profile</span>
+        </button>
+      </nav>
     </div>
   );
 }

@@ -2,7 +2,7 @@
 const raw =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   // "https://markivo-backend-lxfz.onrender.com";
-  "http://localhost:5001/api/v1";                       
+  "http://localhost:5000/api/v1";
 const trimmed = raw.replace(/\/+$/, "");
 const apiV1 = trimmed.endsWith("/api/v1") ? trimmed : `${trimmed}/api/v1`;
 

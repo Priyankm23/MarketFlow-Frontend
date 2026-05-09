@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useVendorStore } from "@/lib/store";
+import { authFetch } from "@/lib/auth-fetch";
+import { API_BASE_URL } from "@/lib/config";
 import {
-  fetchVendorProfile,
   isVendorApproved,
   normalizeVendorStatus,
 } from "@/lib/vendor-profile";
@@ -17,7 +18,6 @@ import {
   BarChart2,
   Settings,
   Bell,
-  Search,
   IndianRupee,
   AlertTriangle,
   ChevronRight,
@@ -25,72 +25,72 @@ import {
   User,
   ShieldCheck,
   ShieldAlert,
+  Menu,
+  X,
+  Loader2,
+  CalendarClock,
 } from "lucide-react";
 
 // --- REUSABLE COMPONENTS (Specific to new design) ---
 
 function StatusBadge({ status }: { status: string }) {
+  const normalized = (status || "PENDING").toUpperCase();
   const config: Record<
     string,
     { label: string; bg: string; color: string; dot: boolean }
   > = {
     APPROVED: {
       label: "Approved",
-      bg: "var(--status-success-bg)",
-      color: "var(--status-success)",
-      dot: false,
+      bg: "bg-emerald-50",
+      color: "text-emerald-700",
+      dot: true,
     },
     PENDING: {
-      label: "Pending Review",
-      bg: "var(--status-warning-bg)",
-      color: "var(--status-warning)",
+      label: "Pending",
+      bg: "bg-amber-50",
+      color: "text-amber-700",
       dot: true,
     },
     REJECTED: {
       label: "Rejected",
-      bg: "var(--status-error-bg)",
-      color: "var(--status-error)",
-      dot: false,
-    },
-    SUSPENDED: {
-      label: "Suspended",
-      bg: "#FDF4FF",
-      color: "#9333EA",
-      dot: false,
-    },
-    DELIVERED: {
-      label: "Delivered",
-      bg: "var(--status-success-bg)",
-      color: "var(--status-success)",
+      bg: "bg-rose-50",
+      color: "text-rose-700",
       dot: false,
     },
     CONFIRMED: {
       label: "Confirmed",
-      bg: "var(--status-info-bg)",
-      color: "var(--status-info)",
+      bg: "bg-indigo-50",
+      color: "text-indigo-700",
       dot: true,
+    },
+    DELIVERED: {
+      label: "Delivered",
+      bg: "bg-emerald-100",
+      color: "text-emerald-800",
+      dot: false,
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      bg: "bg-rose-100",
+      color: "text-rose-800",
+      dot: false,
     },
   };
 
-  const c = config[status] || {
-    label: status,
-    bg: "var(--status-neutral-bg)",
-    color: "var(--status-neutral)",
+  const c = config[normalized] || {
+    label: normalized.replaceAll("_", " "),
+    bg: "bg-slate-100",
+    color: "text-slate-700",
     dot: false,
   };
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{
-        backgroundColor: c.bg,
-        color: c.color,
-        fontFamily: "var(--font-dm-sans)",
-      }}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 ${c.bg} ${c.color}`}
     >
       {c.dot && (
         <span
-          className="w-1.5 h-1.5 rounded-full"
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{ backgroundColor: "currentColor" }}
         />
       )}
@@ -99,82 +99,165 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-function StatCard({ label, value, delta, deltaType, icon: Icon, prefix }: any) {
+function StatCard({ label, value, delta, deltaType, icon: Icon, prefix, colorClass }: any) {
   return (
     <div
-      className="bg-white rounded-xl p-6"
-      style={{
-        boxShadow: "var(--shadow-card)",
-        fontFamily: "var(--font-dm-sans)",
-      }}
+      className="bg-card rounded-2xl p-4 sm:p-5 border border-border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <p style={{ color: "var(--text-secondary)", fontSize: "13px" }}>
+      <div className={`absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 -mr-8 -mt-8 rounded-full opacity-10 transition-transform group-hover:scale-110 ${colorClass || "bg-primary"}`} />
+      <div className="relative z-10 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+        <div className="space-y-1.5 sm:space-y-3">
+          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.1em] sm:tracking-widest text-muted-foreground truncate">
             {label}
           </p>
-          <p
-            className="mt-2"
-            style={{
-              fontFamily: "var(--font-dm-sans)",
-              fontSize: "2rem",
-              color: "var(--text-primary)",
-              lineHeight: 1,
-              fontWeight: 500,
-            }}
-          >
-            {prefix}
-            {value}
-          </p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl sm:text-3xl font-bold text-foreground tracking-tight">
+              {prefix}{value}
+            </span>
+          </div>
           {delta && (
-            <p
-              className="mt-2 text-xs font-medium"
-              style={{
-                color:
-                  deltaType === "up"
-                    ? "var(--status-success)"
-                    : deltaType === "down"
-                      ? "var(--status-error)"
-                      : "var(--text-secondary)",
-              }}
+            <div
+              className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-xs font-bold ${
+                deltaType === "up"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : deltaType === "down"
+                    ? "bg-rose-50 text-rose-700"
+                    : "bg-slate-50 text-slate-700"
+              }`}
             >
-              {delta}
-            </p>
+              <span className="shrink-0">{deltaType === "up" ? "↑" : deltaType === "down" ? "↓" : "•"}</span>
+              <span className="truncate max-w-[60px] sm:max-w-none italic">{delta}</span>
+            </div>
           )}
         </div>
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center"
-          style={{ backgroundColor: "var(--bg-sunken)" }}
+          className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center shadow-sm border border-black/5 shrink-0 ${colorClass || "bg-primary/10 text-primary"}`}
         >
-          <Icon size={20} style={{ color: "var(--text-primary)" }} />
+          <Icon size={18} className="sm:w-[22px] sm:h-[22px]" />
         </div>
       </div>
     </div>
   );
 }
 
+type VendorDashboardSummary = {
+  totalRevenue: string;
+  revenueChangePctThisWeek: number;
+  activeOrders: number;
+  activeOrdersDeltaSinceYesterday: number;
+  totalProducts: number;
+  lowStockItems: number;
+  lowStockThreshold: number;
+};
+
+type VendorRecentOrder = {
+  orderId: string;
+  customerName: string;
+  itemCount: number;
+  amount: number;
+  status: string;
+  createdAt: string;
+};
+
+type VendorStockAlert = {
+  productId: string;
+  name: string;
+  imageUrl: string | null;
+  stock: number;
+  isOutOfStock: boolean;
+};
+
+type VendorDashboardData = {
+  summary: VendorDashboardSummary;
+  recentOrders: VendorRecentOrder[];
+  stockAlerts: VendorStockAlert[];
+};
+
+const formatCurrency = (value: number) =>
+  value.toLocaleString("en-IN", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+const formatOrderDate = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 export default function VendorDashboard() {
   const user = useAuthStore((state) => state.user);
-  const [loading, setLoading] = useState(true);
-  const [profile, setProfile] = useState<VendorProfileData | null>(null);
+  const { profile, loadProfile, isLoading: loadingProfile } = useVendorStore();
+
+  const [dashboardData, setDashboardData] = useState<VendorDashboardData | null>(
+    null,
+  );
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState("");
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (user?.role?.toUpperCase() === "VENDOR") {
+      loadProfile();
+    }
+  }, [user, loadProfile]);
 
   useEffect(() => {
     let active = true;
-    const loadVendorProfile = async () => {
-      if (!user || user.role?.toUpperCase() !== "VENDOR") {
-        if (active) setLoading(false);
+
+    const loadDashboard = async () => {
+      if (!user || user.role?.toUpperCase() !== "VENDOR" || !profile) {
         return;
       }
+
+
+      setDashboardLoading(true);
+      setDashboardError("");
+
       try {
-        const vendorProfile = await fetchVendorProfile();
-        if (active) setProfile(vendorProfile);
-      } catch (err) {
-        console.error(err);
+        const params = new URLSearchParams({
+          recentOrdersLimit: "5",
+          lowStockThreshold: "5",
+        });
+        const response = await authFetch(
+          `${API_BASE_URL}/vendors/dashboard?${params.toString()}`,
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to load vendor dashboard data.");
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        if (!payload?.data || payload?.status !== "success") {
+          throw new Error("Invalid dashboard response.");
+        }
+
+        if (active) {
+          setDashboardData(payload.data as VendorDashboardData);
+        }
+      } catch (error) {
+        if (active) {
+          setDashboardError(
+            error instanceof Error
+              ? error.message
+              : "Unable to load dashboard data.",
+          );
+        }
       } finally {
-        if (active) setLoading(false);
+        if (active) {
+          setDashboardLoading(false);
+        }
       }
     };
-    loadVendorProfile();
+
+    void loadDashboard();
+
     return () => {
       active = false;
     };
@@ -182,51 +265,9 @@ export default function VendorDashboard() {
 
   const status = normalizeVendorStatus(profile?.status);
   const approved = isVendorApproved(profile?.status);
-
-  // --- DUMMY DATA FOR DASHBOARD ---
-  const recentOrders = [
-    {
-      id: "ORD-7029",
-      customer: "Rahul Sharma",
-      items: 3,
-      amount: 4299,
-      status: "CONFIRMED",
-      date: "Today, 10:42 AM",
-    },
-    {
-      id: "ORD-7028",
-      customer: "Priya Patel",
-      items: 1,
-      amount: 899,
-      status: "DELIVERED",
-      date: "Yesterday",
-    },
-    {
-      id: "ORD-7025",
-      customer: "Amit Singh",
-      items: 2,
-      amount: 1249,
-      status: "PENDING",
-      date: "Mar 15",
-    },
-  ];
-
-  const lowStockItems = [
-    {
-      id: 1,
-      name: "Wireless Earbuds Pro",
-      stock: 2,
-      image:
-        "https://images.unsplash.com/photo-1606220588913-b3aecb48ce38?w=100&q=80",
-    },
-    {
-      id: 2,
-      name: "Smart Fitness Watch",
-      stock: 0,
-      image:
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=100&q=80",
-    },
-  ];
+  const summary = dashboardData?.summary;
+  const recentOrders = dashboardData?.recentOrders ?? [];
+  const lowStockItems = dashboardData?.stockAlerts ?? [];
 
   const navItems = [
     {
@@ -250,42 +291,50 @@ export default function VendorDashboard() {
         fontFamily: "var(--font-dm-sans)",
       }}
     >
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          className="fixed inset-0 z-40 bg-black/35 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <aside
-        className="hidden md:flex w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderRight: "1px solid var(--border-default)",
-          zIndex: 50,
-        }}
+        className={`fixed inset-y-0 left-0 z-50 w-[250px] sm:w-[260px] flex flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)] transform transition-transform duration-300 ease-out ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
             <Image
               src="/logo/logo.png"
               alt="Markivo"
               width={172}
               height={46}
-              className="h-10 w-auto"
+              className="h-9 sm:h-10 w-auto"
               priority
             />
             <p
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                marginTop: "2px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
+              className="text-[11px] font-bold text-muted-foreground mt-0.5 uppercase tracking-widest"
             >
               Vendor Hub
             </p>
           </Link>
-          <div className="mt-8 mb-6">
-            <h3
-              className="font-medium truncate"
-              style={{ color: "var(--text-primary)", fontSize: "14px" }}
-            >
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="md:hidden h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-slate-100"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-5 mb-6">
+          <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+            <h3 className="font-bold text-foreground text-sm truncate">
               {profile?.businessName || "My Store"}
             </h3>
             <div className="mt-2">
@@ -294,7 +343,7 @@ export default function VendorDashboard() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;
@@ -302,8 +351,8 @@ export default function VendorDashboard() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive ? "" : "hover:bg-[var(--bg-sunken)]"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group ${
+                  isActive ? "shadow-md" : "hover:bg-primary/5"
                 }`}
                 style={{
                   backgroundColor: isActive
@@ -312,10 +361,11 @@ export default function VendorDashboard() {
                   color: isActive
                     ? "var(--text-inverse)"
                     : "var(--text-secondary)",
-                  fontWeight: isActive ? 500 : 400,
+                  fontWeight: isActive ? 600 : 500,
                 }}
+                onClick={() => setIsMobileSidebarOpen(false)}
               >
-                <Icon size={18} />
+                <Icon size={18} className={`${isActive ? "" : "group-hover:text-primary transition-colors"}`} />
                 {item.label}
               </Link>
             );
@@ -323,20 +373,20 @@ export default function VendorDashboard() {
         </nav>
 
         <div
-          className="p-4 mt-auto"
+          className="p-5 mt-auto"
           style={{ borderTop: "1px solid var(--border-default)" }}
         >
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
-              <User size={16} />
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/50">
+            <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-primary border border-black/5">
+              <User size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-[var(--text-primary)]">
+              <p className="text-sm font-bold truncate text-foreground">
                 {user?.name || "Vendor"}
               </p>
             </div>
-            <button className="text-[var(--text-muted)] hover:text-[var(--status-error)] transition-colors">
-              <LogOut size={16} />
+            <button className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg">
+              <LogOut size={18} />
             </button>
           </div>
         </div>
@@ -346,319 +396,294 @@ export default function VendorDashboard() {
       <main className="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
         {/* TOP BAR */}
         <header
-          className="h-[72px] px-4 md:px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40"
-          style={{ borderBottom: "1px solid var(--border-default)" }}
+          className="h-16 md:h-[72px] px-4 md:px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-40 border-b border-border"
         >
           <div className="flex items-center gap-4">
-            <h1
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "2.1rem",
-                color: "var(--text-primary)",
-                letterSpacing: "0.01em",
-                fontWeight: "normal",
-              }}
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              className="md:hidden h-9 w-9 rounded-xl border border-border bg-white text-foreground hover:bg-slate-50 flex items-center justify-center shadow-sm"
+              onClick={() => setIsMobileSidebarOpen(true)}
             >
-              Overview
-            </h1>
-            {!approved && (
-              <span className="px-3 py-1 bg-[var(--status-warning-bg)] text-[var(--status-warning)] text-xs font-medium rounded-full border border-yellow-200">
-                Approval Pending
-              </span>
-            )}
+              <Menu size={18} />
+            </button>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Dashboard
+              </h1>
+              <p className="hidden sm:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Platform Overview
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative w-full max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                placeholder="Search orders, products..."
-                className="pl-9 pr-4 py-2 rounded-full text-sm w-full md:w-64 bg-[var(--bg-surface)] border-[var(--border-default)] border focus:outline-none focus:border-[var(--brand-primary)]"
-                style={{ color: "var(--text-primary)" }}
-              />
-            </div>
-            <div className="hidden md:flex items-center gap-2 pl-4 border-l border-[var(--border-default)]">
-              {approved ? (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--status-success)] bg-[var(--status-success-bg)] px-3 py-1.5 rounded-full">
-                  <ShieldCheck size={16} />
-                  Verified
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-sunken)] px-3 py-1.5 rounded-full">
-                  <ShieldAlert size={16} />
-                  Unverified
-                </span>
-              )}
-            </div>
-            <button className="relative p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-full transition-colors ml-2">
+          <div className="flex items-center gap-3">
+            <button className="relative p-2.5 text-muted-foreground hover:bg-slate-100 rounded-xl transition-all border border-transparent hover:border-slate-200 shadow-sm md:shadow-none">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--brand-accent)] rounded-full"></span>
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
             </button>
           </div>
         </header>
 
         {/* PAGE CONTENT */}
-        <div className="p-4 sm:p-8 max-w-[1200px] w-full">
-          {loading ? (
-            <div className="text-[var(--text-secondary)] text-sm">
-              Loading dashboard data...
+        <div className="p-5 md:p-8 max-w-[1400px] w-full mx-auto">
+          {loadingProfile ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+              <Loader2 className="h-10 w-10 animate-spin mb-4 text-primary" />
+              <p className="text-sm font-medium">Synchronizing dashboard data...</p>
             </div>
           ) : (
             <div className="space-y-8">
-              {/* VENDOR BASIC DETAILS CARD */}
-              <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-6 shadow-sm">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-6">
-                  <div>
-                    <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-semibold mb-1">
-                      Business Name
-                    </p>
-                    <p className="text-[var(--text-primary)] font-medium truncate">
-                      {profile?.businessName || "Not Provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-semibold mb-1">
-                      Vendor Name
-                    </p>
-                    <p className="text-[var(--text-primary)] font-medium truncate">
-                      {profile?.user?.name || user?.name || "Not Provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-semibold mb-1">
-                      Email
-                    </p>
-                    <p
-                      className="text-[var(--text-primary)] font-medium truncate"
-                      title={profile?.user?.email || user?.email}
-                    >
-                      {profile?.user?.email || user?.email || "Not Provided"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-semibold mb-1">
-                      Today's Orders
-                    </p>
-                    <p className="text-[var(--text-primary)] font-medium">12</p>
-                  </div>
-                  <div>
-                    <p className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-semibold mb-1">
-                      Products Listed
-                    </p>
-                    <p className="text-[var(--text-primary)] font-medium">
-                      156
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               {!approved ? (
-                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-8 text-center max-w-2xl mx-auto mt-6">
-                  <div className="w-16 h-16 bg-[var(--status-warning-bg)] text-[var(--status-warning)] rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle size={32} />
+                <div className="bg-card border border-amber-200 rounded-3xl p-10 text-center max-w-2xl mx-auto mt-6 shadow-xl shadow-amber-900/5">
+                  <div className="w-20 h-20 bg-amber-50 text-amber-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner border border-amber-100">
+                    <AlertTriangle size={40} />
                   </div>
-                  <h2
-                    style={{
-                      fontFamily: "var(--font-dm-sans)",
-                      fontSize: "2.2rem",
-                      color: "var(--text-primary)",
-                      letterSpacing: "0.01em",
-                      fontWeight: "normal",
-                    }}
-                  >
+                  <h2 className="text-3xl font-bold text-foreground tracking-tight">
                     Account Pending Approval
                   </h2>
-                  <p className="mt-3 text-[var(--text-secondary)]">
-                    Your vendor application is currently under review by our
-                    team. You will be able to manage products and view analytics
-                    once your store is approved.
+                  <p className="mt-4 text-muted-foreground text-lg leading-relaxed">
+                    Your vendor application is currently under review. You will be able to manage products and view orders once your store is approved.
                   </p>
                   <Link
                     href="/vendor/profile"
-                    className="inline-flex items-center justify-center px-6 py-3 mt-6 rounded-lg text-sm font-medium transition-colors"
+                    className="inline-flex items-center justify-center px-8 py-4 mt-8 rounded-2xl text-base font-bold transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95"
                     style={{
                       backgroundColor: "var(--brand-primary)",
                       color: "var(--text-inverse)",
                     }}
                   >
-                    View Application Status
+                    Check Application Status
                   </Link>
                 </div>
               ) : (
                 <>
                   {/* STATS ROW */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
                     <StatCard
                       label="Total Revenue"
-                      value="1,24,500"
+                      value={
+                        summary?.totalRevenue
+                          ? formatCurrency(Number(summary.totalRevenue))
+                          : "0"
+                      }
                       prefix="₹"
-                      delta="+12.5% this week"
-                      deltaType="up"
+                      delta={
+                        typeof summary?.revenueChangePctThisWeek === "number"
+                          ? `${Math.abs(summary.revenueChangePctThisWeek)}% this week`
+                          : ""
+                      }
+                      deltaType={
+                        summary?.revenueChangePctThisWeek > 0
+                          ? "up"
+                          : summary?.revenueChangePctThisWeek < 0
+                            ? "down"
+                            : "neutral"
+                      }
                       icon={IndianRupee}
+                      colorClass="bg-emerald-500 text-white"
                     />
                     <StatCard
                       label="Active Orders"
-                      value="24"
-                      delta="+3 since yesterday"
-                      deltaType="up"
+                      value={summary?.activeOrders ?? "0"}
+                      delta={
+                        typeof summary?.activeOrdersDeltaSinceYesterday ===
+                        "number"
+                          ? `${Math.abs(summary.activeOrdersDeltaSinceYesterday)} since yesterday`
+                          : ""
+                      }
+                      deltaType={
+                        summary?.activeOrdersDeltaSinceYesterday > 0
+                          ? "up"
+                          : summary?.activeOrdersDeltaSinceYesterday < 0
+                            ? "down"
+                            : "neutral"
+                      }
                       icon={ShoppingBag}
+                      colorClass="bg-indigo-500 text-white"
                     />
                     <StatCard
                       label="Total Products"
-                      value="156"
-                      delta="Live on store"
+                      value={summary?.totalProducts ?? "0"}
+                      delta="Live Catalog"
                       deltaType="neutral"
                       icon={Package}
+                      colorClass="bg-primary text-white"
                     />
                     <StatCard
-                      label="Low Stock Items"
-                      value="8"
-                      delta="Needs attention"
+                      label="Stock Alerts"
+                      value={summary?.lowStockItems ?? "0"}
+                      delta={
+                        summary?.lowStockThreshold
+                          ? `Below ${summary.lowStockThreshold} units`
+                          : "Needs attention"
+                      }
                       deltaType="down"
                       icon={AlertTriangle}
+                      colorClass="bg-rose-500 text-white"
                     />
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* RECENT ORDERS TABLE */}
-                    <div className="lg:col-span-2 space-y-4">
+                    <div className="lg:col-span-2 space-y-6">
                       <div className="flex items-center justify-between">
-                        <h2
-                          style={{
-                            fontFamily: "var(--font-dm-sans)",
-                            fontSize: "1.5rem",
-                            color: "var(--text-primary)",
-                          }}
-                        >
+                        <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
                           Recent Orders
+                          <span className="bg-primary/10 text-primary text-[10px] uppercase font-bold px-2 py-0.5 rounded-md">Real-time</span>
                         </h2>
                         <Link
                           href="/vendor/orders"
-                          className="text-sm font-medium hover:underline flex items-center gap-1"
-                          style={{ color: "var(--brand-primary)" }}
+                          className="text-sm font-bold hover:text-primary transition-colors flex items-center gap-1 group"
                         >
-                          View All <ChevronRight size={16} />
+                          View Full History <ChevronRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
                         </Link>
                       </div>
 
-                      <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-auto">
-                        <table className="w-full min-w-[700px] text-left border-collapse">
-                          <thead>
-                            <tr className="bg-[var(--bg-sunken)]">
-                              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                Order ID
-                              </th>
-                              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                Customer
-                              </th>
-                              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                Amount
-                              </th>
-                              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                Status
-                              </th>
-                              <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                                Date
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {recentOrders.map((order) => (
-                              <tr
-                                key={order.id}
-                                className="border-t border-[var(--border-default)] hover:bg-[#F9F9F9] transition-colors"
-                              >
-                                <td
-                                  className="px-5 py-4 text-sm font-medium"
-                                  style={{
-                                    fontFamily: "var(--font-dm-mono)",
-                                    color: "var(--text-primary)",
-                                  }}
-                                >
-                                  {order.id}
-                                </td>
-                                <td className="px-5 py-4 text-sm text-[var(--text-secondary)]">
-                                  {order.customer}
-                                  <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                                    {order.items} items
-                                  </div>
-                                </td>
-                                <td
-                                  className="px-5 py-4 text-sm font-medium"
-                                  style={{
-                                    fontFamily: "var(--font-dm-mono)",
-                                    color: "var(--text-primary)",
-                                  }}
-                                >
-                                  ₹{order.amount}
-                                </td>
-                                <td className="px-5 py-4">
-                                  <StatusBadge status={order.status} />
-                                </td>
-                                <td className="px-5 py-4 text-sm text-[var(--text-secondary)]">
-                                  {order.date}
-                                </td>
+                      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[700px] text-left border-collapse">
+                            <thead>
+                              <tr className="bg-slate-50/50">
+                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Order ID
+                                </th>
+                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Customer
+                                </th>
+                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Amount
+                                </th>
+                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Status
+                                </th>
+                                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                                  Timeline
+                                </th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody>
+                              {recentOrders.length === 0 ? (
+                                <tr>
+                                  <td
+                                    className="px-6 py-10 text-sm text-center text-muted-foreground"
+                                    colSpan={5}
+                                  >
+                                    <div className="flex flex-col items-center">
+                                      <ShoppingBag className="w-10 h-10 text-slate-200 mb-3" />
+                                      {dashboardLoading
+                                        ? "Fetching recent orders..."
+                                        : dashboardError || "No recent orders to display."}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ) : (
+                                recentOrders.map((order, idx) => (
+                                  <tr
+                                    key={order.orderId}
+                                    className={`group hover:bg-slate-50/50 transition-colors ${idx !== recentOrders.length - 1 ? "border-b border-border" : ""}`}
+                                  >
+                                  <td className="px-6 py-5">
+                                    <span className="text-sm font-bold text-foreground font-mono">
+                                      #{order.orderId.slice(-8).toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-bold text-foreground">
+                                        {order.customerName || "Customer"}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground mt-0.5 font-medium">
+                                        {order.itemCount} {order.itemCount === 1 ? "item" : "items"}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <span className="text-sm font-bold text-foreground">
+                                      ₹{formatCurrency(order.amount)}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <StatusBadge status={order.status} />
+                                  </td>
+                                  <td className="px-6 py-5">
+                                    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                      <CalendarClock size={14} />
+                                      {formatOrderDate(order.createdAt)}
+                                    </div>
+                                  </td>
+                                </tr>
+                              ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
                       </div>
                     </div>
 
                     {/* STOCK ALERTS */}
-                    <div className="space-y-4">
-                      <h2
-                        style={{
-                          fontFamily: "var(--font-dm-sans)",
-                          fontSize: "1.5rem",
-                          color: "var(--text-primary)",
-                        }}
-                      >
-                        Stock Alerts
+                    <div className="space-y-6">
+                      <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                        Inventory Alerts
+                        {lowStockItems.length > 0 && (
+                          <span className="bg-rose-100 text-rose-600 text-[10px] uppercase font-bold px-2 py-0.5 rounded-md animate-pulse">Action Required</span>
+                        )}
                       </h2>
-                      <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-5 space-y-4">
-                        {lowStockItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-4 pb-4 border-b border-[var(--border-default)] last:border-0 last:pb-0"
-                          >
-                            <img
-                              src={item.image}
-                              alt={item.name}
-                              className="w-12 h-12 rounded-lg object-cover bg-[var(--bg-sunken)]"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-[var(--text-primary)] truncate">
-                                {item.name}
-                              </p>
-                              <p
-                                className="text-xs font-medium mt-1"
-                                style={{
-                                  color:
-                                    item.stock === 0
-                                      ? "var(--status-error)"
-                                      : "var(--status-warning)",
-                                }}
-                              >
-                                {item.stock === 0
-                                  ? "Out of Stock"
-                                  : `Only ${item.stock} left`}
-                              </p>
-                            </div>
-                            <button
-                              className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
-                              style={{
-                                backgroundColor: "var(--bg-sunken)",
-                                color: "var(--text-primary)",
-                              }}
-                            >
-                              Update
-                            </button>
+                      <div className="bg-card rounded-2xl border border-border p-6 shadow-sm space-y-5">
+                        {lowStockItems.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-6 text-center">
+                            <ShieldCheck className="w-12 h-12 text-emerald-200 mb-3" />
+                            <p className="text-sm font-bold text-emerald-800">Inventory Healthy</p>
+                            <p className="text-xs text-emerald-600 mt-1">All products are well stocked.</p>
                           </div>
-                        ))}
-                        <button className="w-full py-2.5 text-sm font-medium rounded-lg border border-[var(--border-default)] hover:bg-[var(--bg-sunken)] transition-colors text-[var(--text-primary)]">
-                          View Inventory
-                        </button>
+                        ) : (
+                          lowStockItems.map((item) => (
+                            <div
+                              key={item.productId}
+                              className="flex items-center gap-4 group"
+                            >
+                              <div className="relative">
+                                <img
+                                  src={item.imageUrl || "/placeholder.svg"}
+                                  alt={item.name}
+                                  className="w-14 h-14 rounded-xl object-cover border border-border shadow-sm"
+                                />
+                                {item.isOutOfStock && (
+                                  <div className="absolute inset-0 bg-rose-500/10 rounded-xl border border-rose-500/20" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-bold text-foreground truncate">
+                                  {item.name}
+                                </p>
+                                <div className="mt-1.5 flex items-center gap-2">
+                                  <span
+                                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                                      item.isOutOfStock
+                                        ? "bg-rose-50 text-rose-600 border border-rose-100"
+                                        : "bg-amber-50 text-amber-600 border border-amber-100"
+                                    }`}
+                                  >
+                                    {item.isOutOfStock
+                                      ? "Sold Out"
+                                      : `${item.stock} Units Left`}
+                                  </span>
+                                </div>
+                              </div>
+                              <Link
+                                href={`/vendor/products/edit/${item.productId}`}
+                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all border border-transparent hover:border-primary/10 shadow-sm"
+                              >
+                                <ChevronRight size={18} />
+                              </Link>
+                            </div>
+                          ))
+                        )}
+                        <Link 
+                          href="/vendor/products"
+                          className="w-full inline-flex items-center justify-center py-3.5 text-sm font-bold rounded-xl border border-border bg-slate-50 hover:bg-slate-100 transition-all text-foreground shadow-sm"
+                        >
+                          Manage Inventory
+                        </Link>
                       </div>
                     </div>
                   </div>

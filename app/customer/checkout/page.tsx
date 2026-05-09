@@ -1121,8 +1121,8 @@ export default function CheckoutPage() {
             )}
 
             {step === 2 && paymentMode === "COD" && (
-              <div className="max-w-5xl">
-                <div className="p-6 sm:p-10 bg-white border border-[var(--border-default)] rounded-2xl shadow-sm space-y-8 sm:space-y-10">
+              <div className="max-w-5xl mx-auto">
+                <div className="p-6 sm:p-10 bg-white border border-[var(--border-default)] rounded-3xl shadow-[0_18px_45px_rgba(0,0,0,0.08)] space-y-8 sm:space-y-10">
                   <div className="text-center space-y-4 sm:space-y-5">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-red-600">
                       Cash On Delivery
@@ -1136,41 +1136,51 @@ export default function CheckoutPage() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                        Payment Mode
-                      </p>
-                      <p className="text-lg font-black text-black">COD</p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                        Orders Created
-                      </p>
-                      <p className="text-lg font-black text-black">
-                        {createdOrderCount}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                        Amount Payable
-                      </p>
-                      <p className="text-lg font-black text-black">
-                        ₹{formatPrice(codDisplayTotal)}
-                      </p>
-                    </div>
-                    <div className="rounded-xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-5 space-y-2">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                        Order Reference
-                      </p>
-                      <p className="text-sm font-black text-black break-all">
-                        {primaryOrderId}
-                      </p>
+                  <div className="rounded-2xl border border-[var(--border-default)] bg-[var(--bg-sunken)] p-6 sm:p-8">
+                    <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">
+                          Order Invoice
+                        </p>
+                        <h3 className="text-2xl sm:text-3xl font-black text-black">
+                          COD Invoice Summary
+                        </h3>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                          Reference
+                        </p>
+                        <p className="text-sm font-black text-black break-all">
+                          {primaryOrderId}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:min-w-[320px]">
+                        <div className="rounded-xl border border-[var(--border-default)] bg-white p-4 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            Payment Mode
+                          </p>
+                          <p className="text-base font-black text-black">COD</p>
+                        </div>
+                        <div className="rounded-xl border border-[var(--border-default)] bg-white p-4 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            Orders Created
+                          </p>
+                          <p className="text-base font-black text-black">
+                            {createdOrderCount}
+                          </p>
+                        </div>
+                        <div className="col-span-2 rounded-xl border border-[var(--border-default)] bg-white p-4 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            Amount Payable
+                          </p>
+                          <p className="text-2xl font-black text-black tracking-tight">
+                            ₹{formatPrice(codDisplayTotal)}
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div className="rounded-xl border border-[var(--border-default)] p-6 space-y-3">
+                    <div className="rounded-2xl border border-[var(--border-default)] p-6 space-y-3 bg-white">
                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                         Deliver To
                       </p>
@@ -1187,7 +1197,7 @@ export default function CheckoutPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-xl border border-[var(--border-default)] p-6 space-y-3">
+                    <div className="rounded-2xl border border-[var(--border-default)] p-6 space-y-3 bg-white">
                       <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
                         Contact
                       </p>
@@ -1200,16 +1210,16 @@ export default function CheckoutPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-4 pt-2 sm:flex-row">
+                  <div className="flex flex-col gap-4 pt-2 sm:flex-row sm:justify-center">
                     <Link
                       href="/products"
-                      className="flex-1 h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 text-center"
+                      className="w-full sm:w-auto sm:min-w-[220px] h-14 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all flex items-center justify-center gap-3 text-center"
                     >
                       Continue Shopping
                     </Link>
                     <Link
                       href="/customer/orders"
-                      className="flex-1 h-14 border border-[var(--border-default)] text-black rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--bg-sunken)] transition-all flex items-center justify-center gap-3 text-center"
+                      className="w-full sm:w-auto sm:min-w-[220px] h-14 border border-[var(--border-default)] text-black rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--bg-sunken)] transition-all flex items-center justify-center gap-3 text-center"
                     >
                       View My Orders
                     </Link>

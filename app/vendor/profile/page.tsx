@@ -4,10 +4,9 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useVendorStore } from "@/lib/store";
 import { VendorProfileData } from "@/lib/types";
 import {
-  fetchVendorProfile,
   isVendorApproved,
   normalizeVendorStatus,
 } from "@/lib/vendor-profile";
@@ -34,60 +33,70 @@ import {
   Clock,
   XCircle,
   Camera,
+  X,
+  Menu,
 } from "lucide-react";
 
 // --- REUSABLE COMPONENTS ---
 
 function StatusBadge({ status }: { status: string }) {
+  const normalized = (status || "PENDING").toUpperCase();
   const config: Record<
     string,
     { label: string; bg: string; color: string; dot: boolean }
   > = {
     APPROVED: {
       label: "Approved",
-      bg: "var(--status-success-bg)",
-      color: "var(--status-success)",
-      dot: false,
+      bg: "bg-emerald-50",
+      color: "text-emerald-700",
+      dot: true,
     },
     PENDING: {
-      label: "Pending Review",
-      bg: "var(--status-warning-bg)",
-      color: "var(--status-warning)",
+      label: "Pending",
+      bg: "bg-amber-50",
+      color: "text-amber-700",
       dot: true,
     },
     REJECTED: {
       label: "Rejected",
-      bg: "var(--status-error-bg)",
-      color: "var(--status-error)",
+      bg: "bg-rose-50",
+      color: "text-rose-700",
       dot: false,
     },
-    SUSPENDED: {
-      label: "Suspended",
-      bg: "#FDF4FF",
-      color: "#9333EA",
+    CONFIRMED: {
+      label: "Confirmed",
+      bg: "bg-indigo-50",
+      color: "text-indigo-700",
+      dot: true,
+    },
+    DELIVERED: {
+      label: "Delivered",
+      bg: "bg-emerald-100",
+      color: "text-emerald-800",
+      dot: false,
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      bg: "bg-rose-100",
+      color: "text-rose-800",
       dot: false,
     },
   };
 
-  const c = config[status] || {
-    label: status,
-    bg: "var(--status-neutral-bg)",
-    color: "var(--status-neutral)",
+  const c = config[normalized] || {
+    label: normalized.replaceAll("_", " "),
+    bg: "bg-slate-100",
+    color: "text-slate-700",
     dot: false,
   };
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-      style={{
-        backgroundColor: c.bg,
-        color: c.color,
-        fontFamily: "var(--font-dm-sans)",
-      }}
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 ${c.bg} ${c.color}`}
     >
       {c.dot && (
         <span
-          className="w-1.5 h-1.5 rounded-full"
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
           style={{ backgroundColor: "currentColor" }}
         />
       )}
@@ -99,47 +108,22 @@ function StatusBadge({ status }: { status: string }) {
 export default function VendorProfilePage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const { profile, loadProfile, isLoading: loading, setProfile } = useVendorStore();
 
-  const [profile, setProfile] = useState<VendorProfileData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadProfile = async () => {
-      if (!user || user.role?.toUpperCase() !== "VENDOR") {
-        if (isMounted) setLoading(false);
-        return;
-      }
-
-      try {
-        const vendorProfile = await fetchVendorProfile();
-        if (!isMounted) return;
-
-        if (!vendorProfile) {
+    if (user?.role?.toUpperCase() === "VENDOR") {
+      loadProfile().then(() => {
+        if (!useVendorStore.getState().profile && !useVendorStore.getState().isLoading) {
           router.push("/vendor/apply");
-          return;
         }
-
-        setProfile(vendorProfile);
-      } catch (err: unknown) {
-        if (!isMounted) return;
-        const message =
-          err instanceof Error ? err.message : "Unable to load vendor profile.";
-        setError(message);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadProfile();
-    return () => {
-      isMounted = false;
-    };
-  }, [router, user]);
+      });
+    }
+  }, [user, loadProfile, router]);
 
   const handleLogoChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -175,8 +159,7 @@ export default function VendorProfilePage() {
       } else if (payload?.logoUrl && profile) {
         setProfile({ ...profile, logoUrl: payload.logoUrl });
       } else {
-        const updatedProfile = await fetchVendorProfile();
-        if (updatedProfile) setProfile(updatedProfile);
+        await loadProfile(true);
       }
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Error uploading logo");
@@ -206,42 +189,51 @@ export default function VendorProfilePage() {
         fontFamily: "var(--font-dm-sans)",
       }}
     >
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          className="fixed inset-0 z-40 bg-black/35 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <aside
-        className="w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderRight: "1px solid var(--border-default)",
-          zIndex: 50,
-        }}
+        className={`fixed inset-y-0 left-0 z-50 w-[250px] sm:w-[260px] flex flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)] transform transition-transform duration-300 ease-out ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
             <Image
               src="/logo/logo.png"
               alt="Markivo"
               width={172}
               height={46}
-              className="h-10 w-auto"
+              className="h-9 sm:h-10 w-auto"
               priority
             />
             <p
-              style={{
-                fontSize: "11px",
-                color: "var(--text-muted)",
-                marginTop: "2px",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
+              className="text-[11px] font-bold text-muted-foreground mt-0.5 uppercase tracking-widest"
             >
               Vendor Hub
             </p>
           </Link>
-          <div className="mt-8 mb-6">
-            <h3
-              className="font-medium truncate"
-              style={{ color: "var(--text-primary)", fontSize: "14px" }}
-            >
+
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="md:hidden h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-slate-100"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-5 mb-6">
+          <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+            <h3 className="font-bold text-foreground text-sm truncate">
               {profile?.businessName || "My Store"}
             </h3>
             <div className="mt-2">
@@ -250,7 +242,7 @@ export default function VendorProfilePage() {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1">
+        <nav className="flex-1 px-4 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;
@@ -258,8 +250,8 @@ export default function VendorProfilePage() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive ? "" : "hover:bg-[var(--bg-sunken)]"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group ${
+                  isActive ? "shadow-md" : "hover:bg-primary/5"
                 }`}
                 style={{
                   backgroundColor: isActive
@@ -268,10 +260,11 @@ export default function VendorProfilePage() {
                   color: isActive
                     ? "var(--text-inverse)"
                     : "var(--text-secondary)",
-                  fontWeight: isActive ? 500 : 400,
+                  fontWeight: isActive ? 600 : 500,
                 }}
+                onClick={() => setIsMobileSidebarOpen(false)}
               >
-                <Icon size={18} />
+                <Icon size={18} className={`${isActive ? "" : "group-hover:text-primary transition-colors"}`} />
                 {item.label}
               </Link>
             );
@@ -279,82 +272,59 @@ export default function VendorProfilePage() {
         </nav>
 
         <div
-          className="p-4 mt-auto"
+          className="p-5 mt-auto"
           style={{ borderTop: "1px solid var(--border-default)" }}
         >
-          <div className="flex items-center gap-3 px-3 py-2">
-            <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-[var(--text-secondary)]">
-              <User size={16} />
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/50">
+            <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-primary border border-black/5">
+              <User size={18} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate text-[var(--text-primary)]">
+              <p className="text-sm font-bold truncate text-foreground">
                 {profile?.user?.name || user?.name || "Vendor"}
               </p>
             </div>
-            <button className="text-[var(--text-muted)] hover:text-[var(--status-error)] transition-colors">
-              <LogOut size={16} />
+            <button className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg">
+              <LogOut size={18} />
             </button>
           </div>
         </div>
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 ml-[260px] flex flex-col min-h-screen">
+      <main className="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
         {/* TOP BAR */}
         <header
-          className="h-[72px] px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40"
-          style={{ borderBottom: "1px solid var(--border-default)" }}
+          className="h-16 md:h-[72px] px-4 md:px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-40 border-b border-border"
         >
           <div className="flex items-center gap-4">
-            <h1
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "2.1rem",
-                color: "var(--text-primary)",
-                letterSpacing: "0.04em",
-                fontWeight: "normal",
-              }}
+            <button
+              type="button"
+              aria-label="Open sidebar"
+              className="md:hidden h-9 w-9 rounded-xl border border-border bg-white text-foreground hover:bg-slate-50 flex items-center justify-center shadow-sm"
+              onClick={() => setIsMobileSidebarOpen(true)}
             >
-              Profile
-            </h1>
-            {!approved && !loading && profile && (
-              <span className="px-3 py-1 bg-[var(--status-warning-bg)] text-[var(--status-warning)] text-xs font-medium rounded-full border border-yellow-200">
-                Approval Pending
-              </span>
-            )}
+              <Menu size={18} />
+            </button>
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Profile
+              </h1>
+              <p className="hidden sm:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Manage your store identity
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-              <input
-                type="text"
-                placeholder="Search orders, products..."
-                className="pl-9 pr-4 py-2 rounded-full text-sm w-64 bg-[var(--bg-surface)] border-[var(--border-default)] border focus:outline-none focus:border-[var(--brand-primary)]"
-                style={{ color: "var(--text-primary)" }}
-              />
-            </div>
-            <div className="hidden md:flex items-center gap-2 pl-4 border-l border-[var(--border-default)]">
-              {approved ? (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--status-success)] bg-[var(--status-success-bg)] px-3 py-1.5 rounded-full">
-                  <ShieldCheck size={16} />
-                  Verified
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5 text-sm font-medium text-[var(--text-secondary)] bg-[var(--bg-sunken)] px-3 py-1.5 rounded-full">
-                  <ShieldAlert size={16} />
-                  Unverified
-                </span>
-              )}
-            </div>
-            <button className="relative p-2 text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-full transition-colors ml-2">
+          <div className="flex items-center gap-3">
+            <button className="relative p-2.5 text-muted-foreground hover:bg-slate-100 rounded-xl transition-all border border-transparent hover:border-slate-200 shadow-sm md:shadow-none">
               <Bell size={20} />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[var(--brand-accent)] rounded-full"></span>
+              <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
             </button>
           </div>
         </header>
 
         {/* PAGE CONTENT */}
-        <div className="p-8 max-w-[1200px] w-full">
+        <div className="p-5 md:p-8 max-w-[1200px] w-full">
           {loading ? (
             <div className="text-[var(--text-secondary)] text-sm">
               Loading profile data...
@@ -367,7 +337,7 @@ export default function VendorProfilePage() {
             <div className="space-y-6">
               {/* STATUS BANNER */}
               <div
-                className="rounded-xl border p-6 flex flex-col md:flex-row md:items-center justify-between gap-4"
+                className="bg-card border rounded-3xl p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl"
                 style={{
                   backgroundColor: approved
                     ? "var(--status-success-bg)"
@@ -379,21 +349,40 @@ export default function VendorProfilePage() {
                     : status === "REJECTED"
                       ? "#FECACA"
                       : "#FDE68A",
+                  boxShadow: approved
+                    ? "0 20px 25px -5px rgba(16, 185, 129, 0.05)"
+                    : status === "REJECTED"
+                      ? "0 20px 25px -5px rgba(239, 68, 68, 0.05)"
+                      : "0 20px 25px -5px rgba(245, 158, 11, 0.05)",
                 }}
               >
-                <div className="flex items-start gap-4">
-                  <div className="mt-1">
+                <div className="flex items-center gap-6">
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-inner border"
+                    style={{
+                      backgroundColor: approved
+                        ? "white"
+                        : status === "REJECTED"
+                          ? "#FEF2F2"
+                          : "#FFFBEB",
+                      borderColor: approved
+                        ? "#A7F3D0"
+                        : status === "REJECTED"
+                          ? "#FECACA"
+                          : "#FDE68A",
+                    }}
+                  >
                     {approved ? (
-                      <CheckCircle2 className="w-6 h-6 text-[var(--status-success)]" />
+                      <ShieldCheck className="w-8 h-8 text-[var(--status-success)]" />
                     ) : status === "REJECTED" ? (
-                      <XCircle className="w-6 h-6 text-[var(--status-error)]" />
+                      <ShieldAlert className="w-8 h-8 text-[var(--status-error)]" />
                     ) : (
-                      <Clock className="w-6 h-6 text-[var(--status-warning)]" />
+                      <Clock className="w-8 h-8 text-[var(--status-warning)]" />
                     )}
                   </div>
                   <div>
                     <h2
-                      className="text-lg font-semibold"
+                      className="text-2xl font-bold tracking-tight"
                       style={{
                         color: approved
                           ? "var(--status-success)"
@@ -406,34 +395,36 @@ export default function VendorProfilePage() {
                         ? "Store is Approved"
                         : status === "REJECTED"
                           ? "Application Rejected"
-                          : "Application Under Review"}
+                          : "Account Pending Approval"}
                     </h2>
                     <p
-                      className="text-sm mt-1"
-                      style={{ color: "var(--text-secondary)" }}
+                      className="text-muted-foreground text-sm mt-1 max-w-xl leading-relaxed"
                     >
                       {approved
                         ? "Your store is active and live on Markivo. You have full access to all vendor features."
                         : status === "REJECTED"
-                          ? "Unfortunately, your application was rejected. Please review your details and documents."
-                          : "Your store profile and documents are currently being reviewed by our team. Approval usually takes 24-48 hours."}
+                          ? "Unfortunately, your application was rejected. Please review your business details and documents."
+                          : "Your vendor application is currently under review. Approval usually takes 24-48 hours."}
                     </p>
                   </div>
                 </div>
                 {!approved && status !== "REJECTED" && (
                   <div className="flex-shrink-0">
                     <span
-                      className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-white bg-opacity-50 text-sm font-medium border border-white border-opacity-60 shadow-sm"
-                      style={{ color: "var(--status-warning)" }}
+                      className="inline-flex items-center justify-center px-5 py-2 rounded-xl bg-white text-sm font-bold border shadow-sm"
+                      style={{
+                        color: "var(--status-warning)",
+                        borderColor: "#FDE68A",
+                      }}
                     >
-                      Pending
+                      Pending Review
                     </span>
                   </div>
                 )}
               </div>
 
               {/* THREE COLUMN GRID */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {/* BUSINESS DETAILS */}
                 <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-hidden shadow-sm lg:col-span-2">
                   <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between bg-[var(--bg-sunken)]">
@@ -494,7 +485,7 @@ export default function VendorProfilePage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 gap-y-6 gap-x-8">
                       <div>
                         <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
                           Business Name
@@ -587,7 +578,7 @@ export default function VendorProfilePage() {
               </div>
 
               {/* SECOND ROW - ADDRESS AND DOCUMENTS */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* ADDRESS DETAILS */}
                 <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] overflow-hidden shadow-sm">
                   <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center gap-2 bg-[var(--bg-sunken)]">
@@ -596,7 +587,7 @@ export default function VendorProfilePage() {
                       Location & Address
                     </h3>
                   </div>
-                  <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-y-6 gap-x-8">
+                  <div className="p-6 grid grid-cols-2 sm:grid-cols-2 gap-y-6 gap-x-8">
                     <div className="sm:col-span-2">
                       <p className="text-xs uppercase tracking-wider font-semibold text-[var(--text-muted)] mb-1">
                         Full Address

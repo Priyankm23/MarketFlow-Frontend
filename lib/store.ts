@@ -1,11 +1,52 @@
 import { create } from "zustand";
-import { User, UserRole, CartItem, Notification, Product } from "./types";
+import { persist } from "zustand/middleware";
+import { User, UserRole, CartItem, Notification, Product, VendorProfileData } from "./types";
 import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "./auth-store";
 import { authFetch } from "./auth-fetch";
+import { fetchVendorProfile } from "./vendor-profile";
 
 // Export useAuthStore from here for backward compatibility
 export { useAuthStore };
+
+// --- VENDOR STORE ---
+
+interface VendorStore {
+  profile: VendorProfileData | null;
+  isLoading: boolean;
+  error: string | null;
+  setProfile: (profile: VendorProfileData | null) => void;
+  loadProfile: (force?: boolean) => Promise<void>;
+}
+
+export const useVendorStore = create<VendorStore>()(
+  persist(
+    (set, get) => ({
+      profile: null,
+      isLoading: false,
+      error: null,
+      setProfile: (profile) => set({ profile }),
+      loadProfile: async (force = false) => {
+        const { profile, isLoading } = get();
+        if (!force && (profile || isLoading)) return;
+
+        set({ isLoading: true, error: null });
+        try {
+          const fetchedProfile = await fetchVendorProfile();
+          set({ profile: fetchedProfile, isLoading: false });
+        } catch (err) {
+          set({
+            error: err instanceof Error ? err.message : "Failed to load profile",
+            isLoading: false,
+          });
+        }
+      },
+    }),
+    {
+      name: "vendor-storage",
+    },
+  ),
+);
 
 const toApiV1BaseUrl = (baseUrl: string) => {
   const trimmed = baseUrl.replace(/\/+$/, "");
