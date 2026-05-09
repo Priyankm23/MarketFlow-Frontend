@@ -524,11 +524,13 @@ export function Navbar() {
 
   const getDashboardLink = () => {
     if (!user) return "/login";
-    switch (user.role) {
+    const role = String(user.role).toLowerCase();
+    switch (role) {
       case "vendor":
         return "/vendor/dashboard";
       case "delivery":
-        return "/delivery/tasks";
+      case "delivery_partner":
+        return "/delivery/dashboard";
       case "admin":
         return "/admin/dashboard";
       default:

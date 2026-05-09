@@ -345,8 +345,13 @@ export default function HomePage() {
   const heroTouchDeltaY = useRef(0);
 
   useEffect(() => {
-    if (user?.role === "vendor") {
+    if (user?.role?.toLowerCase() === "vendor") {
       router.replace("/vendor/dashboard");
+    } else if (
+      user?.role?.toLowerCase() === "delivery_partner" ||
+      user?.role?.toLowerCase() === "delivery"
+    ) {
+      router.replace("/delivery/dashboard");
     }
   }, [router, user?.role]);
 
