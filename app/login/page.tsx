@@ -51,8 +51,8 @@ export default function LoginPage() {
       const dashboardMap: Record<string, string> = {
         customer: "/products",
         vendor: "/vendor/dashboard",
-        delivery_partner: "/delivery/tasks",
-        delivery: "/delivery/tasks",
+        delivery_partner: "/delivery/dashboard",
+        delivery: "/delivery/dashboard",
         admin: "/admin/dashboard",
       };
 

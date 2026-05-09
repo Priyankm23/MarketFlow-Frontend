@@ -358,21 +358,33 @@ export default function VendorOrdersPage() {
     };
   }, [orders]);
 
+  const [activeTab, setActiveTab] = useState<"active" | "delivered">("active");
+
   const activeOrders = useMemo(
-    () => orders.filter((order) => !isCancelledOrder(order.status)),
+    () => orders.filter((order) => {
+      const status = (order.status || "").toUpperCase();
+      return !isCancelledOrder(order.status) && status !== "DELIVERED";
+    }),
     [orders],
   );
 
+  const deliveredOrders = useMemo(
+    () => orders.filter((order) => (order.status || "").toUpperCase() === "DELIVERED"),
+    [orders],
+  );
+
+  const currentOrderList = activeTab === "active" ? activeOrders : deliveredOrders;
+
   const paginatedOrders = useMemo(() => {
     const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
-    return activeOrders.slice(startIndex, startIndex + ORDERS_PER_PAGE);
-  }, [activeOrders, currentPage]);
+    return currentOrderList.slice(startIndex, startIndex + ORDERS_PER_PAGE);
+  }, [currentOrderList, currentPage]);
 
-  const totalPages = Math.ceil(activeOrders.length / ORDERS_PER_PAGE);
+  const totalPages = Math.ceil(currentOrderList.length / ORDERS_PER_PAGE);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [orders.length]);
+  }, [orders.length, activeTab]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -647,20 +659,52 @@ export default function VendorOrdersPage() {
                 />
               </div>
 
-              {activeOrders.length === 0 ? (
+              {/* TABS SECTION */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-2xl w-fit">
+                <button
+                  onClick={() => setActiveTab("active")}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                    activeTab === "active"
+                      ? "bg-white text-primary shadow-sm ring-1 ring-black/5"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  Active Orders ({activeOrders.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("delivered")}
+                  className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                    activeTab === "delivered"
+                      ? "bg-white text-emerald-600 shadow-sm ring-1 ring-black/5"
+                      : "text-slate-500 hover:text-slate-900"
+                  }`}
+                >
+                  Delivered ({deliveredOrders.length})
+                </button>
+              </div>
+
+              {currentOrderList.length === 0 ? (
                 <div className="col-span-full py-20 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-border">
                     <PackageSearch size={32} className="text-muted-foreground/40" />
                   </div>
-                  <h3 className="text-lg font-bold text-foreground">No active orders yet</h3>
-                  <p className="text-muted-foreground mt-1 max-w-xs mx-auto">Your store is active. New orders will appear here as customers purchase your products.</p>
-                  <Link
-                    href="/vendor/products"
-                    className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-white border border-border rounded-2xl text-sm font-bold text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
-                  >
-                    <Plus size={18} />
-                    Manage Catalog
-                  </Link>
+                  <h3 className="text-lg font-bold text-foreground">
+                    {activeTab === "active" ? "No active orders yet" : "No delivered orders yet"}
+                  </h3>
+                  <p className="text-muted-foreground mt-1 max-w-xs mx-auto">
+                    {activeTab === "active" 
+                      ? "Your store is active. New orders will appear here as customers purchase your products."
+                      : "Orders you complete will appear here for your records."}
+                  </p>
+                  {activeTab === "active" && (
+                    <Link
+                      href="/vendor/products"
+                      className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-white border border-border rounded-2xl text-sm font-bold text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                    >
+                      <Plus size={18} />
+                      Manage Catalog
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-8">

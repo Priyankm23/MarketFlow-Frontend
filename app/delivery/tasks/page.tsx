@@ -109,6 +109,7 @@ export default function DeliveryTasksPage() {
             headers: {
               "Content-Type": "application/json",
             },
+            credentials: "include"
           },
         );
 

@@ -15,7 +15,9 @@ import { VendorProfileData } from "@/lib/types";
 import {
   ArrowLeft,
   BarChart2,
+  Bike,
   CalendarClock,
+  CheckCircle2,
   ClipboardList,
   LayoutDashboard,
   Loader2,
@@ -26,6 +28,7 @@ import {
   Phone,
   Package,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   Truck,
   User,
@@ -170,6 +173,72 @@ const formatCurrency = (value?: number) => {
 const formatMoney = (value?: number) =>
   `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
+function StatusBadge({ status }: { status: string }) {
+  const normalized = (status || "PENDING").toUpperCase();
+  const config: Record<
+    string,
+    { label: string; bg: string; color: string; dot: boolean }
+  > = {
+    APPROVED: {
+      label: "Approved",
+      bg: "bg-emerald-50",
+      color: "text-emerald-700",
+      dot: true,
+    },
+    PENDING: {
+      label: "Pending",
+      bg: "bg-amber-50",
+      color: "text-amber-700",
+      dot: true,
+    },
+    REJECTED: {
+      label: "Rejected",
+      bg: "bg-rose-50",
+      color: "text-rose-700",
+      dot: false,
+    },
+    CONFIRMED: {
+      label: "Confirmed",
+      bg: "bg-indigo-50",
+      color: "text-indigo-700",
+      dot: true,
+    },
+    DELIVERED: {
+      label: "Delivered",
+      bg: "bg-emerald-100",
+      color: "text-emerald-800",
+      dot: false,
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      bg: "bg-rose-100",
+      color: "text-rose-800",
+      dot: false,
+    },
+  };
+
+  const c = config[normalized] || {
+    label: normalized.replaceAll("_", " "),
+    bg: "bg-slate-100",
+    color: "text-slate-700",
+    dot: false,
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 ${c.bg} ${c.color}`}
+    >
+      {c.dot && (
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{ backgroundColor: "currentColor" }}
+        />
+      )}
+      {c.label}
+    </span>
+  );
+}
+
 function MetricTile({
   icon: Icon,
   label,
@@ -264,6 +333,7 @@ export default function VendorOrderDetailsPage() {
   >("idle");
   const [assignmentTriggered, setAssignmentTriggered] = useState(false);
   const [deliveryAgent, setDeliveryAgent] = useState<any>(null);
+  const [backendOtp, setBackendOtp] = useState<string | null>(null);
 
   const approved = useMemo(
     () => isVendorApproved(profile?.status),
@@ -531,6 +601,8 @@ export default function VendorOrderDetailsPage() {
   );
 
   const deliveryLikeStatuses = [
+    "ASSIGNED",
+    "READY_FOR_PICKUP",
     "OUT_FOR_DELIVERY",
     "IN_TRANSIT",
     "SHIPPED",
@@ -549,6 +621,12 @@ export default function VendorOrderDetailsPage() {
     !isCancelled &&
     normalizedStatus === "PACKED" &&
     !assignmentTriggered &&
+    approved;
+
+  const canHandToPartner = 
+    !!order &&
+    !isCancelled &&
+    normalizedStatus === "READY_FOR_PICKUP" &&
     approved;
 
   const latestOrderEvent = useMemo(() => {
@@ -577,6 +655,7 @@ export default function VendorOrderDetailsPage() {
     const isDeliveryState = [
       "PACKED",
       "ASSIGNED",
+      "READY_FOR_PICKUP",
       "PICKED_UP",
       "IN_TRANSIT",
       "OUT_FOR_DELIVERY",
@@ -658,8 +737,10 @@ export default function VendorOrderDetailsPage() {
     setIsMarkingReady(true);
     setActionMessage("");
     setActionStatus("idle");
+    setBackendOtp(null);
 
     const assignmentEndpoint = `${ORDERS_API_BASE_URL}/delivery/orders/${order.id}/assign`;
+    const otpEndpoint = `${API_BASE_URL}/delivery/orders/${order.id}/pickup-otp`;
 
     try {
       const response = await authFetch(assignmentEndpoint, {
@@ -680,6 +761,22 @@ export default function VendorOrderDetailsPage() {
             "Could not assign a delivery partner right now. Please try again.",
         );
         return;
+      }
+
+      // Fetch handover OTP from backend
+      try {
+        const otpRes = await authFetch(otpEndpoint, {
+          method: "POST",
+          credentials: "include"
+        });
+        if (otpRes.ok) {
+          const otpPayload = await otpRes.json();
+          if (otpPayload.success && otpPayload.data?.otp) {
+            setBackendOtp(String(otpPayload.data.otp));
+          }
+        }
+      } catch (otpErr) {
+        console.error("Backend OTP fetch failed:", otpErr);
       }
 
       setAssignmentTriggered(true);
@@ -707,6 +804,17 @@ export default function VendorOrderDetailsPage() {
       setIsMarkingReady(false);
     }
   };
+
+  const currentHandoverOtp = useMemo(() => {
+    return backendOtp;
+  }, [backendOtp]);
+
+  const isPickedUp = useMemo(() => {
+    if (typeof window === "undefined" || !order) return false;
+    const pickedUpOrders = JSON.parse(window.localStorage.getItem("delivery_picked_up_orders") || "{}");
+    // The keys in delivery_picked_up_orders are taskIds, which we've mapped to orderIds in this implementation
+    return !!pickedUpOrders[order.id];
+  }, [order?.id]);
 
   return (
     <div
@@ -766,6 +874,17 @@ export default function VendorOrderDetailsPage() {
           >
             <X size={18} />
           </button>
+        </div>
+
+        <div className="px-5 mb-6">
+          <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+            <h3 className="font-bold text-foreground text-sm truncate">
+              {profile?.businessName || "My Store"}
+            </h3>
+            <div className="mt-2">
+              <StatusBadge status={status || "PENDING"} />
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 px-4 space-y-1">
@@ -1199,47 +1318,127 @@ export default function VendorOrderDetailsPage() {
 
               {/* Action Panel alongside items on PC */}
               <aside className="xl:sticky xl:top-24 space-y-5">
-                {normalizedStatus === "READY_FOR_PICKUP" ? (
-                  <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-indigo-500">
-                    <h3 className="text-base font-bold text-indigo-900 flex items-center gap-2">
-                      <Truck className="h-4 w-4" />
-                      Delivery Agent
-                    </h3>
-                    {deliveryAgent && deliveryAgent.user ? (
-                      <div className="mt-5 space-y-3">
-                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-                            Agent Name
-                          </p>
-                          <p className="text-base font-bold text-foreground mt-0.5">
-                            {deliveryAgent.user.name || "Unknown"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-                            Contact Number
-                          </p>
-                          <p className="text-base font-bold text-foreground mt-0.5">
-                            {deliveryAgent.user.phone || "-"}
-                          </p>
-                        </div>
-                        <div className="rounded-xl border border-border bg-indigo-50/50 px-3 py-2.5">
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-                            Email Address
-                          </p>
-                          <p className="text-sm font-bold text-foreground mt-0.5 break-all">
-                            {deliveryAgent.user.email || "-"}
-                          </p>
-                        </div>
+                {normalizedStatus === "DELIVERED" && (
+                  <section className="rounded-3xl border border-emerald-100 bg-emerald-50/50 p-8 shadow-xl shadow-emerald-100/30 border-t-8 border-t-emerald-500 animate-in fade-in slide-in-from-top-4 duration-700">
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner ring-4 ring-white">
+                        <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                       </div>
-                    ) : (
+                      <h2 className="text-2xl font-black text-emerald-900 uppercase tracking-tight mb-2">Order Delivered</h2>
+                      <p className="text-sm text-emerald-700 font-bold leading-relaxed px-4">
+                        This order has been successfully completed and received by the customer.
+                      </p>
+                      
+                      <div className="mt-8 pt-8 border-t border-emerald-100 flex flex-col gap-3">
+                         <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-emerald-600/60 px-2">
+                            <span>Service Link</span>
+                            <span>Secure</span>
+                         </div>
+                         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                               <ShieldCheck size={18} />
+                            </div>
+                            <p className="text-xs font-black text-slate-900 text-left">Verified via Secure OTP Handover</p>
+                         </div>
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {currentHandoverOtp && !isPickedUp && normalizedStatus !== "DELIVERED" && (
+                  <section className="rounded-2xl border border-blue-100 bg-blue-50/50 p-6 shadow-xl shadow-blue-100/30 border-t-4 border-t-blue-600 animate-in fade-in zoom-in duration-500">
+                    <div className="text-center">
+                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-4">Handover Security OTP</p>
+                      <div className="flex justify-center gap-3 mb-4">
+                        {currentHandoverOtp.split("").map((digit: string, idx: number) => (
+                          <div key={idx} className="w-12 h-14 bg-white border-2 border-blue-200 rounded-xl flex items-center justify-center text-2xl font-black text-blue-700 shadow-sm">
+                            {digit}
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-blue-700 font-bold leading-relaxed px-4">Share this code with the partner to verify handover.</p>
+                    </div>
+                  </section>
+                )}
+
+                {(deliveryAgent || normalizedStatus === "READY_FOR_PICKUP" || normalizedStatus === "DELIVERED") && (
+                  <section className="rounded-2xl border border-orange-100 bg-white p-5 shadow-xl shadow-orange-100/50 border-t-4 border-t-orange-600">
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                        <Bike className="h-5 w-5 text-orange-600" />
+                        Delivery Partner
+                      </h3>
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isPickedUp || normalizedStatus === "DELIVERED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
+                        {normalizedStatus === "DELIVERED" ? "Completed" : isPickedUp ? "Verified" : deliveryAgent ? "Assigned" : "Pending"}
+                      </span>
+                    </div>
+
+                    {deliveryAgent && deliveryAgent.user ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4 p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg ${isPickedUp || normalizedStatus === "DELIVERED" ? "bg-emerald-600 shadow-emerald-200" : "bg-orange-600 shadow-orange-200"}`}>
+                            {isPickedUp || normalizedStatus === "DELIVERED" ? <CheckCircle2 size={24} /> : <User size={24} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${isPickedUp || normalizedStatus === "DELIVERED" ? "text-emerald-600/70" : "text-orange-600/70"}`}>
+                              Partner Name
+                            </p>
+                            <p className="text-base font-black text-slate-900 truncate">
+                              {deliveryAgent.user.name || "Unknown"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {(isPickedUp || normalizedStatus === "DELIVERED") && (
+                          <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                               <ShieldCheck size={18} />
+                            </div>
+                            <p className="text-xs font-black text-emerald-700 uppercase tracking-tight">Partner Verified with OTP</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-1 gap-3">
+                          <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-slate-400 border border-slate-100 shrink-0 shadow-sm">
+                              <Phone size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                Direct Contact
+                              </p>
+                              <p className="text-sm font-black text-slate-900">
+                                {deliveryAgent.user.phone || "-"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {normalizedStatus !== "DELIVERED" && !isPickedUp && deliveryAgent.user.phone && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              window.open(`tel:${deliveryAgent.user.phone}`)
+                            }
+                            className="w-full flex items-center justify-center gap-2 bg-slate-950 text-white px-5 py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95"
+                          >
+                            <Phone size={16} className="fill-white" /> Call
+                            Partner
+                          </button>
+                        )}
+                      </div>
+                    ) : normalizedStatus !== "DELIVERED" ? (
                       <div className="mt-5 flex flex-col items-center justify-center py-6 text-center text-muted-foreground bg-secondary/10 rounded-xl border border-dashed border-border">
                         <Loader2 className="h-5 w-5 animate-spin mb-2.5 text-primary" />
-                        <p className="text-xs font-medium">Fetching agent details...</p>
+                        <p className="text-xs font-medium">
+                          Fetching agent details...
+                        </p>
                       </div>
-                    )}
+                    ) : null}
                   </section>
-                ) : !isPackedOrBeyond ? (
+                )}
+
+                {normalizedStatus !== "DELIVERED" && !isPackedOrBeyond && (
                   <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-primary">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1299,7 +1498,9 @@ export default function VendorOrderDetailsPage() {
                       </div>
                     ) : null}
                   </section>
-                ) : (
+                )}
+                
+                {normalizedStatus !== "DELIVERED" && isPackedOrBeyond && !isPickedUp && (
                   <section className="rounded-2xl border border-border bg-card p-5 shadow-md border-t-4 border-t-emerald-500">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1310,7 +1511,7 @@ export default function VendorOrderDetailsPage() {
                           Packaging complete. Trigger delivery.
                         </p>
                       </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 shadow-sm">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-sm bg-emerald-100 text-emerald-600`}>
                         <Truck className="h-5 w-5" />
                       </div>
                     </div>
