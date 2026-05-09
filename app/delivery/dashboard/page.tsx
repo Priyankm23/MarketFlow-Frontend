@@ -207,6 +207,25 @@ function LeafletMap({ className }: { className?: string }) {
     L.marker([21.175, 72.835], { icon: pickupIcon }).addTo(map);
     L.marker([21.165, 72.825], { icon: dropIcon }).addTo(map);
 
+    // DRAW PATH
+    const routePoints = [
+      [21.175, 72.835], // Pickup
+      [21.172, 72.830], // Mid-point
+      [21.168, 72.828], // Mid-point
+      [21.165, 72.825], // Drop-off
+    ];
+
+    const polyline = L.polyline(routePoints, {
+      color: "#ea580c",
+      weight: 4,
+      dashArray: "8, 12",
+      lineCap: "round",
+      opacity: 0.8,
+    }).addTo(map);
+
+    // Optional: Zoom to fit both markers
+    map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
+
     return () => {
       map.remove();
     };
