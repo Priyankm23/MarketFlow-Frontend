@@ -108,6 +108,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function VendorProfilePage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const { profile, loadProfile, isLoading: loading, setProfile } = useVendorStore();
 
   const [error, setError] = useState("");
@@ -284,7 +285,11 @@ export default function VendorProfilePage() {
                 {profile?.user?.name || user?.name || "Vendor"}
               </p>
             </div>
-            <button className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg">
+            <button 
+              onClick={() => logout()}
+              className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
+              title="Logout"
+            >
               <LogOut size={18} />
             </button>
           </div>

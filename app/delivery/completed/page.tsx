@@ -99,10 +99,10 @@ export default function CompletedDeliveriesPage() {
         {!loading && !error && deliveries.length > 0 && (
           <section className="bg-slate-950 rounded-[2rem] p-6 sm:p-8 shadow-xl shadow-orange-900/20 text-white relative overflow-hidden group">
             {/* Resized Static Orange Architectural Element */}
-            <div className="absolute right-0 top-0 w-40 h-40 bg-orange-600 rounded-bl-[8rem] z-0 shadow-[-10px_10px_30px_rgba(0,0,0,0.3)]" />
+            <div className="absolute right-0 top-0 w-28 h-28 sm:w-40 sm:h-40 bg-orange-600 rounded-bl-[5rem] sm:rounded-bl-[8rem] z-0 shadow-[-10px_10px_30px_rgba(0,0,0,0.3)]" />
             
-            <div className="absolute right-8 top-8 z-20">
-               <Zap size={32} className="text-white fill-white/20" />
+            <div className="absolute right-6 top-6 sm:right-8 sm:top-8 z-20">
+               <Zap className="text-white fill-white/20 w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             
             <div className="relative z-10">
@@ -111,14 +111,14 @@ export default function CompletedDeliveriesPage() {
                 <p className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-500">Fleet Performance</p>
               </div>
               
-              <div className="flex items-center gap-5">
-                <span className="text-6xl font-black tracking-tighter text-white drop-shadow-xl">
+              <div className="flex items-center gap-4 sm:gap-5">
+                <span className="text-5xl sm:text-6xl font-black tracking-tighter text-white drop-shadow-xl">
                   {deliveries.length}
                 </span>
-                <div className="h-12 w-0.5 bg-orange-600/30 rounded-full" />
+                <div className="h-10 sm:h-12 w-0.5 bg-orange-600/30 rounded-full" />
                 <div className="flex flex-col">
-                   <p className="text-lg font-black uppercase tracking-tight text-orange-600">Completions</p>
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Delivered Today</p>
+                   <p className="text-base sm:text-lg font-black uppercase tracking-tight text-orange-600">Completions</p>
+                   <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest italic">Delivered Today</p>
                 </div>
               </div>
 
@@ -179,10 +179,11 @@ export default function CompletedDeliveriesPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Net Value</p>
-                      <p className="text-2xl font-black text-emerald-600 tracking-tighter">
-                        ₹{parseFloat(order.totalAmount).toLocaleString("en-IN")}
-                      </p>
+                      <div className="flex flex-col items-end gap-0.5">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Commission</p>
+                        <p className="text-2xl font-black text-emerald-600 tracking-tighter">₹40</p>
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Order ₹{parseFloat(order.totalAmount).toLocaleString("en-IN")}</p>
+                      </div>
                     </div>
                   </div>
 

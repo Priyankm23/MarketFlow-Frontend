@@ -334,6 +334,9 @@ export default function VendorOrderDetailsPage() {
   const [assignmentTriggered, setAssignmentTriggered] = useState(false);
   const [deliveryAgent, setDeliveryAgent] = useState<any>(null);
   const [backendOtp, setBackendOtp] = useState<string | null>(null);
+  const [verdict, setVerdict] = useState<"PENDING" | "ACCEPTED" | "REJECTED" | "UNKNOWN">("UNKNOWN");
+  const [deliveryStage, setDeliveryStage] = useState<string | null>(null);
+  const [pickupEta, setPickupEta] = useState<number | null>(null);
 
   const approved = useMemo(
     () => isVendorApproved(profile?.status),
@@ -402,15 +405,15 @@ export default function VendorOrderDetailsPage() {
           return;
         }
 
-        const singleOrderEndpoints = [
-          `${ORDERS_API_BASE_URL}/orders/vendor-orders/${orderId}`,
-          `${ORDERS_API_BASE_URL}/vendor-orders/${orderId}`,
-          `${API_BASE_URL}/orders/vendor-orders/${orderId}`,
+        const endpoints = [
+          `${ORDERS_API_BASE_URL}/orders/vendor-orders`,
+          `${ORDERS_API_BASE_URL}/vendor-orders`,
+          `${API_BASE_URL}/orders/vendor-orders`,
         ];
 
         let foundOrder: VendorOrder | null = null;
 
-        for (const endpoint of singleOrderEndpoints) {
+        for (const endpoint of endpoints) {
           const response = await authFetch(endpoint, {
             method: "GET",
             headers: {
@@ -420,45 +423,17 @@ export default function VendorOrderDetailsPage() {
 
           if (!response.ok) continue;
 
-          const payload: VendorOrderResponse = await response
+          const payload: VendorOrdersResponse = await response
             .json()
             .catch(() => ({}));
 
-          if (payload?.data?.id) {
-            foundOrder = payload.data;
+          const candidate = (payload?.data || []).find(
+            (item) => item.id === orderId,
+          );
+
+          if (candidate) {
+            foundOrder = candidate;
             break;
-          }
-        }
-
-        if (!foundOrder) {
-          const fallbackListEndpoints = [
-            `${ORDERS_API_BASE_URL}/orders/vendor-orders`,
-            `${ORDERS_API_BASE_URL}/vendor-orders`,
-            `${API_BASE_URL}/orders/vendor-orders`,
-          ];
-
-          for (const endpoint of fallbackListEndpoints) {
-            const response = await authFetch(endpoint, {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            });
-
-            if (!response.ok) continue;
-
-            const payload: VendorOrdersResponse = await response
-              .json()
-              .catch(() => ({}));
-
-            const candidate = (payload?.data || []).find(
-              (item) => item.id === orderId,
-            );
-
-            if (candidate) {
-              foundOrder = candidate;
-              break;
-            }
           }
         }
 
@@ -502,15 +477,16 @@ export default function VendorOrderDetailsPage() {
     let active = true;
 
     const refreshOrder = async () => {
-      const singleOrderEndpoints = [
-        `${ORDERS_API_BASE_URL}/orders/vendor-orders/${orderId}`,
-        `${ORDERS_API_BASE_URL}/vendor-orders/${orderId}`,
-        `${API_BASE_URL}/orders/vendor-orders/${orderId}`,
+      // 1. Refresh General Order Data
+      const endpoints = [
+        `${ORDERS_API_BASE_URL}/orders/vendor-orders`,
+        `${ORDERS_API_BASE_URL}/vendor-orders`,
+        `${API_BASE_URL}/orders/vendor-orders`,
       ];
 
       let foundOrder: VendorOrder | null = null;
 
-      for (const endpoint of singleOrderEndpoints) {
+      for (const endpoint of endpoints) {
         const response = await authFetch(endpoint, {
           method: "GET",
           headers: {
@@ -520,18 +496,69 @@ export default function VendorOrderDetailsPage() {
 
         if (!response.ok) continue;
 
-        const payload: VendorOrderResponse = await response
+        const payload: VendorOrdersResponse = await response
           .json()
           .catch(() => ({}));
 
-        if (payload?.data?.id) {
-          foundOrder = payload.data;
+        const candidate = (payload?.data || []).find(
+          (item) => item.id === orderId,
+        );
+
+        if (candidate) {
+          foundOrder = candidate;
           break;
         }
       }
 
       if (!active || !foundOrder) return;
       setOrder(foundOrder);
+
+      // 2. Refresh Real-time Delivery Status (Verdict, Partner Details, ETA)
+      try {
+        const statusRes = await authFetch(
+          `${API_BASE_URL}/orders/vendor-orders/${orderId}/delivery-status`,
+          {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          },
+        );
+
+        if (statusRes.ok) {
+          const statusPayload = await statusRes.json();
+          if (statusPayload.data) {
+            const d = statusPayload.data;
+            setVerdict(d.verdict || "UNKNOWN");
+            setDeliveryStage(d.deliveryStage);
+            setPickupEta(d.pickupEtaMinutes);
+            if (d.deliveryPartner) {
+              setDeliveryAgent(d.deliveryPartner);
+            }
+
+            // 3. Auto-fetch Handover OTP if Verdict is ACCEPTED
+            if (d.verdict === "ACCEPTED" && !backendOtp) {
+              try {
+                const otpRes = await authFetch(
+                  `${API_BASE_URL}/delivery/orders/${orderId}/pickup-otp`,
+                  {
+                    method: "POST",
+                    credentials: "include",
+                  },
+                );
+                if (otpRes.ok) {
+                  const otpPayload = await otpRes.json();
+                  if (otpPayload.success && otpPayload.data?.otp) {
+                    setBackendOtp(String(otpPayload.data.otp));
+                  }
+                }
+              } catch (otpErr) {
+                console.error("Auto-fetching OTP failed:", otpErr);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Polling delivery status failed:", err);
+      }
     };
 
     const timer = window.setInterval(() => {
@@ -737,10 +764,8 @@ export default function VendorOrderDetailsPage() {
     setIsMarkingReady(true);
     setActionMessage("");
     setActionStatus("idle");
-    setBackendOtp(null);
 
     const assignmentEndpoint = `${ORDERS_API_BASE_URL}/delivery/orders/${order.id}/assign`;
-    const otpEndpoint = `${API_BASE_URL}/delivery/orders/${order.id}/pickup-otp`;
 
     try {
       const response = await authFetch(assignmentEndpoint, {
@@ -763,22 +788,6 @@ export default function VendorOrderDetailsPage() {
         return;
       }
 
-      // Fetch handover OTP from backend
-      try {
-        const otpRes = await authFetch(otpEndpoint, {
-          method: "POST",
-          credentials: "include"
-        });
-        if (otpRes.ok) {
-          const otpPayload = await otpRes.json();
-          if (otpPayload.success && otpPayload.data?.otp) {
-            setBackendOtp(String(otpPayload.data.otp));
-          }
-        }
-      } catch (otpErr) {
-        console.error("Backend OTP fetch failed:", otpErr);
-      }
-
       setAssignmentTriggered(true);
 
       const extras: string[] = [];
@@ -795,6 +804,12 @@ export default function VendorOrderDetailsPage() {
 
       setActionStatus("success");
       setActionMessage(composedMessage);
+      
+      // Initial fetch to get the PENDING verdict and partner name
+      setTimeout(() => {
+        // Trigger a refresh after a short delay to see the "Partner Found" state
+        // This is handled by the interval, but doing it once here helps the UX
+      }, 1000);
     } catch {
       setActionStatus("error");
       setActionMessage(
@@ -1368,26 +1383,35 @@ export default function VendorOrderDetailsPage() {
                         <Bike className="h-5 w-5 text-orange-600" />
                         Delivery Partner
                       </h3>
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isPickedUp || normalizedStatus === "DELIVERED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
-                        {normalizedStatus === "DELIVERED" ? "Completed" : isPickedUp ? "Verified" : deliveryAgent ? "Assigned" : "Pending"}
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${isPickedUp || normalizedStatus === "DELIVERED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : verdict === "ACCEPTED" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}>
+                        {normalizedStatus === "DELIVERED" ? "Completed" : isPickedUp ? "Verified" : verdict === "ACCEPTED" ? "Assigned" : verdict === "PENDING" ? "Partner Found" : "Pending"}
                       </span>
                     </div>
 
                     {deliveryAgent && deliveryAgent.user ? (
                       <div className="space-y-4">
                         <div className="flex items-center gap-4 p-4 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg ${isPickedUp || normalizedStatus === "DELIVERED" ? "bg-emerald-600 shadow-emerald-200" : "bg-orange-600 shadow-orange-200"}`}>
-                            {isPickedUp || normalizedStatus === "DELIVERED" ? <CheckCircle2 size={24} /> : <User size={24} />}
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0 shadow-lg ${isPickedUp || normalizedStatus === "DELIVERED" || verdict === "ACCEPTED" ? "bg-emerald-600 shadow-emerald-200" : "bg-orange-600 shadow-orange-200"}`}>
+                            {isPickedUp || normalizedStatus === "DELIVERED" || verdict === "ACCEPTED" ? <CheckCircle2 size={24} /> : <User size={24} />}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-[10px] font-black uppercase tracking-widest ${isPickedUp || normalizedStatus === "DELIVERED" ? "text-emerald-600/70" : "text-orange-600/70"}`}>
-                              Partner Name
+                            <p className={`text-[10px] font-black uppercase tracking-widest ${isPickedUp || normalizedStatus === "DELIVERED" || verdict === "ACCEPTED" ? "text-emerald-600/70" : "text-orange-600/70"}`}>
+                              {verdict === "ACCEPTED" ? "Partner Name" : "Status: Waiting for Acceptance"}
                             </p>
                             <p className="text-base font-black text-slate-900 truncate">
                               {deliveryAgent.user.name || "Unknown"}
                             </p>
                           </div>
                         </div>
+
+                        {pickupEta && verdict === "ACCEPTED" && (
+                          <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
+                               <CalendarClock size={18} />
+                            </div>
+                            <p className="text-xs font-black text-indigo-700 uppercase tracking-tight">Pickup ETA: {pickupEta} Minutes</p>
+                          </div>
+                        )}
 
                         {(isPickedUp || normalizedStatus === "DELIVERED") && (
                           <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex items-center gap-3">

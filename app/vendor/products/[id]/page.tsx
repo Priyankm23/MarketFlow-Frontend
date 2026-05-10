@@ -4,9 +4,9 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import { useAuthStore } from "@/lib/store";
+import { useAuthStore, useVendorStore } from "@/lib/store";
 import { authFetch } from "@/lib/auth-fetch";
-import { fetchVendorProfile } from "@/lib/vendor-profile";
+import { normalizeVendorStatus } from "@/lib/vendor-profile";
 import {
   LayoutDashboard,
   Package,
@@ -23,6 +23,10 @@ import {
   AlertCircle,
   Plus,
   Upload,
+  X,
+  Menu,
+  LogOut,
+  ChevronLeft,
 } from "lucide-react";
 import {
   Dialog,
@@ -35,10 +39,81 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { API_BASE_URL } from "@/lib/config";
 
+// --- REUSABLE COMPONENTS ---
+
+function StatusBadge({ status }: { status: string }) {
+  const normalized = (status || "PENDING").toUpperCase();
+  const config: Record<
+    string,
+    { label: string; bg: string; color: string; dot: boolean }
+  > = {
+    APPROVED: {
+      label: "Approved",
+      bg: "bg-emerald-50",
+      color: "text-emerald-700",
+      dot: true,
+    },
+    PENDING: {
+      label: "Pending",
+      bg: "bg-amber-50",
+      color: "text-amber-700",
+      dot: true,
+    },
+    REJECTED: {
+      label: "Rejected",
+      bg: "bg-rose-50",
+      color: "text-rose-700",
+      dot: false,
+    },
+    CONFIRMED: {
+      label: "Confirmed",
+      bg: "bg-indigo-50",
+      color: "text-indigo-700",
+      dot: true,
+    },
+    DELIVERED: {
+      label: "Delivered",
+      bg: "bg-emerald-100",
+      color: "text-emerald-800",
+      dot: false,
+    },
+    CANCELLED: {
+      label: "Cancelled",
+      bg: "bg-rose-100",
+      color: "text-rose-800",
+      dot: false,
+    },
+  };
+
+  const c = config[normalized] || {
+    label: normalized.replaceAll("_", " "),
+    bg: "bg-slate-100",
+    color: "text-slate-700",
+    dot: false,
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 ${c.bg} ${c.color}`}
+    >
+      {c.dot && (
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{ backgroundColor: "currentColor" }}
+        />
+      )}
+      {c.label}
+    </span>
+  );
+}
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+  const { profile, loadProfile } = useVendorStore();
+
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -46,6 +121,7 @@ export default function ProductDetailPage() {
   const [isAddImageModalOpen, setIsAddImageModalOpen] = useState(false);
   const [selectedImages, setSelectedImages] = useState<FileList | null>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -67,6 +143,12 @@ export default function ProductDetailPage() {
 
   // Mock Offers Data
   const [offers, setOffers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (user?.role?.toUpperCase() === "VENDOR") {
+      loadProfile();
+    }
+  }, [user, loadProfile]);
 
   useEffect(() => {
     loadData();
@@ -175,6 +257,7 @@ export default function ProductDetailPage() {
 
       if (response.ok) {
         alert("Product updated successfully!");
+        loadData();
       } else {
         alert("Failed to update product");
       }
@@ -247,7 +330,7 @@ export default function ProductDetailPage() {
   const images =
     product?.imageUrls && product.imageUrls.length > 0
       ? product.imageUrls
-      : [product?.imageUrl || "/placeholder-product-1.jpg"];
+      : [product?.imageUrl || "/placeholder.svg"];
 
   return (
     <div
@@ -257,31 +340,60 @@ export default function ProductDetailPage() {
         fontFamily: "var(--font-dm-sans)",
       }}
     >
+      {isMobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close sidebar overlay"
+          className="fixed inset-0 z-40 bg-black/35 md:hidden"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       {/* SIDEBAR */}
       <aside
-        className="w-[260px] flex-shrink-0 flex flex-col fixed inset-y-0 left-0"
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          borderRight: "1px solid var(--border-default)",
-          zIndex: 50,
-        }}
+        className={`fixed inset-y-0 left-0 z-50 w-[250px] sm:w-[260px] flex flex-col border-r border-[var(--border-default)] bg-[var(--bg-surface)] transform transition-transform duration-300 ease-out ${
+          isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0`}
       >
-        <div className="p-6">
+        <div className="p-4 sm:p-6 flex items-center justify-between">
           <Link href="/vendor/dashboard" className="block">
-            <h2
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "24px",
-                color: "var(--brand-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
-            >
-              Markivo
-            </h2>
+            <Image
+              src="/logo/logo.png"
+              alt="Markivo"
+              width={172}
+              height={46}
+              className="h-9 sm:h-10 w-auto"
+              priority
+            />
+            <p className="text-[11px] font-bold text-muted-foreground mt-0.5 uppercase tracking-widest">
+              Vendor Hub
+            </p>
           </Link>
+
+          <button
+            type="button"
+            aria-label="Close sidebar"
+            className="md:hidden h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:bg-slate-100"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          >
+            <X size={18} />
+          </button>
         </div>
-        <nav className="flex-1 px-4 space-y-1">
+
+        <div className="px-5 mb-6">
+          <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+            <h3 className="font-bold text-foreground text-sm truncate">
+              {profile?.businessName || "My Store"}
+            </h3>
+            <div className="mt-2">
+              <StatusBadge
+                status={normalizeVendorStatus(profile?.status) || "PENDING"}
+              />
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.active;
@@ -289,8 +401,9 @@ export default function ProductDetailPage() {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  isActive ? "" : "hover:bg-[var(--bg-sunken)]"
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 group ${
+                  isActive ? "shadow-md" : "hover:bg-primary/5"
                 }`}
                 style={{
                   backgroundColor: isActive
@@ -299,68 +412,108 @@ export default function ProductDetailPage() {
                   color: isActive
                     ? "var(--text-inverse)"
                     : "var(--text-secondary)",
+                  fontWeight: isActive ? 600 : 500,
                 }}
               >
-                <Icon size={18} />
+                <Icon
+                  size={18}
+                  className={`${isActive ? "" : "group-hover:text-primary transition-colors"}`}
+                />
                 {item.label}
               </Link>
             );
           })}
         </nav>
+
+        <div
+          className="p-5 mt-auto"
+          style={{ borderTop: "1px solid var(--border-default)" }}
+        >
+          <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-2xl border border-slate-200/50">
+            <div className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-primary border border-black/5">
+              <User size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold truncate text-foreground">
+                {user?.name || "Vendor"}
+              </p>
+            </div>
+            <button
+              onClick={() => logout()}
+              className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
+              title="Logout"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 ml-[260px] flex flex-col min-h-screen">
-        <header className="h-[72px] px-8 flex items-center justify-between sticky top-0 bg-[var(--bg-base)] z-40 border-b border-[var(--border-default)]">
+      <main className="flex-1 ml-0 md:ml-[260px] flex flex-col min-h-screen">
+        <header className="h-16 md:h-[72px] px-4 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-border">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => router.back()}
-              className="p-2 hover:bg-[var(--bg-sunken)] rounded-full transition-colors"
+              type="button"
+              aria-label="Open sidebar"
+              className="md:hidden h-9 w-9 rounded-xl border border-border bg-white text-foreground hover:bg-slate-50 flex items-center justify-center shadow-sm"
+              onClick={() => setIsMobileSidebarOpen(true)}
             >
-              <ArrowLeft size={20} />
+              <Menu size={18} />
             </button>
-            <h1
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "2rem",
-                color: "var(--text-primary)",
-                letterSpacing: "0.03em",
-                fontWeight: "normal",
-              }}
+
+            <button
+              onClick={() => router.back()}
+              className="h-9 w-9 rounded-xl border border-border bg-white text-foreground hover:bg-slate-50 flex items-center justify-center shadow-sm transition-colors"
             >
-              Edit Product
-            </h1>
+              <ArrowLeft size={18} />
+            </button>
+
+            <div className="space-y-0.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                Edit Product
+              </h1>
+              <p className="hidden sm:block text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                {product?.name || "Refining your listing"}
+              </p>
+            </div>
           </div>
         </header>
 
-        <div className="p-8 max-w-[1000px] w-full mx-auto space-y-8">
+        <div className="p-5 md:p-8 max-w-[1200px] w-full mx-auto space-y-8 pb-24">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Left: Images */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
-                Images
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                  Product Gallery
+                </h3>
+                <span className="text-[10px] font-bold text-primary bg-primary/5 px-2 py-0.5 rounded-full border border-primary/10">
+                  {images.length} Image(s)
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
                 {images.map((img: string, i: number) => (
                   <div
                     key={i}
-                    className="aspect-square relative rounded-lg overflow-hidden border border-[var(--border-default)] bg-[var(--bg-sunken)]"
+                    className="aspect-square relative rounded-2xl overflow-hidden border border-border bg-slate-50 group"
                   >
                     <Image
                       src={img}
                       alt={`${product?.name} ${i}`}
                       fill
-                      className="object-cover"
+                      className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
                 ))}
                 <button
                   onClick={() => setIsAddImageModalOpen(true)}
-                  className="aspect-square rounded-lg border-2 border-dashed border-[var(--border-default)] flex flex-col items-center justify-center text-[var(--text-muted)] hover:bg-[var(--bg-sunken)] transition-colors"
+                  className="aspect-square rounded-2xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground hover:bg-slate-50 hover:border-primary/30 hover:text-primary transition-all active:scale-95 bg-white shadow-sm"
                 >
-                  <Plus size={20} />
-                  <span className="text-[10px] mt-1 font-medium">
-                    Add Image
+                  <Plus size={24} />
+                  <span className="text-[10px] mt-2 font-bold uppercase tracking-widest">
+                    Add Media
                   </span>
                 </button>
               </div>
@@ -368,14 +521,16 @@ export default function ProductDetailPage() {
 
             {/* Right: Form */}
             <div className="lg:col-span-2">
-              <div className="bg-[var(--bg-surface)] rounded-xl border border-[var(--border-default)] p-6 shadow-sm">
+              <div className="bg-card rounded-3xl border border-border p-6 sm:p-8 shadow-sm">
                 <form onSubmit={handleUpdate} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Product Name
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                      Product Identity
                     </label>
                     <Input
                       required
+                      placeholder="Display Name"
+                      className="h-12 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-base font-medium shadow-none"
                       value={formData.name}
                       onChange={(e) =>
                         setFormData({ ...formData, name: e.target.value })
@@ -384,12 +539,13 @@ export default function ProductDetailPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                      Description
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                      Detailed Description
                     </label>
                     <Textarea
                       required
-                      className="min-h-[120px]"
+                      placeholder="What makes this product special?"
+                      className="min-h-[160px] rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-base shadow-none resize-none p-4"
                       value={formData.description}
                       onChange={(e) =>
                         setFormData({
@@ -400,14 +556,16 @@ export default function ProductDetailPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                        Price (₹)
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                        Pricing (₹)
                       </label>
                       <Input
                         required
                         type="number"
+                        placeholder="0.00"
+                        className="h-12 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-base font-bold shadow-none"
                         value={formData.price}
                         onChange={(e) =>
                           setFormData({ ...formData, price: e.target.value })
@@ -415,12 +573,12 @@ export default function ProductDetailPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                        Category
+                      <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                        Category Classification
                       </label>
                       <select
                         required
-                        className="w-full flex h-9 rounded-md border border-[var(--border-default)] bg-transparent px-3 py-1 text-sm focus:ring-1 focus:ring-[var(--brand-primary)]"
+                        className="w-full flex h-12 rounded-xl border border-border bg-slate-50 px-4 text-sm font-bold text-foreground focus:ring-2 focus:ring-primary/20 outline-none transition-all appearance-none cursor-pointer"
                         value={formData.categoryId}
                         onChange={(e) =>
                           setFormData({
@@ -441,13 +599,13 @@ export default function ProductDetailPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3 bg-[var(--brand-primary)] text-white font-bold rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    className="w-full py-4 bg-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 hover:opacity-95 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50"
                   >
                     {submitting ? (
-                      <Loader2 className="animate-spin" size={18} />
+                      <Loader2 className="animate-spin" size={20} />
                     ) : (
                       <>
-                        <Save size={18} /> Save Changes
+                        <Save size={20} /> Update Product Details
                       </>
                     )}
                   </button>
@@ -457,127 +615,177 @@ export default function ProductDetailPage() {
           </div>
 
           {/* OFFERS SECTION */}
-          <div className="space-y-4 pt-4">
-            <div className="flex items-center justify-between">
-              <h2
-                style={{
-                  fontFamily: "var(--font-dm-sans)",
-                  fontSize: "1.8rem",
-                  color: "var(--text-primary)",
-                  letterSpacing: "0.03em",
-                  fontWeight: "normal",
-                }}
-              >
-                Product Flash Deals
-              </h2>
+          <div className="space-y-6 pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+              <div className="space-y-1">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  Promotional Campaigns
+                </h2>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Flash deals and seasonal offers for this item
+                </p>
+              </div>
               <button
                 onClick={() => setIsFlashDealModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-primary/20 hover:shadow-primary/30 active:scale-95 bg-primary text-white"
               >
-                <Plus size={16} /> Create Offer
+                <Plus size={18} /> Launch New Offer
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Existing Offers */}
-              <div className="space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
-                  Active & Scheduled Deals
+              <div className="lg:col-span-2 space-y-4">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Active & Scheduled Roadmap
                 </h3>
                 {offers.length > 0 ? (
-                  offers.map((offer) => (
-                    <div
-                      key={offer.id}
-                      className="bg-[var(--bg-surface)] p-4 rounded-xl border border-[var(--border-default)] relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-2">
-                        <span
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-full uppercase ${
-                            new Date(offer.endAt) < new Date()
-                              ? "bg-[var(--status-error-bg)] text-[var(--status-error)]"
-                              : new Date(offer.startAt) > new Date()
-                                ? "bg-[var(--bg-sunken)] text-[var(--text-secondary)]"
-                                : "bg-[var(--status-success-bg)] text-[var(--status-success)]"
-                          }`}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {offers.map((offer) => {
+                      const isExpired = new Date(offer.endAt) < new Date();
+                      const isScheduled = new Date(offer.startAt) > new Date();
+                      const isActive = !isExpired && !isScheduled;
+
+                      return (
+                        <div
+                          key={offer.id}
+                          className="bg-card p-5 rounded-2xl border border-border relative overflow-hidden group hover:shadow-md transition-shadow"
                         >
-                          {new Date(offer.endAt) < new Date()
-                            ? "Expired"
-                            : new Date(offer.startAt) > new Date()
-                              ? "Scheduled"
-                              : "Active"}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-full bg-[var(--brand-primary)]/10 flex items-center justify-center text-[var(--brand-primary)]">
-                          <Tag size={20} />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-bold text-[var(--text-primary)] font-body">
-                            {offer.offerName}
-                          </h4>
-                          <p className="text-sm text-[var(--text-secondary)] mt-1">
-                            <span className="text-[var(--brand-primary)] font-bold">
-                              {offer.discountPercentage}% OFF
-                            </span>{" "}
-                            {offer.couponCode && `• Code: ${offer.couponCode}`}
-                          </p>
-                          <div className="mt-2 text-[10px] text-[var(--text-muted)] flex flex-col gap-0.5">
-                            <span>
-                              Starts: {new Date(offer.startAt).toLocaleString()}
-                            </span>
-                            <span>
-                              Ends: {new Date(offer.endAt).toLocaleString()}
+                          <div className="absolute top-0 right-0 p-3">
+                            <span
+                              className={`px-2.5 py-1 text-[10px] font-bold rounded-lg uppercase tracking-wider border shadow-sm ${
+                                isExpired
+                                  ? "bg-rose-50 text-rose-700 border-rose-100"
+                                  : isScheduled
+                                    ? "bg-slate-100 text-slate-600 border-slate-200"
+                                    : "bg-emerald-50 text-emerald-700 border-emerald-100 animate-pulse"
+                              }`}
+                            >
+                              {isExpired
+                                ? "Concluded"
+                                : isScheduled
+                                  ? "Scheduled"
+                                  : "Live Now"}
                             </span>
                           </div>
+                          <div className="flex items-start gap-4">
+                            <div
+                              className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm border border-black/5 shrink-0 ${
+                                isExpired
+                                  ? "bg-slate-100 text-slate-400"
+                                  : "bg-primary/10 text-primary"
+                              }`}
+                            >
+                              <Tag
+                                size={22}
+                                className={isActive ? "animate-bounce" : ""}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0 pr-16">
+                              <h4 className="font-bold text-foreground truncate">
+                                {offer.offerName}
+                              </h4>
+                              <p className="text-xl font-black text-primary mt-1 tracking-tighter">
+                                {offer.discountPercentage}% OFF
+                              </p>
+                              {offer.couponCode && (
+                                <p className="text-[10px] font-bold text-muted-foreground mt-1 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded inline-block uppercase tracking-widest">
+                                  Code: {offer.couponCode}
+                                </p>
+                              )}
+                              <div className="mt-4 pt-4 border-t border-border/50 flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  {new Date(offer.startAt).toLocaleString(
+                                    "en-IN",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  {new Date(offer.endAt).toLocaleString(
+                                    "en-IN",
+                                    {
+                                      day: "2-digit",
+                                      month: "short",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    },
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))
+                      );
+                    })}
+                  </div>
                 ) : (
-                  <div className="p-8 text-center border border-dashed border-[var(--border-default)] rounded-xl bg-[var(--bg-sunken)]/30">
-                    <p className="text-sm text-[var(--text-secondary)]">
-                      No flash deals created yet.
+                  <div className="p-12 text-center border-2 border-dashed border-border rounded-3xl bg-slate-50/50">
+                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-sm border border-border">
+                      <Tag size={32} className="text-muted-foreground/30" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">
+                      No active offers
+                    </h3>
+                    <p className="text-muted-foreground mt-1 max-w-xs mx-auto">
+                      Boost sales by creating a time-limited flash deal for this
+                      product.
                     </p>
                   </div>
                 )}
               </div>
 
-              {/* Quick Info / Tips */}
-              <div className="bg-[var(--bg-surface)] p-6 rounded-xl border border-[var(--border-default)] space-y-4">
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-body">
-                  Flash Deal Tips
+              {/* Tips Section */}
+              <div className="bg-card p-6 rounded-3xl border border-border shadow-sm h-fit space-y-6">
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Strategy Center
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-sunken)] flex items-center justify-center flex-shrink-0">
-                      <BarChart2
-                        size={16}
-                        className="text-[var(--brand-primary)]"
-                      />
+                <div className="space-y-6">
+                  <div className="flex gap-4 group">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                      <BarChart2 size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        Increase Visibility
+                      <p className="text-sm font-bold text-foreground">
+                        Maximized Reach
                       </p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">
-                        Flash deals are featured on the home page and category
-                        pages.
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Deals appear on the "Flash Sales" homepage and top of
+                        categories.
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[var(--bg-sunken)] flex items-center justify-center flex-shrink-0">
-                      <Bell size={16} className="text-[var(--brand-primary)]" />
+                  <div className="flex gap-4 group">
+                    <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 border border-amber-100 group-hover:bg-amber-600 group-hover:text-white transition-all">
+                      <Bell size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-[var(--text-primary)]">
-                        Limited Time
+                      <p className="text-sm font-bold text-foreground">
+                        FOMO Effect
                       </p>
-                      <p className="text-xs text-[var(--text-secondary)] mt-1">
-                        Short, high-discount deals (4-24 hours) typically
-                        perform best.
+                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                        Short-duration deals (4-12 hours) create urgency and
+                        higher conversion.
                       </p>
                     </div>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="flex items-center gap-2 text-rose-600 mb-2">
+                      <AlertCircle size={14} />
+                      <span className="text-[10px] font-black uppercase tracking-wider">
+                        Quick Tip
+                      </span>
+                    </div>
+                    <p className="text-[11px] font-medium text-slate-600 leading-relaxed italic">
+                      "Products with at least 3 high-quality images see 40%
+                      higher engagement during flash sales."
+                    </p>
                   </div>
                 </div>
               </div>
@@ -591,27 +799,30 @@ export default function ProductDetailPage() {
         open={isFlashDealModalOpen}
         onOpenChange={setIsFlashDealModalOpen}
       >
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "1.5rem",
-                letterSpacing: "0.02em",
-                fontWeight: "normal",
-              }}
-            >
-              Create Offer
-            </DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateFlashDeal} className="space-y-4 py-4">
+        <DialogContent className="sm:max-w-[500px] rounded-3xl border-none p-0 overflow-hidden shadow-2xl">
+          <div className="bg-primary p-6 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold tracking-tight text-white flex items-center gap-3">
+                <Tag size={24} className="fill-white/20" />
+                Configure Campaign
+              </DialogTitle>
+              <p className="text-white/70 text-sm font-medium mt-1">
+                Setting up a new offer for: {product?.name}
+              </p>
+            </DialogHeader>
+          </div>
+          <form
+            onSubmit={handleCreateFlashDeal}
+            className="space-y-5 p-6 bg-white"
+          >
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Offer Name
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                Internal Campaign Name
               </label>
               <Input
                 required
-                placeholder="e.g. Midnight Madness"
+                placeholder="e.g. Weekend Rush"
+                className="h-11 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-sm font-bold shadow-none"
                 value={flashDealData.offerName}
                 onChange={(e) =>
                   setFlashDealData({
@@ -624,7 +835,7 @@ export default function ProductDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
                   Discount (%)
                 </label>
                 <Input
@@ -633,6 +844,7 @@ export default function ProductDetailPage() {
                   min="1"
                   max="100"
                   placeholder="20"
+                  className="h-11 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-sm font-bold shadow-none"
                   value={flashDealData.discountPercentage}
                   onChange={(e) =>
                     setFlashDealData({
@@ -643,11 +855,12 @@ export default function ProductDetailPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Coupon Code (Optional)
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Promo Code
                 </label>
                 <Input
-                  placeholder="SAVE20"
+                  placeholder="MARK20"
+                  className="h-11 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-sm font-bold shadow-none uppercase"
                   value={flashDealData.couponCode}
                   onChange={(e) =>
                     setFlashDealData({
@@ -661,12 +874,13 @@ export default function ProductDetailPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Start Date & Time
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Activation
                 </label>
                 <Input
                   required
                   type="datetime-local"
+                  className="h-11 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-xs font-bold shadow-none"
                   value={flashDealData.startAt}
                   onChange={(e) =>
                     setFlashDealData({
@@ -677,12 +891,13 @@ export default function ProductDetailPage() {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  End Date & Time
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                  Expiration
                 </label>
                 <Input
                   required
                   type="datetime-local"
+                  className="h-11 rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-xs font-bold shadow-none"
                   value={flashDealData.endAt}
                   onChange={(e) =>
                     setFlashDealData({
@@ -695,12 +910,12 @@ export default function ProductDetailPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                Terms & Conditions (Optional)
+              <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                Terms & Fine Print
               </label>
               <Textarea
-                placeholder="e.g. Valid on minimum purchase of ₹500"
-                className="min-h-[80px]"
+                placeholder="One per customer, minimum spend ₹199..."
+                className="min-h-[80px] rounded-xl border-border bg-slate-50 focus:bg-white transition-all text-sm shadow-none resize-none"
                 value={flashDealData.termsAndConditions}
                 onChange={(e) =>
                   setFlashDealData({
@@ -711,23 +926,23 @@ export default function ProductDetailPage() {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <button
                 type="button"
                 onClick={() => setIsFlashDealModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-lg transition-colors"
+                className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 transition-colors"
               >
-                Cancel
+                Discard
               </button>
               <button
                 type="submit"
                 disabled={flashDealSubmitting}
-                className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-8 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20"
               >
                 {flashDealSubmitting ? (
-                  <Loader2 className="animate-spin" size={16} />
+                  <Loader2 className="animate-spin" size={18} />
                 ) : (
-                  "Create Deal"
+                  "Initiate Offer"
                 )}
               </button>
             </DialogFooter>
@@ -737,36 +952,34 @@ export default function ProductDetailPage() {
 
       {/* ADD IMAGES MODAL */}
       <Dialog open={isAddImageModalOpen} onOpenChange={setIsAddImageModalOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[440px] rounded-3xl p-8">
           <DialogHeader>
-            <DialogTitle
-              style={{
-                fontFamily: "var(--font-dm-sans)",
-                fontSize: "1.5rem",
-                letterSpacing: "0.02em",
-                fontWeight: "normal",
-              }}
-            >
-              Add Product Images
+            <DialogTitle className="text-2xl font-bold tracking-tight flex items-center gap-3">
+              <Upload size={24} className="text-primary" />
+              Upload Media
             </DialogTitle>
+            <p className="text-sm font-medium text-muted-foreground mt-1">
+              Enhance your listing with new visuals.
+            </p>
           </DialogHeader>
-          <form onSubmit={handleAddImages} className="space-y-4 py-4">
-            <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-[var(--border-default)] border-dashed rounded-lg hover:bg-[var(--bg-sunken)] transition-colors cursor-pointer relative">
-              <div className="space-y-1 text-center">
-                <Upload className="mx-auto h-10 w-10 text-[var(--text-muted)]" />
-                <div className="flex text-sm text-[var(--text-secondary)]">
-                  <span className="relative cursor-pointer rounded-md font-medium text-[var(--brand-primary)] hover:underline">
-                    Upload files
-                  </span>
-                  <p className="pl-1">or drag and drop</p>
+          <form onSubmit={handleAddImages} className="space-y-6 pt-6">
+            <div className="flex justify-center px-6 pt-10 pb-10 border-2 border-border border-dashed rounded-3xl hover:bg-slate-50 hover:border-primary/30 transition-all cursor-pointer relative group bg-slate-50/50">
+              <div className="space-y-3 text-center">
+                <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mx-auto shadow-sm border border-border group-hover:scale-110 transition-transform">
+                  <Plus size={32} className="text-primary" />
                 </div>
-                <p className="text-xs text-[var(--text-muted)]">
-                  PNG, JPG, WEBP up to 10MB
-                </p>
-                {selectedImages && selectedImages.length > 0 && (
-                  <p className="text-xs font-semibold text-[var(--status-success)] mt-2">
-                    {selectedImages.length} file(s) selected
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm font-bold text-foreground">
+                    Select Product Images
                   </p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    JPEG, PNG, WEBP (MAX 10MB)
+                  </p>
+                </div>
+                {selectedImages && selectedImages.length > 0 && (
+                  <div className="mt-4 px-3 py-1 bg-emerald-50 text-emerald-700 text-[10px] font-bold rounded-full border border-emerald-100 inline-block">
+                    {selectedImages.length} file(s) ready to upload
+                  </div>
                 )}
               </div>
               <input
@@ -777,23 +990,23 @@ export default function ProductDetailPage() {
                 onChange={(e) => setSelectedImages(e.target.files)}
               />
             </div>
-            <DialogFooter>
+            <DialogFooter className="gap-2 sm:gap-0">
               <button
                 type="button"
                 onClick={() => setIsAddImageModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-sunken)] rounded-lg transition-colors"
+                className="flex-1 sm:flex-none px-6 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 rounded-xl transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={uploadingImages || !selectedImages}
-                className="flex items-center justify-center gap-2 px-6 py-2 rounded-lg text-sm font-medium bg-[var(--brand-primary)] text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-8 py-3 rounded-xl text-sm font-bold bg-primary text-white hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20"
               >
                 {uploadingImages ? (
-                  <Loader2 className="animate-spin" size={16} />
+                  <Loader2 className="animate-spin" size={18} />
                 ) : (
-                  "Upload"
+                  "Start Upload"
                 )}
               </button>
             </DialogFooter>

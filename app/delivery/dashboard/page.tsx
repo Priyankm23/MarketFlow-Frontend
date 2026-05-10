@@ -531,7 +531,7 @@ export default function DeliveryDashboardPage() {
             <div className="flex items-center gap-6">
                <div className="flex items-baseline gap-2">
                  <span className="text-6xl sm:text-7xl font-black tracking-tighter text-slate-950">
-                   ₹{dashboardData?.earnings.today ?? 0}
+                   ₹{(dashboardData?.performance.ordersCompletedToday ?? 0) * 40}
                  </span>
                  <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Earned</p>
                </div>
@@ -670,16 +670,21 @@ export default function DeliveryDashboardPage() {
               </div>
 
               <div className="bg-orange-50/30 px-5 sm:px-8 py-5 sm:py-7 flex flex-col sm:flex-row gap-5 sm:items-center justify-between border-t border-orange-100/50">
-                <div className="flex items-center gap-6 sm:gap-8 justify-between sm:justify-start">
-                  <div className="flex items-center gap-6 sm:gap-8">
+                <div className="flex items-center gap-4 sm:gap-6 justify-between sm:justify-start">
+                  <div className="flex items-center gap-4 sm:gap-6">
+                    <div>
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Order Amt</p>
+                      <p className="text-xs sm:text-sm font-black text-slate-800 tracking-tight">₹{activeTask.amount}</p>
+                    </div>
+                    <div className="w-px h-8 sm:h-10 bg-orange-200/50" />
                     <div>
                       <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Payload</p>
                       <p className="text-xs sm:text-sm font-black text-slate-800 tracking-tight">{activeTask.itemCount} Units</p>
                     </div>
                     <div className="w-px h-8 sm:h-10 bg-orange-200/50" />
                     <div>
-                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Earning</p>
-                      <p className="text-xs sm:text-sm font-black text-orange-600 tracking-tight">₹{activeTask.amount}</p>
+                      <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Fee Earned</p>
+                      <p className="text-xs sm:text-sm font-black text-orange-600 tracking-tight">₹40</p>
                     </div>
                   </div>
                 </div>
@@ -796,7 +801,10 @@ export default function DeliveryDashboardPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs sm:text-sm font-black text-slate-950 truncate tracking-tight">{task.vendorName}</p>
-                      <p className="text-[10px] sm:text-xs font-black text-orange-600 tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg">₹{task.amount}</p>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className="text-[10px] sm:text-xs font-black text-orange-600 tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg">Fee ₹40</p>
+                        <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Order ₹{task.amount}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5 text-slate-400">
                       <MapPin size={10} className="sm:scale-110" />

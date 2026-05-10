@@ -10,6 +10,7 @@ import { isVendorApproved, normalizeVendorStatus } from "@/lib/vendor-profile";
 import { VendorProfileData } from "@/lib/types";
 import {
   LayoutDashboard,
+  LogOut,
   Package,
   ShoppingBag,
   BarChart2,
@@ -427,6 +428,7 @@ function ProductCard({
 
 export default function VendorProductsPage() {
   const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const { profile, loadProfile, isLoading: loadingProfile } = useVendorStore();
 
   const [loading, setLoading] = useState(true);
@@ -865,6 +867,13 @@ export default function VendorProductsPage() {
                 {user?.name || "Vendor"}
               </p>
             </div>
+            <button 
+              onClick={() => logout()}
+              className="text-muted-foreground hover:text-rose-600 transition-colors p-1.5 hover:bg-rose-50 rounded-lg"
+              title="Logout"
+            >
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </aside>
