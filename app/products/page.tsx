@@ -66,7 +66,7 @@ type ApiProduct = {
   createdAt?: string;
 };
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const searchParams = useSearchParams();
   const searchQuery = (searchParams.get("search") || "").trim();
 
@@ -455,5 +455,20 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <React.Suspense fallback={
+      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+          <p className="text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">Loading catalogue...</p>
+        </div>
+      </div>
+    }>
+      <ProductsPageContent />
+    </React.Suspense>
   );
 }
