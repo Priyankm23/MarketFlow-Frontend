@@ -2,7 +2,18 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { API_BASE_URL } from "@/lib/config";
-import { Server, RefreshCw, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import {
+  subscribeToWakeStatus,
+  pingBackend,
+  type WakeStatus,
+} from "@/lib/ping-backend";
+import {
+  Server,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+} from "lucide-react";
 
 type SyncStatus = "syncing" | "synced" | "offline";
 
@@ -21,39 +32,33 @@ export function BackendStatusBadge({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const checkStatus = useCallback(async () => {
+  /** One-shot latency check — only runs after backend is confirmed awake. */
+  const checkLatency = useCallback(async () => {
     setIsRefreshing(true);
-    const startTime = performance.now();
-
+    const t0 = performance.now();
     try {
-      // Try /health endpoint first, fallback to base URL
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-      let response: Response;
+      const timer = setTimeout(() => controller.abort(), 12_000);
+      let res: Response;
       try {
-        response = await fetch(`${API_BASE_URL}/health`, {
+        res = await fetch(`${API_BASE_URL}/health`, {
           method: "GET",
           signal: controller.signal,
           cache: "no-store",
         });
       } catch {
-        // Fallback to API_BASE_URL if /health route doesn't exist
-        const fallbackController = new AbortController();
-        const fallbackTimeout = setTimeout(() => fallbackController.abort(), 12000);
-        response = await fetch(API_BASE_URL, {
+        const c2 = new AbortController();
+        const t2 = setTimeout(() => c2.abort(), 12_000);
+        res = await fetch(API_BASE_URL, {
           method: "GET",
-          signal: fallbackController.signal,
+          signal: c2.signal,
           cache: "no-store",
         });
-        clearTimeout(fallbackTimeout);
+        clearTimeout(t2);
       }
-
-      clearTimeout(timeoutId);
-      const endTime = performance.now();
-      const pingMs = Math.round(endTime - startTime);
-
-      if (response.ok || response.status < 500) {
+      clearTimeout(timer);
+      const pingMs = Math.round(performance.now() - t0);
+      if (res.ok || res.status < 500) {
         setStatus("synced");
         setLatency(pingMs);
       } else {
@@ -69,16 +74,40 @@ export function BackendStatusBadge({
     }
   }, []);
 
+  /** Manual re-check — restarts the full wakeup loop if backend appears offline. */
+  const handleManualRefresh = useCallback(() => {
+    setStatus("syncing");
+    setLatency(null);
+    pingBackend();
+  }, []);
+
   useEffect(() => {
-    checkStatus();
-    // Re-check backend status every 30 seconds
-    const interval = setInterval(() => {
-      checkStatus();
-    }, 30000);
+    // Subscribe to the global wakeup polling loop
+    const unsub = subscribeToWakeStatus((wakeStatus: WakeStatus) => {
+      if (wakeStatus === "syncing" || wakeStatus === "idle") {
+        setStatus("syncing");
+        setLatency(null);
+      } else if (wakeStatus === "awake") {
+        // Backend is up — measure actual latency once
+        checkLatency();
+      } else if (wakeStatus === "timeout") {
+        setStatus("offline");
+        setLatency(null);
+        setLastChecked(new Date());
+      }
+    });
 
+    return unsub;
+  }, [checkLatency]);
+
+  // Periodic latency refresh every 30 s — only when already synced
+  useEffect(() => {
+    if (status !== "synced") return;
+    const interval = setInterval(checkLatency, 30_000);
     return () => clearInterval(interval);
-  }, [checkStatus]);
+  }, [status, checkLatency]);
 
+  // ─── Compact variant ────────────────────────────────────────────────────────
   if (variant === "compact") {
     return (
       <div className={`relative inline-flex items-center ${className}`}>
@@ -127,6 +156,7 @@ export function BackendStatusBadge({
     );
   }
 
+  // ─── Default pill variant ───────────────────────────────────────────────────
   return (
     <div className={`relative inline-block ${className}`}>
       <div
@@ -140,7 +170,7 @@ export function BackendStatusBadge({
         onClick={() => setShowDetails((prev) => !prev)}
       >
         <div className="flex items-center gap-2">
-          {/* Status Dot with Ripple Effect */}
+          {/* Status dot with ripple */}
           <span className="relative flex h-2.5 w-2.5 items-center justify-center">
             {status === "synced" && (
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -159,12 +189,12 @@ export function BackendStatusBadge({
             />
           </span>
 
-          {/* Status Text */}
+          {/* Status text */}
           <div className="flex items-center gap-1.5 font-medium tracking-tight text-[11px] sm:text-xs">
             <Server className="w-3.5 h-3.5 opacity-80" />
             <span>
               {status === "synced" && "Backend Synced (Render)"}
-              {status === "syncing" && "Connecting to Render..."}
+              {status === "syncing" && "Waking Backend..."}
               {status === "offline" && "Backend Offline"}
             </span>
           </div>
@@ -177,11 +207,11 @@ export function BackendStatusBadge({
           )}
         </div>
 
-        {/* Refresh Icon */}
+        {/* Refresh button */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            checkStatus();
+            handleManualRefresh();
           }}
           className="p-0.5 hover:bg-white/10 rounded-full transition-colors text-zinc-300 hover:text-white"
           title="Re-check connection"
@@ -192,7 +222,7 @@ export function BackendStatusBadge({
         </button>
       </div>
 
-      {/* Popover Details on click */}
+      {/* Popover on click */}
       {showDetails && (
         <div className="absolute right-0 top-full mt-2 w-72 p-3.5 rounded-xl bg-zinc-900/95 border border-zinc-800 text-zinc-200 shadow-2xl z-50 text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800">
@@ -235,10 +265,20 @@ export function BackendStatusBadge({
 
             <div className="flex justify-between items-center text-zinc-300">
               <span className="text-zinc-400">Server Host:</span>
-              <span className="font-mono text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 truncate max-w-[140px]" title={API_BASE_URL}>
+              <span
+                className="font-mono text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-300 truncate max-w-[140px]"
+                title={API_BASE_URL}
+              >
                 Render (production)
               </span>
             </div>
+
+            {status === "syncing" && (
+              <div className="flex justify-between items-center text-zinc-300">
+                <span className="text-zinc-400">Retry interval:</span>
+                <span className="font-mono text-amber-400">every 10 s</span>
+              </div>
+            )}
 
             {latency !== null && (
               <div className="flex justify-between items-center text-zinc-300">
