@@ -128,6 +128,8 @@ export const useAuthStore = create<AuthStore>()(
           // Ignore network/API errors and still clear local auth state.
         } finally {
           localStorage.removeItem("accessToken");
+          const { clearCartSyncTracking } = await import("./store");
+          clearCartSyncTracking();
           set({ user: null });
         }
       },

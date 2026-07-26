@@ -8,7 +8,6 @@ import {
   Loader2,
   Package,
   ChevronRight,
-  ArrowLeft,
   Clock3,
   MapPin,
   Truck,
@@ -259,9 +258,9 @@ export default function OrderDetailsPage() {
       <div className="min-h-screen bg-[var(--bg-base)]">
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 py-24 text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-4 text-[var(--brand-accent)]" />
-          <p className="text-sm font-black uppercase tracking-widest text-black">
-            Loading Order Details...
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-black" />
+          <p className="text-sm font-semibold text-zinc-600">
+            Loading order details...
           </p>
         </div>
       </div>
@@ -272,18 +271,18 @@ export default function OrderDetailsPage() {
     return (
       <div className="min-h-screen bg-[var(--bg-base)]">
         <Navbar />
-        <div className="max-w-xl mx-auto px-4 py-24">
-          <div className="bg-white border border-[var(--border-default)] rounded-xl p-12 text-center space-y-6 shadow-sm">
-            <Package className="w-12 h-12 mx-auto text-zinc-300" />
-            <h1 className="text-2xl font-black text-black uppercase tracking-tight">
+        <div className="max-w-md mx-auto px-4 py-24">
+          <div className="bg-white border border-[var(--border-default)] rounded-md p-10 text-center space-y-5 shadow-sm">
+            <Package className="w-10 h-10 mx-auto text-zinc-400" />
+            <h1 className="text-2xl font-bold text-black tracking-tight">
               Order Not Found
             </h1>
-            <p className="text-zinc-500 text-sm">
+            <p className="text-zinc-600 text-sm">
               {error || "This order details could not be retrieved."}
             </p>
             <Link
               href="/customer/orders"
-              className="inline-block px-8 py-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors"
+              className="inline-block px-6 py-2.5 bg-black text-white rounded-md font-bold text-sm hover:bg-zinc-800 transition-colors shadow-sm"
             >
               Back to My Orders
             </Link>
@@ -363,55 +362,52 @@ export default function OrderDetailsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] pb-20">
+    <div className="min-h-screen bg-[var(--bg-base)] pb-20 antialiased">
       <Navbar />
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-          <Link href="/" className="hover:text-black">
+        <div className="flex items-center gap-2 mb-6 text-sm text-zinc-600 font-medium">
+          <Link href="/" className="hover:text-black transition-colors">
             Home
           </Link>
-          <ChevronRight size={12} />
-          <Link href="/customer/orders" className="hover:text-black">
+          <ChevronRight size={14} className="text-zinc-400" />
+          <Link href="/customer/orders" className="hover:text-black transition-colors">
             My Orders
           </Link>
-          <ChevronRight size={12} />
-          <span className="text-black">Order Details</span>
+          <ChevronRight size={14} className="text-zinc-400" />
+          <span className="text-black font-semibold">Order Details</span>
         </div>
 
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        {/* Top Title Banner */}
+        <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border-default)]">
           <div className="min-w-0">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-black tracking-tighter mb-4 leading-tight">
+            <h1 className="text-3xl sm:text-4xl font-bold text-black tracking-tight mb-2.5">
               {order.items
                 ?.map((it) => it.product?.name)
                 .filter(Boolean)
                 .join(", ") || "Order Tracking"}
             </h1>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="px-3 py-1 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-md">
-                ID: {order.id?.slice(-12).toUpperCase()}
-              </div>
-              <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                <Clock3 size={14} className="text-[var(--brand-accent)]" />
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-3 py-1 bg-zinc-100 text-zinc-800 text-sm font-semibold rounded-md border border-zinc-200">
+                ID: #{order.id?.slice(-12).toUpperCase()}
+              </span>
+              <span className="text-sm text-zinc-600 font-medium flex items-center gap-1.5">
+                <Clock3 size={15} className="text-zinc-500" />
                 Placed on {formatDate(order.createdAt)}
               </span>
             </div>
           </div>
           <div
-            className={`px-6 py-3 border rounded-xl shadow-sm flex flex-col items-end shrink-0 ${
+            className={`px-6 py-3.5 border rounded-md shadow-sm flex flex-col items-start md:items-end shrink-0 ${
               isOrderCancelled
-                ? "bg-red-50 border-red-100 text-red-600"
+                ? "bg-red-50 border-red-200 text-red-700"
                 : "bg-white border-[var(--border-default)] text-black"
             }`}
           >
-            <span
-              className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
-                isOrderCancelled ? "text-red-400" : "text-zinc-400"
-              }`}
-            >
+            <span className="text-xs font-medium text-zinc-500 mb-0.5">
               Status
             </span>
-            <span className="text-base font-black uppercase tracking-widest">
+            <span className="text-base font-bold tracking-tight">
               {(order.status || "-").replaceAll("_", " ")}
             </span>
             {canResumePayment && (
@@ -421,7 +417,7 @@ export default function OrderDetailsPage() {
                   void handleCompletePayment();
                 }}
                 disabled={paying}
-                className="mt-4 inline-flex items-center gap-2 h-10 px-5 rounded-full bg-[var(--brand-accent)] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                className="mt-3 inline-flex items-center gap-2 h-10 px-5 rounded-md bg-black text-white text-sm font-bold hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
               >
                 {paying ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -434,7 +430,7 @@ export default function OrderDetailsPage() {
               </button>
             )}
             {paymentError && (
-              <p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-red-500 text-right max-w-[240px]">
+              <p className="mt-2 text-xs font-medium text-red-600 text-right max-w-[240px]">
                 {paymentError}
               </p>
             )}
@@ -442,27 +438,27 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Tracking Progress (Only if not cancelled) */}
+          {/* Main Content Column */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Tracking Progress Section */}
             {!isOrderCancelled && (
-              <section className="bg-white border border-[var(--border-default)] rounded-xl p-6 sm:p-8 shadow-sm overflow-hidden relative">
-                <div className="mb-8 sm:mb-10">
-                  <div className="flex items-center gap-3">
-                    <Truck size={20} className="text-[var(--brand-accent)]" />
-                    <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black">
+              <section className="bg-white border border-[var(--border-default)] rounded-md p-6 sm:p-8 shadow-sm">
+                <div className="mb-6">
+                  <div className="flex items-center gap-2.5">
+                    <Truck size={20} className="text-black" />
+                    <h2 className="text-base sm:text-lg font-bold text-black">
                       Delivery Progress
                     </h2>
                   </div>
-                  <p className="mt-3 text-sm font-bold text-zinc-500">
-                    Track where your order is right now.
+                  <p className="mt-1 text-sm text-zinc-600">
+                    Track current status and fulfillment timeline.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-8 sm:gap-x-4 relative">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-6 sm:gap-x-2 relative">
                   <div className="sm:hidden absolute left-[15px] top-2 bottom-2 w-[2px] bg-zinc-200 z-0">
                     <div
-                      className="w-full bg-[var(--brand-accent)] transition-all duration-1000"
+                      className="w-full bg-black transition-all duration-1000"
                       style={{
                         height: `${Math.max(0, Math.min(100, ((stepIndex - 1) / (TRACKING_STEPS.length - 1)) * 100))}%`,
                       }}
@@ -475,19 +471,19 @@ export default function OrderDetailsPage() {
                     return (
                       <div key={step} className="relative z-10">
                         {index < TRACKING_STEPS.length - 1 && (
-                          <div className="hidden sm:block absolute top-[15px] left-8 w-full h-[2px] bg-zinc-200 z-0">
+                          <div className="hidden sm:block absolute top-[14px] left-6 w-full h-[2px] bg-zinc-200 z-0">
                             <div
-                              className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${
+                              className={`h-full bg-black transition-all duration-1000 ${
                                 index + 1 < stepIndex ? "w-full" : "w-0"
                               }`}
                             />
                           </div>
                         )}
-                        <div className="flex items-start sm:flex-col sm:items-center gap-4 relative z-10">
+                        <div className="flex items-start sm:flex-col sm:items-center gap-3 relative z-10">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
                               completed
-                                ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_0_6px_rgba(255,0,0,0.08)]"
+                                ? "bg-black border-black text-white"
                                 : "bg-white border-zinc-300"
                             }`}
                           >
@@ -499,17 +495,17 @@ export default function OrderDetailsPage() {
                           </div>
                           <div className="min-w-0 sm:text-center">
                             <p
-                              className={`text-sm sm:text-[15px] font-black uppercase leading-tight ${
+                              className={`text-sm font-bold leading-tight ${
                                 isCurrent
-                                  ? "text-[var(--brand-accent)]"
+                                  ? "text-black"
                                   : completed
-                                    ? "text-black"
-                                    : "text-zinc-500"
+                                    ? "text-zinc-800"
+                                    : "text-zinc-400"
                               }`}
                             >
                               {step}
                             </p>
-                            <p className="mt-1 text-xs font-bold uppercase tracking-wide text-zinc-400">
+                            <p className="mt-1 text-xs font-medium text-zinc-500">
                               {index + 1 < stepIndex
                                 ? "Completed"
                                 : isCurrent
@@ -525,62 +521,64 @@ export default function OrderDetailsPage() {
               </section>
             )}
 
-            {/* Order Items */}
-            <section className="bg-white border border-[var(--border-default)] rounded-xl shadow-sm overflow-hidden">
-              <div className="px-6 sm:px-8 py-6 border-b border-[var(--border-default)] flex items-center justify-between gap-4">
-                <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black flex items-center gap-3">
-                  <Package size={18} className="text-[var(--brand-accent)]" />
+            {/* Order Items Section */}
+            <section className="bg-white border border-[var(--border-default)] rounded-md shadow-sm overflow-hidden">
+              <div className="px-6 py-4.5 border-b border-[var(--border-default)] flex items-center justify-between gap-4">
+                <h2 className="text-base sm:text-lg font-bold text-black flex items-center gap-2.5">
+                  <Package size={20} className="text-black" />
                   Order Items
                 </h2>
-                <span className="text-sm font-black uppercase text-zinc-400">
-                  {order.items?.length} items
+                <span className="text-sm font-semibold text-zinc-600">
+                  {order.items?.length} {order.items?.length === 1 ? "item" : "items"}
                 </span>
               </div>
               <div className="divide-y divide-[var(--border-default)]">
                 {order.items?.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center gap-6 group hover:bg-[var(--bg-sunken)] transition-colors"
+                    className="p-6 sm:p-7 flex flex-col lg:flex-row lg:items-center gap-6 hover:bg-zinc-50/50 transition-colors"
                   >
-                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-[var(--bg-sunken)] border border-[var(--border-default)] shrink-0">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-md overflow-hidden bg-zinc-50 border border-[var(--border-default)] shrink-0">
                       <img
                         src={
                           item.product?.imageUrl || "/placeholder-product-1.jpg"
                         }
                         alt={item.product?.name}
-                        className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black line-clamp-2">
+                      <h3 className="text-lg font-bold text-black line-clamp-2">
                         {item.product?.name}
                       </h3>
-                      <p className="text-sm font-bold text-zinc-400 uppercase mt-2 tracking-wide">
-                        Vendor: {order.vendor?.businessName}
-                      </p>
+                      {order.vendor?.businessName && (
+                        <p className="text-sm text-zinc-600 mt-1.5 font-medium">
+                          Vendor: {order.vendor.businessName}
+                        </p>
+                      )}
                     </div>
-                    <div className="grid grid-cols-3 gap-5 sm:gap-8 w-full lg:w-auto lg:min-w-[380px]">
+                    <div className="grid grid-cols-3 gap-5 w-full lg:w-auto lg:min-w-[340px] pt-4 lg:pt-0 border-t lg:border-t-0 border-zinc-100">
                       <div className="text-left lg:text-center">
-                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+                        <p className="text-xs font-semibold text-zinc-500 mb-1">
                           Price
                         </p>
-                        <p className="text-xl sm:text-2xl font-black text-black">
+                        <p className="text-base sm:text-lg font-bold text-black">
                           {formatCurrency(item.price)}
                         </p>
                       </div>
                       <div className="text-left lg:text-center">
-                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+                        <p className="text-xs font-semibold text-zinc-500 mb-1">
                           Qty
                         </p>
-                        <p className="text-xl sm:text-2xl font-black text-black">
+                        <p className="text-base sm:text-lg font-bold text-black">
                           x{item.quantity}
                         </p>
                       </div>
                       <div className="text-left lg:text-right min-w-[90px]">
-                        <p className="text-[11px] font-black text-zinc-400 uppercase tracking-widest mb-2">
+                        <p className="text-xs font-semibold text-zinc-500 mb-1">
                           Subtotal
                         </p>
-                        <p className="text-xl sm:text-2xl font-black text-black">
+                        <p className="text-base sm:text-lg font-bold text-black">
                           {formatCurrency(
                             (item.price || 0) * (item.quantity || 0),
                           )}
@@ -590,42 +588,42 @@ export default function OrderDetailsPage() {
                   </div>
                 ))}
               </div>
-              <div className="p-6 sm:p-8 bg-[var(--bg-sunken)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <span className="text-lg sm:text-xl font-black uppercase tracking-widest text-zinc-400">
+              <div className="p-6 bg-zinc-50 border-t border-[var(--border-default)] flex items-center justify-between gap-3">
+                <span className="text-base font-bold text-zinc-700">
                   Total Order Amount
                 </span>
-                <span className="text-4xl sm:text-5xl font-black text-black tracking-tighter">
+                <span className="text-3xl sm:text-4xl font-bold text-black tracking-tight">
                   {formatCurrency(order.totalAmount)}
                 </span>
               </div>
             </section>
 
-            {/* Events Timeline */}
-            <section className="bg-white border border-[var(--border-default)] rounded-xl p-6 sm:p-8 shadow-sm">
-              <h2 className="text-base sm:text-lg font-black uppercase tracking-[0.18em] text-black mb-8 flex items-center gap-3">
-                <Clock3 size={18} className="text-[var(--brand-accent)]" />
+            {/* Events Timeline Log */}
+            <section className="bg-white border border-[var(--border-default)] rounded-md p-6 sm:p-8 shadow-sm">
+              <h2 className="text-base sm:text-lg font-bold text-black mb-6 flex items-center gap-2.5">
+                <Clock3 size={20} className="text-black" />
                 Detailed Log
               </h2>
               <div className="space-y-6">
                 {order.events?.map((event, idx) => (
-                  <div key={idx} className="flex gap-6 relative group">
+                  <div key={idx} className="flex gap-4 relative">
                     {idx < (order.events?.length || 0) - 1 && (
-                      <div className="absolute left-[11px] top-6 bottom-0 w-[2px] bg-[var(--border-default)]" />
+                      <div className="absolute left-[10px] top-6 bottom-0 w-[2px] bg-zinc-200" />
                     )}
-                    <div className="w-6 h-6 rounded-full bg-[var(--bg-sunken)] border-2 border-[var(--border-default)] flex items-center justify-center shrink-0 z-10 group-hover:border-[var(--brand-accent)] transition-colors">
-                      <div className="w-1.5 h-1.5 rounded-full bg-zinc-300 group-hover:bg-[var(--brand-accent)] transition-colors" />
+                    <div className="w-5 h-5 rounded-full bg-zinc-100 border border-zinc-300 flex items-center justify-center shrink-0 z-10 mt-1">
+                      <div className="w-2 h-2 rounded-full bg-zinc-700" />
                     </div>
-                    <div className="flex-1 pb-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-                        <p className="text-base font-black uppercase tracking-tight text-black">
+                    <div className="flex-1 pb-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-1">
+                        <p className="text-sm font-bold text-black">
                           {event.status?.replaceAll("_", " ")}
                         </p>
-                        <span className="text-xs font-bold text-zinc-400 uppercase">
+                        <span className="text-xs font-medium text-zinc-500">
                           {formatDate(event.createdAt)}
                         </span>
                       </div>
                       {event.note && (
-                        <p className="text-sm font-bold text-zinc-500 leading-relaxed">
+                        <p className="text-sm text-zinc-700 font-medium leading-relaxed">
                           {event.note}
                         </p>
                       )}
@@ -636,57 +634,58 @@ export default function OrderDetailsPage() {
             </section>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar Column */}
           <div className="lg:col-span-4 space-y-6">
-            <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-8">
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <MapPin size={18} className="text-[var(--brand-accent)]" />
-                  <h3 className="text-sm font-black uppercase tracking-[0.18em] text-black">
-                    Delivery Destination
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-xl font-black text-black uppercase">
-                    {order.shippingFullName}
-                  </p>
-                  <p className="text-sm font-bold text-zinc-500 leading-relaxed">
-                    {order.shippingAddressLine1},{" "}
-                    {order.shippingAddressLine2
-                      ? order.shippingAddressLine2 + ", "
-                      : ""}
-                    {order.shippingCity}, {order.shippingState} -{" "}
-                    {order.shippingPostalCode}
-                  </p>
-                </div>
-                <div className="pt-4 border-t border-[var(--border-default)] space-y-2">
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase flex items-center gap-2">
-                    <ShieldCheck size={12} className="text-emerald-500" />
-                    Verified Delivery Address
-                  </p>
-                </div>
+            {/* Delivery Address Card */}
+            <div className="p-6 sm:p-7 bg-white border border-[var(--border-default)] rounded-md shadow-sm space-y-4">
+              <div className="flex items-center gap-2.5">
+                <MapPin size={20} className="text-black" />
+                <h3 className="text-base font-bold text-black">
+                  Delivery Destination
+                </h3>
+              </div>
+              <div className="space-y-2">
+                <p className="text-lg font-bold text-black">
+                  {order.shippingFullName}
+                </p>
+                <p className="text-sm text-zinc-700 font-medium leading-relaxed">
+                  {order.shippingAddressLine1},{" "}
+                  {order.shippingAddressLine2
+                    ? order.shippingAddressLine2 + ", "
+                    : ""}
+                  {order.shippingCity}, {order.shippingState} -{" "}
+                  {order.shippingPostalCode}
+                </p>
+              </div>
+              <div className="pt-3 border-t border-[var(--border-default)]">
+                <p className="text-xs font-semibold text-emerald-600 flex items-center gap-1.5">
+                  <ShieldCheck size={15} />
+                  Verified Delivery Address
+                </p>
               </div>
             </div>
 
-            <div className="p-8 bg-black rounded-xl text-white shadow-xl space-y-6 border border-zinc-800">
-              <h3 className="text-sm font-black uppercase tracking-[0.18em] text-[var(--brand-accent)]">
+            {/* Customer Support Card */}
+            <div className="p-6 sm:p-7 bg-zinc-900 rounded-md text-white shadow-sm space-y-4 border border-zinc-800">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-white">
                 Customer Support
               </h3>
-              <p className="text-sm font-bold text-zinc-300 leading-relaxed">
+              <p className="text-sm text-zinc-200 font-medium leading-relaxed">
                 Having issues with this order? Our support team is available
                 24/7 to assist you with delivery and quality concerns.
               </p>
               <Link
                 href="/support"
-                className="flex items-center justify-center w-full h-12 bg-white text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-[var(--brand-accent)] hover:text-white transition-all shadow-lg"
+                className="flex items-center justify-center w-full h-11 bg-white text-black rounded-md font-bold text-sm hover:bg-zinc-100 transition-colors shadow-sm"
               >
                 Help Center
               </Link>
             </div>
 
+            {/* Continue Shopping Action */}
             <Link
               href="/products"
-              className="flex items-center justify-center w-full h-14 bg-[var(--bg-sunken)] border border-[var(--border-default)] text-black rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-black hover:text-white transition-all shadow-sm gap-3"
+              className="flex items-center justify-center w-full h-12 bg-white border border-[var(--border-default)] text-black rounded-md font-bold text-sm hover:bg-zinc-50 transition-colors shadow-sm gap-2.5"
             >
               <ShoppingBag size={16} />
               Continue Shopping

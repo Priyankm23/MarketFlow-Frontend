@@ -622,7 +622,7 @@ export default function VendorProfilePage() {
                       <p className="text-sm font-medium text-[var(--text-primary)]">
                         {profile.state}{" "}
                         <span className="text-[var(--text-muted)] mx-1">
-                          â€¢
+                          •
                         </span>{" "}
                         {profile.pincode}
                       </p>

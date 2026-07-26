@@ -43,34 +43,31 @@ const formatAmount = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
 
 const GatewayShell = ({ children }: { children: React.ReactNode }) => (
   <div className="min-h-screen bg-[var(--bg-base)] text-black antialiased">
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 lg:py-16">
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 px-2">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-3 px-1">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-lg">
-            <ShieldCheck size={22} />
-          </div>
-          <div>
-            <h1 className="text-xl font-black tracking-tight text-black">
-              Stripe Checkout
-            </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-              Secure Payment Terminal
-            </p>
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/Stripe-Logo.png"
+            alt="Stripe"
+            className="h-9 sm:h-10 w-auto object-contain"
+          />
         </div>
 
-        <div className="flex items-center gap-4 text-[11px] font-semibold text-zinc-500 bg-white px-4 py-2 rounded-full border border-[var(--border-default)] shadow-sm">
-          <div className="flex items-center gap-1.5 border-r border-[var(--border-default)] pr-4">
-            <Lock size={12} className="text-green-600" />
-            <span>TLS Encrypted</span>
+        <div className="flex items-center gap-3 text-xs font-medium text-zinc-600 bg-white px-3.5 py-1.5 rounded-md border border-[var(--border-default)] shadow-sm">
+          <div className="flex items-center gap-1.5 border-r border-[var(--border-default)] pr-3">
+            <Lock size={13} className="text-emerald-600" />
+            <span>256-Bit SSL Encrypted</span>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 text-zinc-500">
             <span>Powered by Stripe</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl border border-[var(--border-default)] shadow-[0_18px_45px_rgba(0,0,0,0.08)] overflow-hidden">
+      {/* Main Card */}
+      <div className="bg-white rounded-md border border-[var(--border-default)] shadow-sm overflow-hidden">
         {children}
       </div>
     </div>
@@ -128,18 +125,18 @@ function StripePaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
-          Card / UPI / Wallet / Bank
-        </p>
-        <div className="rounded-2xl border border-[var(--border-default)] bg-white p-4">
+        <label className="block text-xs font-semibold text-zinc-600">
+          Payment Method
+        </label>
+        <div className="rounded-md border border-[var(--border-default)] bg-white p-4 sm:p-5 shadow-sm">
           <PaymentElement />
         </div>
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-3">
-          <div className="w-2 h-2 rounded-full bg-red-500" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-600">
+        <div className="p-4 bg-red-50 rounded-md border border-red-200 flex items-center gap-3">
+          <div className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+          <p className="text-xs font-medium text-red-600 leading-relaxed">
             {error}
           </p>
         </div>
@@ -148,7 +145,7 @@ function StripePaymentForm({
       <button
         type="submit"
         disabled={!stripe || !elements || processing}
-        className="w-full h-14 bg-[var(--brand-accent)] text-white rounded-2xl font-black text-sm tracking-wide hover:bg-black transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full h-12 bg-black hover:bg-zinc-800 text-white rounded-md font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm cursor-pointer"
       >
         {processing ? (
           <Loader2 className="w-5 h-5 animate-spin" />
@@ -310,10 +307,10 @@ export default function StripeGatewayPage() {
   if (loadingSession) {
     return (
       <GatewayShell>
-        <div className="p-20 text-center">
-          <Loader2 className="w-10 h-10 animate-spin mx-auto mb-6 text-[var(--brand-accent)]" />
-          <p className="text-sm font-bold text-zinc-500 uppercase tracking-widest">
-            Initializing Stripe checkout...
+        <div className="p-16 text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-black" />
+          <p className="text-xs font-semibold text-zinc-500">
+            Initializing secure checkout...
           </p>
         </div>
       </GatewayShell>
@@ -323,21 +320,23 @@ export default function StripeGatewayPage() {
   if (!session) {
     return (
       <GatewayShell>
-        <div className="max-w-xl mx-auto p-12 text-center space-y-6">
-          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
-            <Lock size={32} />
+        <div className="max-w-md mx-auto p-10 text-center space-y-5">
+          <div className="w-12 h-12 bg-zinc-100 text-black rounded-md flex items-center justify-center mx-auto">
+            <Lock size={24} />
           </div>
-          <h1 className="text-2xl font-black text-black">Session Expired</h1>
-          <p className="text-zinc-500 text-sm leading-relaxed">
+          <h1 className="text-xl font-bold text-black tracking-tight">
+            Session Expired
+          </h1>
+          <p className="text-zinc-500 text-xs leading-relaxed">
             For your security, payment sessions expire after inactivity. Please
-            return to checkout and re-initiate payment.
+            return to checkout to re-initiate your payment.
           </p>
           <Link
             href="/customer/checkout"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-colors shadow-sm"
           >
             <ChevronLeft size={16} />
-            Return to checkout
+            Return to Checkout
           </Link>
         </div>
       </GatewayShell>
@@ -347,25 +346,27 @@ export default function StripeGatewayPage() {
   if (!stripeClientSecret) {
     return (
       <GatewayShell>
-        <div className="max-w-xl mx-auto p-12 text-center space-y-6">
-          <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
-            <Lock size={32} />
+        <div className="max-w-md mx-auto p-10 text-center space-y-5">
+          <div className="w-12 h-12 bg-zinc-100 text-black rounded-md flex items-center justify-center mx-auto">
+            <Lock size={24} />
           </div>
-          <h1 className="text-2xl font-black text-black">Stripe Not Ready</h1>
-          <p className="text-zinc-500 text-sm leading-relaxed">
+          <h1 className="text-xl font-bold text-black tracking-tight">
+            Stripe Session Not Ready
+          </h1>
+          <p className="text-zinc-500 text-xs leading-relaxed">
             {loadingFallbackSecret
-              ? "Preparing Stripe secure session..."
+              ? "Preparing secure Stripe session..."
               : "Payment intent did not include a Stripe client secret. Please retry checkout."}
           </p>
           {sessionError && (
-            <p className="text-xs text-red-600 font-semibold">{sessionError}</p>
+            <p className="text-xs text-red-600 font-medium">{sessionError}</p>
           )}
           <Link
             href="/customer/checkout"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-full bg-black text-white text-xs font-black uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-md bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-colors shadow-sm"
           >
             <ChevronLeft size={16} />
-            Back to checkout
+            Back to Checkout
           </Link>
         </div>
       </GatewayShell>
@@ -374,30 +375,31 @@ export default function StripeGatewayPage() {
 
   return (
     <GatewayShell>
-      <div className="grid grid-cols-1 lg:grid-cols-5 h-full">
-        <div className="lg:col-span-3 p-8 sm:p-12 border-r border-[var(--border-default)]">
+      <div className="grid grid-cols-1 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-[var(--border-default)]">
+        {/* Left Column: Form */}
+        <div className="lg:col-span-3 p-6 sm:p-10">
           {success ? (
-            <div className="h-full flex flex-col items-center justify-center text-center space-y-6 py-12">
-              <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center">
-                <CheckCircle2 size={48} className="text-green-600" />
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-4 py-10">
+              <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center">
+                <CheckCircle2 size={36} className="text-emerald-600" />
               </div>
               <div>
-                <h2 className="text-3xl font-black text-black">
+                <h2 className="text-2xl font-bold text-black tracking-tight">
                   Payment Confirmed
                 </h2>
-                <p className="text-zinc-500 text-sm mt-2 font-medium">
+                <p className="text-zinc-500 text-xs mt-1.5 font-medium">
                   Redirecting to your order details...
                 </p>
               </div>
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-6">
               <div>
-                <h2 className="text-2xl font-black text-black">
+                <h2 className="text-xl font-bold text-black tracking-tight">
                   Payment Details
                 </h2>
-                <p className="text-zinc-400 text-xs font-semibold uppercase tracking-widest mt-1">
-                  Complete your purchase securely with Stripe
+                <p className="text-xs text-zinc-500 mt-1 font-medium">
+                  Complete your purchase securely via Stripe
                 </p>
               </div>
 
@@ -414,39 +416,40 @@ export default function StripeGatewayPage() {
           )}
         </div>
 
-        <div className="lg:col-span-2 bg-zinc-50/70 p-8 sm:p-12">
-          <div className="space-y-10">
+        {/* Right Column: Order Summary */}
+        <div className="lg:col-span-2 bg-zinc-50/60 p-6 sm:p-10">
+          <div className="space-y-8">
             <div>
-              <h2 className="text-lg font-bold text-black">Summary</h2>
-              <div className="mt-4 p-4 bg-white rounded-2xl border border-[var(--border-default)] shadow-sm">
+              <h2 className="text-base font-bold text-black">Summary</h2>
+              <div className="mt-3 p-4 bg-white rounded-md border border-[var(--border-default)] shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
-                    Total Pay
+                  <span className="text-xs font-semibold text-zinc-500">
+                    Total Payable
                   </span>
-                  <span className="text-2xl font-black text-black tracking-tighter">
+                  <span className="text-2xl font-bold text-black tracking-tight">
                     {formatAmount(totalAmount)}
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-6">
-              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+            <div className="space-y-4">
+              <h3 className="text-xs font-bold text-black uppercase tracking-wide">
                 Order Breakdown
               </h3>
-              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2 scrollbar-hide">
+              <div className="space-y-3 max-h-[260px] overflow-y-auto pr-1 scrollbar-hide">
                 {session.intents.map((intent, idx) => (
                   <div
                     key={idx}
-                    className="relative pl-4 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-red-100 before:rounded-full"
+                    className="p-3 bg-white border border-[var(--border-default)] rounded-md space-y-1 shadow-sm"
                   >
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase">
+                    <p className="text-[11px] font-medium text-zinc-500">
                       Order Ref
                     </p>
-                    <p className="text-xs font-black text-black truncate mb-1">
-                      #{intent.orderId.slice(-12)}
+                    <p className="text-xs font-bold text-black truncate">
+                      #{intent.orderId}
                     </p>
-                    <p className="text-sm font-black text-[var(--brand-accent)]">
+                    <p className="text-xs font-bold text-black pt-0.5">
                       {formatAmount(Number(intent.amount || 0))}
                     </p>
                   </div>
@@ -454,10 +457,10 @@ export default function StripeGatewayPage() {
               </div>
             </div>
 
-            <div className="pt-10 border-t border-[var(--border-default)]">
+            <div className="pt-6 border-t border-[var(--border-default)]">
               <Link
                 href="/customer/checkout"
-                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-500 hover:text-[var(--brand-accent)] transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-black transition-colors"
               >
                 <ChevronLeft size={14} />
                 Cancel Payment

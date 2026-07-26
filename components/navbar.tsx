@@ -951,6 +951,13 @@ export function Navbar() {
                   >
                     Sell on Markivo
                   </Link>
+                  <Link
+                    href="/delivery/terms"
+                    id="become-delivery-partner-btn"
+                    className="px-4 py-2 hidden xl:inline-flex items-center gap-1.5 text-sm font-medium border border-[var(--border-strong)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-sunken)] transition-colors whitespace-nowrap"
+                  >
+                    Be a Delivery Partner
+                  </Link>
                 </div>
               ))}
 
@@ -1106,6 +1113,19 @@ export function Navbar() {
                   }}
                 >
                   Become a Vendor
+                </Link>
+                <Link
+                  href="/delivery/terms"
+                  onClick={closeMobileMenu}
+                  className="block px-4 py-2.5 rounded-lg"
+                  style={{
+                    fontFamily: "var(--font-body)",
+                    fontSize: "16px",
+                    fontWeight: 500,
+                    color: "#3D3D4E",
+                  }}
+                >
+                  Be a Delivery Partner
                 </Link>
               </>
             )}

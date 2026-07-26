@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/navbar";
 import { useCartStore, useAuthStore } from "@/lib/store";
 import { authFetch } from "@/lib/auth-fetch";
@@ -80,6 +81,7 @@ const toPricing = (pricing?: Partial<PriceSummary>): PriceSummary => ({
 });
 
 export default function CartPage() {
+  const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const items = useCartStore((state) => state.items);
   const cartLoading = useCartStore((state) => state.isLoading);
@@ -163,7 +165,23 @@ export default function CartPage() {
     const fetchBackendPricingAndOffers = async () => {
       if (!user) {
         if (isMounted) {
-          setPricing(EMPTY_PRICING);
+          const subtotal = items.reduce(
+            (acc, item) => acc + item.price * item.quantity,
+            0,
+          );
+          const platformFee = items.length > 0 ? 10 : 0;
+          const deliveryFee = items.length > 0 ? 40 : 0;
+          const gst = Math.round(subtotal * 0.05);
+          const grandTotal = subtotal + platformFee + deliveryFee + gst;
+
+          setPricing({
+            subtotal,
+            platformFee,
+            deliveryFee,
+            gst,
+            offerDiscount: 0,
+            grandTotal,
+          });
           setOffersByProduct({});
         }
         return;
@@ -255,7 +273,7 @@ export default function CartPage() {
     return () => {
       isMounted = false;
     };
-  }, [fetchCart, items.length, user]);
+  }, [fetchCart, items, user]);
 
   const handleOfferSelect = (productId: string, offer: CartOffer) => {
     setAppliedOffers((prev) => {
@@ -298,81 +316,89 @@ export default function CartPage() {
           <span className="text-black">Your Cart</span>
         </div>
 
-        <div className="flex items-baseline gap-4 mb-10">
-          <h1 className="text-4xl sm:text-5xl font-black text-red-600 uppercase tracking-tighter">
-            Your Bag
+        <div className="flex items-baseline gap-3 mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight">
+            Shopping Cart
           </h1>
-          <span className="text-xl font-bold text-[var(--text-muted)]">
-            ({items.length} items)
+          <span className="text-sm font-medium text-[var(--text-muted)]">
+            ({items.length} {items.length === 1 ? "item" : "items"})
           </span>
         </div>
 
         {cartLoading && items.length === 0 ? (
-          <div className="text-center py-24 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--brand-accent)]" />
-            <p className="text-sm font-black uppercase tracking-widest text-black">
-              Syncing your bag...
+          <div className="text-center py-16 bg-white border border-[var(--border-default)] rounded-md shadow-sm space-y-3">
+            <div className="relative flex items-center justify-center mx-auto mb-2">
+              <div className="absolute w-12 h-12 rounded-full bg-zinc-200/50 animate-ping opacity-60" />
+              <div className="relative w-10 h-10 rounded-md bg-zinc-50 border border-zinc-200 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 text-black animate-spin" />
+              </div>
+            </div>
+            <p className="text-sm font-bold text-black">
+              Syncing Your Cart...
+            </p>
+            <p className="text-xs text-zinc-500 font-medium">
+              Updating your items and applying applicable offers.
             </p>
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-24 bg-white border border-[var(--border-default)] rounded-xl shadow-sm space-y-6">
-            <div className="w-20 h-20 bg-[var(--bg-sunken)] rounded-full flex items-center justify-center mx-auto">
-              <ShoppingCart size={32} className="text-zinc-300" />
+          <div className="text-center py-20 bg-white border border-[var(--border-default)] rounded-md shadow-sm space-y-5">
+            <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto">
+              <ShoppingCart size={28} className="text-zinc-400" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-black uppercase tracking-tight">
-                Your bag is empty
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold text-black">
+                Your cart is empty
               </h2>
-              <p className="text-zinc-500 text-sm mt-2">
-                Looks like you haven&apos;t added anything to your bag yet.
+              <p className="text-zinc-500 text-sm">
+                Explore our catalog and add your favorite items to your bag.
               </p>
             </div>
             <Link
               href="/products"
-              className="inline-block px-8 py-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors shadow-lg"
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-black text-white rounded-md font-bold text-xs uppercase tracking-wider hover:bg-[var(--brand-accent)] transition-colors shadow-sm"
             >
               Start Shopping
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div className="lg:col-span-8 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-8 space-y-5">
               <div className="space-y-4">
                 {items.map((item) => (
                   <div
                     key={item.productId}
-                    className="group relative flex flex-col sm:flex-row gap-6 p-5 bg-white border border-[var(--border-default)] rounded-xl transition-all hover:shadow-xl hover:border-black/5"
+                    className="group relative flex flex-row gap-4 sm:gap-6 p-4 sm:p-6 bg-white border border-[var(--border-default)] rounded-md transition-all shadow-sm hover:border-zinc-300"
                   >
-                    <div className="w-full sm:w-32 aspect-square rounded-lg overflow-hidden bg-[var(--bg-sunken)] border border-[var(--border-default)] shrink-0">
+                    <div className="w-20 h-20 sm:w-36 sm:h-36 aspect-square rounded-md overflow-hidden bg-zinc-50 border border-[var(--border-default)] shrink-0">
                       <img
                         src={
                           item.product?.images?.[0] ||
                           "/placeholder-product-1.jpg"
                         }
                         alt={item.product?.name || "Product image"}
-                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     </div>
 
-                    <div className="flex-1 flex flex-col justify-between py-1">
+                    <div className="flex-1 flex flex-col justify-between py-0.5 min-w-0">
                       <div>
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[var(--brand-accent)] mb-1">
+                        <div className="flex items-start justify-between gap-2 sm:gap-4">
+                          <div className="min-w-0">
+                            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[var(--brand-accent)] mb-1 sm:mb-1.5 truncate">
                               {item.product?.vendorName || "Verified Seller"}
                             </p>
-                            <h3 className="text-lg font-black text-black leading-tight tracking-tight line-clamp-2 max-w-md">
+                            <h3 className="text-sm sm:text-lg font-bold text-black leading-snug line-clamp-2 max-w-lg">
                               {item.product?.name ||
                                 `Product ${item.productId}`}
                             </h3>
                           </div>
-                          <p className="text-xl font-black text-black tracking-tighter">
+                          <p className="text-base sm:text-xl font-bold text-black shrink-0">
                             ₹{formatPrice(item.price)}
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-4 mt-4">
-                          <div className="flex items-center border border-[var(--border-default)] rounded-lg bg-[var(--bg-sunken)] overflow-hidden">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 mt-3 sm:mt-4">
+                          <div className="flex items-center border border-[var(--border-default)] rounded-md bg-zinc-50 overflow-hidden h-8 sm:h-10">
                             <button
                               onClick={() =>
                                 void updateQuantity(
@@ -380,11 +406,11 @@ export default function CartPage() {
                                   Math.max(1, item.quantity - 1),
                                 )
                               }
-                              className="p-2 hover:bg-white transition-colors"
+                              className="px-2 sm:px-3 h-full hover:bg-white transition-colors flex items-center justify-center"
                             >
-                              <Minus size={14} className="text-black" />
+                              <Minus size={13} className="text-black" />
                             </button>
-                            <span className="w-10 text-center text-xs font-black text-black">
+                            <span className="w-7 sm:w-9 text-center text-xs font-bold text-black">
                               {item.quantity}
                             </span>
                             <button
@@ -394,27 +420,27 @@ export default function CartPage() {
                                   item.quantity + 1,
                                 )
                               }
-                              className="p-2 hover:bg-white transition-colors"
+                              className="px-2 sm:px-3 h-full hover:bg-white transition-colors flex items-center justify-center"
                             >
-                              <Plus size={14} className="text-black" />
+                              <Plus size={13} className="text-black" />
                             </button>
                           </div>
 
                           <button
                             onClick={() => void removeItem(item.productId)}
-                            className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] hover:text-red-600 transition-colors flex items-center gap-1.5"
+                            className="text-[11px] sm:text-xs font-semibold text-zinc-500 hover:text-red-600 transition-colors flex items-center gap-1"
                           >
-                            <Trash2 size={12} />
+                            <Trash2 size={13} />
                             Remove
                           </button>
                         </div>
                       </div>
 
-                      <div className="mt-4 sm:mt-0 pt-4 border-t border-zinc-50 flex items-center justify-between">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)]">
+                      <div className="mt-3 sm:mt-0 pt-3 border-t border-zinc-100 flex items-center justify-between">
+                        <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wider text-zinc-400">
                           Subtotal
                         </span>
-                        <span className="text-sm font-black text-black">
+                        <span className="text-xs sm:text-base font-bold text-black">
                           ₹{formatPrice(item.price * item.quantity)}
                         </span>
                       </div>
@@ -423,27 +449,27 @@ export default function CartPage() {
                 ))}
               </div>
 
-              <div className="p-6 bg-[var(--bg-sunken)] rounded-xl border border-dashed border-[var(--border-default)] space-y-4">
+              <div className="p-5 bg-zinc-50/70 rounded-md border border-[var(--border-default)] space-y-3">
                 <div className="flex items-center gap-2 text-black">
                   <TicketPercent
-                    size={18}
+                    size={16}
                     className="text-[var(--brand-accent)]"
                   />
-                  <span className="text-xs font-black uppercase tracking-widest">
+                  <span className="text-xs font-bold uppercase tracking-wider">
                     Offers by Product
                   </span>
                 </div>
 
                 {offersLoading ? (
-                  <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                  <p className="text-xs text-zinc-500">
                     Loading available offers...
                   </p>
                 ) : !hasAnyOffers ? (
-                  <p className="text-[10px] font-bold text-[var(--text-muted)]">
+                  <p className="text-xs text-zinc-500">
                     No active offers available for the current cart items.
                   </p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {items.map((item) => {
                       const offers = offersByProduct[item.productId] || [];
                       if (offers.length === 0) {
@@ -453,12 +479,12 @@ export default function CartPage() {
                       return (
                         <div
                           key={`offers-${item.productId}`}
-                          className="bg-white border border-[var(--border-default)] rounded-xl p-4 space-y-3"
+                          className="bg-white border border-[var(--border-default)] rounded-md p-3.5 space-y-2.5"
                         >
-                          <p className="text-[10px] font-black uppercase tracking-widest text-black">
+                          <p className="text-xs font-bold text-black">
                             {item.product?.name || "Product"}
                           </p>
-                          <div className="space-y-2.5">
+                          <div className="space-y-2">
                             {offers.map((offer) => {
                               const isSelected =
                                 appliedOffers[item.productId]?.offerId ===
@@ -471,7 +497,7 @@ export default function CartPage() {
                                   onClick={() =>
                                     handleOfferSelect(item.productId, offer)
                                   }
-                                  className={`w-full text-left p-3 rounded-lg border transition-all ${
+                                  className={`w-full text-left p-2.5 rounded-md border transition-all ${
                                     isSelected
                                       ? "bg-red-50 border-red-200"
                                       : "bg-white border-[var(--border-default)] hover:border-red-200"
@@ -479,18 +505,18 @@ export default function CartPage() {
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-[11px] font-black uppercase tracking-wide text-black leading-snug">
+                                      <p className="text-xs font-bold text-black leading-snug">
                                         {offer.offerName || "Special Offer"}
                                       </p>
                                       {offer.discountPercentage ? (
-                                        <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                        <p className="text-[11px] text-zinc-500 mt-0.5">
                                           {offer.discountPercentage}% off
                                           {offer.couponCode
                                             ? ` • Code: ${offer.couponCode}`
                                             : ""}
                                         </p>
                                       ) : (
-                                        <p className="text-[10px] font-bold text-[var(--text-muted)] mt-1">
+                                        <p className="text-[11px] text-zinc-500 mt-0.5">
                                           {offer.couponCode
                                             ? `Code: ${offer.couponCode}`
                                             : "Offer available"}
@@ -498,7 +524,7 @@ export default function CartPage() {
                                       )}
                                     </div>
                                     {isSelected && (
-                                      <span className="text-[9px] font-black uppercase tracking-widest text-red-600">
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-red-600">
                                         Selected
                                       </span>
                                     )}
@@ -517,59 +543,51 @@ export default function CartPage() {
 
             <div className="lg:col-span-4">
               <div className="sticky top-24 space-y-6">
-                <div className="p-8 bg-white border border-[var(--border-default)] rounded-xl shadow-xl space-y-6">
-                  <h2 className="text-xl font-black text-black uppercase tracking-tight">
+                <div className="p-6 bg-white border border-[var(--border-default)] rounded-md shadow-sm space-y-5">
+                  <h2 className="text-lg font-bold text-black tracking-tight border-b border-[var(--border-default)] pb-4">
                     Order Summary
                   </h2>
 
                   {pricingError && (
-                    <div className="p-3 rounded-lg border border-red-100 bg-red-50 text-red-600 text-[10px] font-bold uppercase tracking-widest">
+                    <div className="p-3 rounded-md border border-red-100 bg-red-50 text-red-600 text-xs font-medium">
                       {pricingError}
                     </div>
                   )}
 
-                  <div className="space-y-4 border-b border-[var(--border-default)] pb-6">
+                  <div className="space-y-3.5 border-b border-[var(--border-default)] pb-5 text-sm">
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        Subtotal
-                      </span>
-                      <span className="text-sm font-black text-black">
+                      <span className="text-zinc-600">Subtotal</span>
+                      <span className="font-bold text-black">
                         ₹{formatPrice(pricing.subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        Platform Fee
-                      </span>
-                      <span className="text-sm font-black text-black">
+                      <span className="text-zinc-600">Platform Fee</span>
+                      <span className="font-bold text-black">
                         ₹{formatPrice(pricing.platformFee)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-                        Delivery Fee
-                      </span>
-                      <span className="text-sm font-black text-black">
+                      <span className="text-zinc-600">Delivery Fee</span>
+                      <span className="font-bold text-black">
                         ₹{formatPrice(pricing.deliveryFee)}
                       </span>
                     </div>
                     {pricing.offerDiscount > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-green-600 uppercase tracking-widest">
-                          Offer Discount
-                        </span>
-                        <span className="text-sm font-black text-green-600">
+                      <div className="flex justify-between items-center text-green-700">
+                        <span>Offer Discount</span>
+                        <span className="font-bold">
                           -₹{formatPrice(pricing.offerDiscount)}
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex justify-between items-center pt-2">
-                    <span className="text-sm font-black text-black uppercase tracking-widest">
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-base font-bold text-black">
                       Total Payable
                     </span>
-                    <span className="text-2xl font-black text-black tracking-tighter">
+                    <span className="text-xl font-bold text-black">
                       {pricingLoading ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
@@ -578,17 +596,25 @@ export default function CartPage() {
                     </span>
                   </div>
 
-                  <div className="space-y-3 pt-4">
-                    <Link
-                      href="/customer/checkout"
-                      className="w-full h-14 flex items-center justify-center gap-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-all shadow-lg"
+                  <div className="space-y-3 pt-2">
+                    <button
+                      onClick={() => {
+                        if (!user) {
+                          router.push(
+                            `/login?returnUrl=${encodeURIComponent("/customer/checkout")}`,
+                          );
+                        } else {
+                          router.push("/customer/checkout");
+                        }
+                      }}
+                      className="w-full h-11 flex items-center justify-center gap-2 bg-[var(--brand-accent)] hover:bg-red-700 text-white rounded-md font-bold text-sm transition-all shadow-sm cursor-pointer active:scale-95"
                     >
                       Proceed to Checkout
                       <ArrowRight size={16} />
-                    </Link>
+                    </button>
                     <Link
                       href="/products"
-                      className="w-full h-12 flex items-center justify-center text-black font-black text-[10px] uppercase tracking-widest hover:underline"
+                      className="w-full h-9 flex items-center justify-center text-zinc-600 hover:text-black font-semibold text-xs transition-colors"
                     >
                       Continue Shopping
                     </Link>

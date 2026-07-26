@@ -265,27 +265,24 @@ export default function VendorApplyPage() {
   };
 
   return (
-    <div
-      className="min-h-screen font-body [&_h1]:font-body [&_h2]:font-body [&_h3]:font-body [&_h4]:font-body"
-      style={{ background: "#F6F5FF" }}
-    >
+    <div className="min-h-screen bg-[var(--bg-base)] text-black antialiased">
       <Navbar />
 
-      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-10">
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8 shadow-sm">
+      <main className="max-w-3xl mx-auto px-4 py-8 sm:py-12">
+        <section className="rounded-md border border-[var(--border-default)] bg-white p-6 sm:p-8 shadow-sm">
           <div className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight">
               Become a Vendor
             </h1>
-            <p className="mt-2 text-sm sm:text-base text-slate-600">
-              Complete this form to register your business for selling products.
+            <p className="mt-1 text-xs sm:text-sm font-medium text-zinc-500">
+              Complete this form to register your business for selling products on Markivo.
             </p>
           </div>
 
           {!user && (
-            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="mb-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-xs font-medium text-amber-800">
               Please{" "}
-              <Link href="/login" className="underline font-medium">
+              <Link href="/login" className="underline font-bold text-black">
                 sign in
               </Link>{" "}
               with a <strong>VENDOR</strong> account to submit this form.
@@ -293,14 +290,14 @@ export default function VendorApplyPage() {
           )}
 
           {user && !isVendorRole && (
-            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-700">
               You cannot become a vendor for your selected role.
             </div>
           )}
 
           {loadingProfile && user && isVendorRole && (
-            <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
-              <p className="text-sm text-slate-600">
+            <div className="mb-5 rounded-md border border-[var(--border-default)] bg-zinc-50 p-4">
+              <p className="text-xs font-medium text-zinc-500">
                 Checking your vendor profile status...
               </p>
             </div>
@@ -308,34 +305,34 @@ export default function VendorApplyPage() {
 
           {!loadingProfile && existingProfile && (
             <div
-              className={`mb-5 rounded-xl border p-4 sm:p-5 ${
+              className={`mb-5 rounded-md border p-4 sm:p-5 ${
                 existingStatus === "APPROVED"
-                  ? "border-emerald-200 bg-emerald-50"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-900"
                   : existingStatus === "REJECTED"
-                    ? "border-rose-200 bg-rose-50"
-                    : "border-amber-200 bg-amber-50"
+                    ? "border-red-200 bg-red-50 text-red-900"
+                    : "border-amber-200 bg-amber-50 text-amber-900"
               }`}
             >
               <div className="flex items-start gap-3">
                 {existingStatus === "APPROVED" && (
-                  <CheckCircle2 className="h-5 w-5 mt-0.5 text-emerald-600" />
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 text-emerald-600 shrink-0" />
                 )}
                 {existingStatus === "PENDING" && (
-                  <Clock3 className="h-5 w-5 mt-0.5 text-amber-600" />
+                  <Clock3 className="h-5 w-5 mt-0.5 text-amber-600 shrink-0" />
                 )}
                 {existingStatus === "REJECTED" && (
-                  <ShieldAlert className="h-5 w-5 mt-0.5 text-rose-600" />
+                  <ShieldAlert className="h-5 w-5 mt-0.5 text-red-600 shrink-0" />
                 )}
 
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-slate-900">
-                    Vendor profile already exists
+                  <p className="text-sm font-bold text-black">
+                    Vendor Profile Already Exists
                   </p>
-                  <span className="mt-2 inline-flex rounded-full border border-current/20 px-3 py-1 text-xs font-semibold tracking-wide text-slate-700">
+                  <span className="mt-1.5 inline-flex rounded-md border border-current/20 px-2.5 py-0.5 text-xs font-semibold">
                     {existingStatus}
                   </span>
 
-                  <p className="mt-2 text-sm text-slate-700">
+                  <p className="mt-2 text-xs font-medium leading-relaxed">
                     {existingStatus === "APPROVED" &&
                       "Your account is active. Redirecting you to the dashboard."}
                     {existingStatus === "PENDING" &&
@@ -347,13 +344,13 @@ export default function VendorApplyPage() {
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Link
                       href="/vendor/dashboard"
-                      className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                      className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition-colors shadow-sm"
                     >
                       Open Dashboard
                     </Link>
                     <Link
                       href="/vendor/profile"
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                      className="inline-flex items-center justify-center rounded-md border border-[var(--border-default)] bg-white px-4 py-2 text-xs font-bold text-black hover:bg-zinc-50 transition-colors shadow-sm"
                     >
                       Open Profile
                     </Link>
@@ -364,20 +361,21 @@ export default function VendorApplyPage() {
           )}
 
           {errorMessage && (
-            <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+            <div className="mb-5 rounded-md border border-red-200 bg-red-50 p-3.5 text-xs font-medium text-red-700">
               {errorMessage}
             </div>
           )}
 
           {successMessage && (
-            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+            <div className="mb-5 rounded-md border border-emerald-200 bg-emerald-50 p-3.5 text-xs font-medium text-emerald-700">
               {successMessage}
             </div>
           )}
 
           {!loadingProfile && !existingProfile && (
             <>
-              <div className="mb-5 grid grid-cols-3 gap-2">
+              {/* Step indicator tabs */}
+              <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
                 {stageTitle.map((title, index) => {
                   const step = index + 1;
                   const active = currentStep === step;
@@ -386,12 +384,12 @@ export default function VendorApplyPage() {
                   return (
                     <div
                       key={title}
-                      className={`rounded-lg border px-3 py-2 text-xs sm:text-sm text-center font-medium ${
+                      className={`rounded-md border px-3 py-2 text-xs sm:text-sm text-center font-bold transition-all ${
                         active
-                          ? "border-indigo-500 bg-indigo-50 text-indigo-700"
+                          ? "border-black bg-black text-white shadow-sm"
                           : completed
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                            : "border-slate-200 bg-slate-50 text-slate-500"
+                            ? "border-zinc-300 bg-zinc-100 text-zinc-900"
+                            : "border-[var(--border-default)] bg-white text-zinc-400"
                       }`}
                     >
                       {step}. {title}
@@ -409,7 +407,7 @@ export default function VendorApplyPage() {
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="businessName"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Business Name *
                       </label>
@@ -419,7 +417,7 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           updateField("businessName", e.target.value)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                         placeholder="Local Market Store"
                       />
                     </div>
@@ -427,7 +425,7 @@ export default function VendorApplyPage() {
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="storeCategory"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Store Category *
                       </label>
@@ -437,7 +435,7 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           updateField("storeCategory", e.target.value)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                         placeholder="Fashion, Electronics, Groceries"
                       />
                     </div>
@@ -445,7 +443,7 @@ export default function VendorApplyPage() {
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="taxId"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Tax ID (optional)
                       </label>
@@ -453,7 +451,7 @@ export default function VendorApplyPage() {
                         id="taxId"
                         value={form.taxId}
                         onChange={(e) => updateField("taxId", e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                         placeholder="GSTIN or tax number"
                       />
                     </div>
@@ -465,7 +463,7 @@ export default function VendorApplyPage() {
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="addressLine1"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Address Line 1 *
                       </label>
@@ -475,7 +473,7 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           updateField("addressLine1", e.target.value)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                         placeholder="Street, area, landmark"
                       />
                     </div>
@@ -483,7 +481,7 @@ export default function VendorApplyPage() {
                     <div className="sm:col-span-2">
                       <label
                         htmlFor="addressLine2"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Address Line 2 (optional)
                       </label>
@@ -493,7 +491,7 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           updateField("addressLine2", e.target.value)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                         placeholder="Apartment, suite, floor"
                       />
                     </div>
@@ -501,7 +499,7 @@ export default function VendorApplyPage() {
                     <div>
                       <label
                         htmlFor="city"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         City *
                       </label>
@@ -509,14 +507,14 @@ export default function VendorApplyPage() {
                         id="city"
                         value={form.city}
                         onChange={(e) => updateField("city", e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="state"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         State *
                       </label>
@@ -524,14 +522,14 @@ export default function VendorApplyPage() {
                         id="state"
                         value={form.state}
                         onChange={(e) => updateField("state", e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="country"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Country *
                       </label>
@@ -539,14 +537,14 @@ export default function VendorApplyPage() {
                         id="country"
                         value={form.country}
                         onChange={(e) => updateField("country", e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                       />
                     </div>
 
                     <div>
                       <label
                         htmlFor="pincode"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Pincode *
                       </label>
@@ -554,7 +552,7 @@ export default function VendorApplyPage() {
                         id="pincode"
                         value={form.pincode}
                         onChange={(e) => updateField("pincode", e.target.value)}
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2.5 text-sm text-black focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all"
                       />
                     </div>
                   </>
@@ -565,7 +563,7 @@ export default function VendorApplyPage() {
                     <div>
                       <label
                         htmlFor="govId"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Government ID * (file)
                       </label>
@@ -575,11 +573,11 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           setGovIdFile(e.target.files?.[0] || null)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-indigo-700"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2 text-sm text-black file:mr-3 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-black hover:file:bg-zinc-200 transition-colors"
                         accept=".pdf,.png,.jpg,.jpeg,.webp"
                       />
                       {govIdFile && (
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-zinc-500 font-medium">
                           Selected: {govIdFile.name}
                         </p>
                       )}
@@ -588,7 +586,7 @@ export default function VendorApplyPage() {
                     <div>
                       <label
                         htmlFor="businessDoc"
-                        className="block text-sm font-medium text-slate-700 mb-1"
+                        className="block text-xs font-semibold text-zinc-700 mb-1.5"
                       >
                         Business Document * (file)
                       </label>
@@ -598,11 +596,11 @@ export default function VendorApplyPage() {
                         onChange={(e) =>
                           setBusinessDocFile(e.target.files?.[0] || null)
                         }
-                        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-indigo-700"
+                        className="w-full rounded-md border border-[var(--border-default)] bg-white px-3.5 py-2 text-sm text-black file:mr-3 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-black hover:file:bg-zinc-200 transition-colors"
                         accept=".pdf,.png,.jpg,.jpeg,.webp"
                       />
                       {businessDocFile && (
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-zinc-500 font-medium">
                           Selected: {businessDocFile.name}
                         </p>
                       )}
@@ -610,12 +608,12 @@ export default function VendorApplyPage() {
                   </>
                 )}
 
-                <div className="sm:col-span-2 mt-2 flex flex-col sm:flex-row gap-3">
+                <div className="sm:col-span-2 mt-4 flex flex-col sm:flex-row gap-3">
                   {currentStep > 1 && (
                     <button
                       type="button"
                       onClick={prevStep}
-                      className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-5 py-2.5 text-slate-700 font-medium hover:bg-slate-50"
+                      className="inline-flex items-center justify-center rounded-md border border-[var(--border-default)] bg-white px-5 py-2.5 text-xs font-bold text-black hover:bg-zinc-50 transition-colors shadow-sm cursor-pointer"
                     >
                       Back
                     </button>
@@ -626,7 +624,7 @@ export default function VendorApplyPage() {
                       type="button"
                       onClick={nextStep}
                       disabled={!user || !isVendorRole}
-                      className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center rounded-md bg-black px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
                     >
                       Continue
                     </button>
@@ -634,7 +632,7 @@ export default function VendorApplyPage() {
                     <button
                       type="submit"
                       disabled={isSubmitting || !user || !isVendorRole}
-                      className="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-5 py-2.5 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center justify-center rounded-md bg-black px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
                     >
                       {isSubmitting
                         ? "Submitting..."
@@ -644,7 +642,7 @@ export default function VendorApplyPage() {
 
                   <Link
                     href="/vendor/dashboard"
-                    className="inline-flex items-center justify-center rounded-lg border border-slate-300 px-5 py-2.5 text-slate-700 font-medium hover:bg-slate-50"
+                    className="inline-flex items-center justify-center rounded-md border border-[var(--border-default)] bg-white px-5 py-2.5 text-xs font-bold text-black hover:bg-zinc-50 transition-colors shadow-sm"
                   >
                     Go to Dashboard
                   </Link>

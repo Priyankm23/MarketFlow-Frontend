@@ -1,21 +1,19 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authFetch } from "@/lib/auth-fetch";
 import { DeliveryHeader } from "@/components/delivery-header";
-import { 
-  Loader2, 
-  MapPin, 
-  Plus, 
-  ShieldCheck, 
-  Truck, 
-  X, 
-  Search, 
-  Globe, 
-  ChevronRight, 
-  AlertCircle 
+import {
+  Loader2,
+  MapPin,
+  Plus,
+  ShieldCheck,
+  Truck,
+  X,
+  Search,
+  Globe,
+  AlertCircle,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -109,7 +107,7 @@ export default function DeliveryTasksPage() {
             headers: {
               "Content-Type": "application/json",
             },
-            credentials: "include"
+            credentials: "include",
           },
         );
 
@@ -233,15 +231,15 @@ export default function DeliveryTasksPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 font-body">
+      <div className="min-h-screen bg-[var(--bg-base)] text-black antialiased">
         <DeliveryHeader
           title="Coverage Setup"
           subtitle="Configure serviceable areas."
         />
         <div className="grid place-items-center px-4 py-20">
           <div className="text-center">
-            <Loader2 className="h-10 w-10 animate-spin mx-auto text-orange-600 mb-4" />
-            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-black mb-3" />
+            <p className="text-xs font-semibold text-zinc-500">
               Checking coverage setup...
             </p>
           </div>
@@ -251,231 +249,239 @@ export default function DeliveryTasksPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-slate-50 font-body pb-20"
-      style={{ fontFamily: "var(--font-dm-sans)" }}
-    >
+    <div className="min-h-screen bg-[var(--bg-base)] text-black antialiased pb-20">
       <DeliveryHeader
         title="Coverage Area"
         subtitle="Manage locations where you deliver."
       />
 
-      <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
+      <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
         {/* INFO CARD */}
-        <section className="bg-slate-950 rounded-[2.5rem] p-8 shadow-2xl shadow-slate-200 text-white relative overflow-hidden">
-           <div className="absolute right-0 top-0 w-32 h-32 bg-orange-600 rounded-bl-[5rem] opacity-20" />
-           <div className="relative z-10">
-              <div className="flex items-center gap-3 text-orange-500 mb-4">
-                <div className="bg-orange-500/10 p-2.5 rounded-2xl border border-orange-500/20">
-                  <Globe size={24} />
-                </div>
-                <div>
-                   <p className="text-[10px] font-black uppercase tracking-[0.3em] text-orange-500">Logistics Network</p>
-                   <h2 className="text-xl font-black text-white tracking-tight">Serviceable Regions</h2>
-                </div>
-              </div>
-
-              <p className="text-sm text-slate-400 leading-relaxed max-w-md font-medium">
-                Optimize your earnings by selecting active zones. Our system matches you with orders in these high-demand areas.
-              </p>
-           </div>
+        <section className="bg-white rounded-md p-6 border border-[var(--border-default)] shadow-sm flex items-start gap-4">
+          <div className="w-12 h-12 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-black shrink-0">
+            <Globe size={24} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-black tracking-tight">
+              Serviceable Regions
+            </h2>
+            <p className="mt-1 text-xs text-zinc-500 font-medium leading-relaxed">
+              Optimize your earnings by selecting active zones. Our system matches you with orders in these high-demand areas.
+            </p>
+          </div>
         </section>
 
         {/* CURRENT COVERAGE */}
-        <section className="bg-white rounded-[2.5rem] border border-border shadow-sm overflow-hidden">
-           <div className="px-8 py-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
-              <div className="flex items-center gap-2">
-                 <Truck size={16} className="text-slate-400" />
-                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Active Delivery Zones</h3>
-              </div>
-              <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                {existingCoveragePincodes.length} ZONES
-              </span>
-           </div>
-           
-           <div className="p-8">
-              {existingCoveragePincodes.length === 0 ? (
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 bg-slate-50 rounded-[1.25rem] flex items-center justify-center mx-auto mb-4 border border-slate-100 shadow-inner">
-                    <Search size={32} className="text-slate-200" />
-                  </div>
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No zones configured</p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2.5">
-                  {existingCoveragePincodes.map((coverage) => (
-                    <span
-                      key={coverage}
-                      className="inline-flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200 px-4 py-2.5 text-xs font-black text-slate-700 shadow-sm transition-all hover:border-orange-200 hover:bg-orange-50/30"
-                    >
-                      <MapPin size={12} className="text-orange-500" />
-                      {coverage}
-                    </span>
-                  ))}
-                </div>
-              )}
+        <section className="bg-white rounded-md border border-[var(--border-default)] shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b border-[var(--border-default)] flex items-center justify-between bg-zinc-50">
+            <div className="flex items-center gap-2">
+              <Truck size={16} className="text-zinc-600" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-black">
+                Active Delivery Zones
+              </h3>
+            </div>
+            <span className="bg-zinc-100 text-black px-2.5 py-0.5 rounded-md text-xs font-bold border border-zinc-200">
+              {existingCoveragePincodes.length} ZONES
+            </span>
+          </div>
 
-              {!showForm && (
-                <button
-                  type="button"
-                  className="mt-8 w-full inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-orange-600 px-6 py-4 text-sm font-black uppercase tracking-widest text-white hover:bg-orange-700 shadow-xl shadow-orange-200 transition-all active:scale-[0.98]"
-                  onClick={() => setShowForm(true)}
-                >
-                  <Plus size={18} />
-                  Update Zones
-                </button>
-              )}
-           </div>
+          <div className="p-6">
+            {existingCoveragePincodes.length === 0 ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 bg-zinc-100 rounded-md flex items-center justify-center mx-auto mb-3 text-zinc-400">
+                  <Search size={24} />
+                </div>
+                <p className="text-xs font-semibold text-zinc-500">
+                  No zones configured yet
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {existingCoveragePincodes.map((coverage) => (
+                  <span
+                    key={coverage}
+                    className="inline-flex items-center gap-2 rounded-md bg-zinc-50 border border-zinc-200 px-3 py-2 text-xs font-bold text-black shadow-sm"
+                  >
+                    <MapPin size={12} className="text-black" />
+                    {coverage}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {!showForm && (
+              <button
+                type="button"
+                className="mt-6 w-full inline-flex items-center justify-center gap-2 h-10 rounded-md bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-colors shadow-sm cursor-pointer"
+                onClick={() => setShowForm(true)}
+              >
+                <Plus size={16} />
+                Update Zones
+              </button>
+            )}
+          </div>
         </section>
 
         {/* SETUP FORM */}
         {showForm && (
-          <section className="bg-white rounded-[2.5rem] p-8 border border-orange-100 shadow-2xl shadow-orange-900/10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-             <div className="flex items-center justify-between mb-8">
-                <div>
-                   <h3 className="text-lg font-black text-slate-900 tracking-tight">Configure Zones</h3>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Select regions to add</p>
-                </div>
-                <button 
-                  onClick={() => setShowForm(false)}
-                  className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors border border-slate-100 shadow-sm"
-                >
-                  <X size={20} />
-                </button>
-             </div>
+          <section className="bg-white rounded-md p-6 border border-[var(--border-default)] shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-[var(--border-default)] pb-4">
+              <div>
+                <h3 className="text-base font-bold text-black tracking-tight">
+                  Configure Zones
+                </h3>
+                <p className="text-xs text-zinc-500 font-medium mt-0.5">
+                  Select regions to add to your partner profile
+                </p>
+              </div>
+              <button
+                onClick={() => setShowForm(false)}
+                className="h-8 w-8 rounded-md bg-zinc-100 flex items-center justify-center text-zinc-600 hover:text-black transition-colors border border-zinc-200 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-             <form className="space-y-6" onSubmit={handleSubmitCoverage}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">State</label>
-                    <div className="relative">
-                      <select
-                        value={selectedState}
-                        disabled
-                        className="w-full h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-black text-slate-400 appearance-none shadow-inner"
-                      >
-                        <option value="Gujarat">Gujarat</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="city" className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 ml-1">City</label>
-                    <select
-                      id="city"
-                      value={selectedCity}
-                      onChange={(event) => {
-                        setSelectedCity(event.target.value);
-                        setSelectedArea("");
-                        setError("");
-                      }}
-                      className="w-full h-12 rounded-2xl border border-orange-100 bg-white px-4 text-sm font-black text-slate-900 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-600 outline-none transition-all shadow-sm"
-                    >
-                      <option value="">Select city</option>
-                      {cityOptions.map((city) => (
-                        <option key={city} value={city}>
-                          {city}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+            <form className="space-y-4" onSubmit={handleSubmitCoverage}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-700">
+                    State
+                  </label>
+                  <select
+                    value={selectedState}
+                    disabled
+                    className="w-full h-10 rounded-md border border-zinc-200 bg-zinc-100 px-3 text-xs font-bold text-zinc-500 appearance-none"
+                  >
+                    <option value="Gujarat">Gujarat</option>
+                  </select>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="area" className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500 ml-1">Area</label>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <select
-                      id="area"
-                      value={selectedArea}
-                      onChange={(event) => {
-                        setSelectedArea(event.target.value);
-                        setError("");
-                      }}
-                      disabled={!selectedCity}
-                      className="flex-1 h-12 rounded-2xl border border-orange-100 bg-white px-4 text-sm font-black text-slate-900 focus:ring-4 focus:ring-orange-500/10 focus:border-orange-600 outline-none transition-all shadow-sm disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200"
-                    >
-                      <option value="">
-                        {selectedCity ? "Select area" : "Select city first"}
+                <div className="space-y-1.5">
+                  <label htmlFor="city" className="text-xs font-semibold text-zinc-700">
+                    City
+                  </label>
+                  <select
+                    id="city"
+                    value={selectedCity}
+                    onChange={(event) => {
+                      setSelectedCity(event.target.value);
+                      setSelectedArea("");
+                      setError("");
+                    }}
+                    className="w-full h-10 rounded-md border border-[var(--border-default)] bg-white px-3 text-xs font-bold text-black focus:outline-none focus:border-black transition-all"
+                  >
+                    <option value="">Select city</option>
+                    {cityOptions.map((city) => (
+                      <option key={city} value={city}>
+                        {city}
                       </option>
-                      {areaOptions.map((area) => (
-                        <option
-                          key={`${selectedCity}-${area.area}`}
-                          value={area.area}
-                        >
-                          {area.area} ({area.pincode})
-                        </option>
-                      ))}
-                    </select>
+                    ))}
+                  </select>
+                </div>
+              </div>
 
-                    <button
-                      type="button"
-                      onClick={handleAddArea}
-                      className="h-12 inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-50 px-6 text-xs font-black uppercase tracking-widest text-orange-700 border border-orange-100 hover:bg-orange-100 transition-all active:scale-95 shadow-sm shadow-orange-100"
-                    >
-                      <Plus size={16} /> Add
-                    </button>
+              <div className="space-y-1.5">
+                <label htmlFor="area" className="text-xs font-semibold text-zinc-700">
+                  Area
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  <select
+                    id="area"
+                    value={selectedArea}
+                    onChange={(event) => {
+                      setSelectedArea(event.target.value);
+                      setError("");
+                    }}
+                    disabled={!selectedCity}
+                    className="flex-1 h-10 rounded-md border border-[var(--border-default)] bg-white px-3 text-xs font-bold text-black focus:outline-none focus:border-black disabled:bg-zinc-100 disabled:text-zinc-400 transition-all"
+                  >
+                    <option value="">
+                      {selectedCity ? "Select area" : "Select city first"}
+                    </option>
+                    {areaOptions.map((area) => (
+                      <option
+                        key={`${selectedCity}-${area.area}`}
+                        value={area.area}
+                      >
+                        {area.area} ({area.pincode})
+                      </option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handleAddArea}
+                    className="h-10 inline-flex items-center justify-center gap-1.5 rounded-md bg-zinc-100 text-black px-4 text-xs font-bold border border-zinc-200 hover:bg-zinc-200 transition-colors shadow-sm cursor-pointer"
+                  >
+                    <Plus size={15} /> Add
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[var(--border-default)]">
+                <p className="text-xs font-semibold text-zinc-700 mb-3">
+                  Selected Areas
+                </p>
+                {selectedCoverageAreas.length === 0 ? (
+                  <div className="bg-zinc-50 rounded-md p-4 text-center border border-dashed border-zinc-200">
+                    <p className="text-xs font-medium text-zinc-400">
+                      Add areas from the dropdown above...
+                    </p>
                   </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-50">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-4 ml-1">New Selection</p>
-                  {selectedCoverageAreas.length === 0 ? (
-                    <div className="bg-slate-50 rounded-[1.5rem] p-6 text-center border border-dashed border-slate-200">
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic opacity-60">Ready to pick zones...</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-2.5">
-                      {selectedCoverageAreas.map((item) => (
-                        <span
-                          key={`${item.city}-${item.area}`}
-                          className="inline-flex items-center gap-2 rounded-xl bg-orange-600 px-4 py-2.5 text-[11px] font-black text-white shadow-lg shadow-orange-200 animate-in zoom-in duration-300"
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCoverageAreas.map((item) => (
+                      <span
+                        key={`${item.city}-${item.area}`}
+                        className="inline-flex items-center gap-2 rounded-md bg-black px-3 py-1.5 text-xs font-bold text-white shadow-sm"
+                      >
+                        {item.city} - {item.area}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveArea(item)}
+                          className="rounded-md bg-zinc-800 p-0.5 hover:bg-zinc-700 transition-colors ml-0.5 cursor-pointer"
                         >
-                          {item.city} - {item.area}
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveArea(item)}
-                            className="rounded-lg bg-white/20 p-1 hover:bg-white/30 transition-colors ml-1"
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {error && (
-                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-100 flex items-center gap-3 text-rose-700 text-xs font-black shadow-sm">
-                     <AlertCircle size={16} className="shrink-0" /> {error}
+                          <X className="h-3 w-3 text-white" />
+                        </button>
+                      </span>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                <button
-                  type="submit"
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-slate-950 px-6 py-4.5 text-sm font-black uppercase tracking-[0.2em] text-white hover:bg-black shadow-2xl shadow-slate-200 transition-all active:scale-[0.98] disabled:opacity-60 h-14"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <ShieldCheck className="h-5 w-5" /> Confirm Setup
-                    </>
-                  )}
-                </button>
-             </form>
+              {error && (
+                <div className="p-3.5 rounded-md bg-red-50 border border-red-200 flex items-center gap-2 text-red-700 text-xs font-medium">
+                  <AlertCircle size={16} className="shrink-0" /> {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-md bg-black text-white text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" /> Confirm & Save Setup
+                  </>
+                )}
+              </button>
+            </form>
           </section>
         )}
 
-        <div className="bg-white/50 rounded-2xl p-5 border border-orange-100/50 flex items-center gap-4">
-           <div className="bg-white p-2.5 rounded-[1rem] border border-orange-100 shadow-sm shrink-0">
-              <Plus size={18} className="text-orange-600" />
-           </div>
-           <p className="text-[10px] font-black text-orange-700/60 uppercase tracking-widest leading-relaxed">
-             Pro-tip: Update your coverage regularly to stay flexible and find more orders.
-           </p>
+        <div className="bg-white rounded-md p-4 border border-[var(--border-default)] flex items-center gap-3 shadow-sm">
+          <div className="bg-zinc-100 p-2 rounded-md border border-zinc-200 shrink-0 text-black">
+            <Plus size={16} />
+          </div>
+          <p className="text-xs font-medium text-zinc-600 leading-relaxed">
+            Pro-tip: Update your coverage regularly to stay flexible and receive more local delivery assignments.
+          </p>
         </div>
       </div>
     </div>

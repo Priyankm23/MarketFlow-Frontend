@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, User, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -21,6 +21,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
+
   const register = useAuthStore((state) => state.register);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -69,7 +72,7 @@ export default function RegisterPage() {
           router.push("/delivery/tasks");
           break;
         default:
-          router.push("/products");
+          router.push(returnUrl || "/products");
       }
     } catch (err: any) {
       setError(err.message || "Failed to create account. Please try again.");
@@ -305,5 +308,13 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center text-sm font-bold">Loading...</div>}>
+      <RegisterForm />
+    </Suspense>
   );
 }

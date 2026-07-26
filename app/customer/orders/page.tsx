@@ -6,7 +6,6 @@ import { Navbar } from "@/components/navbar";
 import { authFetch } from "@/lib/auth-fetch";
 import {
   CheckCircle2,
-  Circle,
   Clock3,
   Loader2,
   Package,
@@ -373,49 +372,53 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)]">
+    <div className="min-h-screen bg-[var(--bg-base)] antialiased pb-20">
       <Navbar />
 
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="flex items-center gap-2 mb-8 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
-          <Link href="/" className="hover:text-black">
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 mb-6 text-xs text-zinc-500 font-medium">
+          <Link href="/" className="hover:text-black transition-colors">
             Home
           </Link>
-          <ChevronRight size={12} />
-          <span className="text-black">My Orders</span>
+          <ChevronRight size={12} className="text-zinc-400" />
+          <span className="text-black font-semibold">My Orders</span>
         </div>
 
-        <div className="mb-10">
-          <h1 className="text-4xl sm:text-5xl font-black text-black uppercase tracking-tighter mb-2">
+        {/* Page Title */}
+        <div className="mb-8 border-b border-[var(--border-default)] pb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-black tracking-tight mb-1.5">
             Purchase History
           </h1>
-          <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest">
-            Track, manage and reorder your favorite items
+          <p className="text-xs text-zinc-500 font-medium">
+            Track, manage and review your order details
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-10">
+        {/* Stat Cards */}
+        <div className="grid grid-cols-3 gap-3 sm:gap-5 mb-8">
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="bg-white border border-[var(--border-default)] rounded-xl p-3 sm:p-6 shadow-sm group hover:border-[var(--brand-accent)] transition-colors"
+              className="bg-white border border-[var(--border-default)] rounded-md p-5 sm:p-6 shadow-sm flex flex-col justify-between"
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:mb-4">
-                <div className="inline-flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg sm:rounded-xl bg-[var(--bg-sunken)] group-hover:bg-[var(--brand-accent-soft)] transition-colors">
-                  <stat.Icon className="h-4 w-4 sm:h-5 sm:w-5 text-black group-hover:text-[var(--brand-accent)] transition-colors" />
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-md bg-zinc-100 text-black shrink-0">
+                  <stat.Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                 </div>
-                <span className="text-lg sm:text-2xl font-black text-black tracking-tighter">
+                <span className="text-3xl sm:text-4xl lg:text-5xl font-bold text-black tracking-tight">
                   {stat.value}
                 </span>
               </div>
-              <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-wider sm:tracking-[0.2em] text-[var(--text-muted)] truncate">
+              <p className="text-sm sm:text-base font-bold text-zinc-600">
                 {stat.label}
               </p>
             </div>
           ))}
         </div>
 
-        <div className="flex gap-2 mb-8 border-b border-[var(--border-default)] overflow-x-auto scrollbar-hide">
+        {/* Status Filter Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-[var(--border-default)] overflow-x-auto scrollbar-hide">
           {[
             { value: "all" as const, label: "All Orders" },
             { value: "active" as const, label: "Active" },
@@ -425,10 +428,10 @@ export default function OrdersPage() {
             <button
               key={tab.value}
               onClick={() => setSelectedStatus(tab.value)}
-              className={`px-6 py-3 text-[10px] font-black uppercase tracking-widest whitespace-nowrap border-b-2 transition-all ${
+              className={`px-4 py-2.5 text-xs font-bold whitespace-nowrap border-b-2 transition-all cursor-pointer ${
                 selectedStatus === tab.value
                   ? "text-black border-black"
-                  : "text-zinc-400 border-transparent hover:text-black"
+                  : "text-zinc-500 border-transparent hover:text-black"
               }`}
             >
               {tab.label}
@@ -436,41 +439,42 @@ export default function OrdersPage() {
           ))}
         </div>
 
+        {/* Loading State */}
         {loading ? (
-          <div className="text-center py-24 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-[var(--brand-accent)]" />
-            <p className="text-sm font-black uppercase tracking-widest text-black">
+          <div className="text-center py-20 bg-white border border-[var(--border-default)] rounded-md shadow-sm">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-black" />
+            <p className="text-xs font-semibold text-zinc-500">
               Fetching your orders...
             </p>
           </div>
         ) : error ? (
-          <div className="text-center py-20 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
-            <Package className="w-12 h-12 mx-auto text-zinc-300 mb-4" />
-            <h3 className="text-lg font-black text-black uppercase tracking-tight">
+          <div className="text-center py-16 bg-white border border-[var(--border-default)] rounded-md shadow-sm">
+            <Package className="w-10 h-10 mx-auto text-zinc-400 mb-3" />
+            <h3 className="text-base font-bold text-black tracking-tight">
               Could not load orders
             </h3>
-            <p className="text-zinc-500 text-sm mt-2">{error}</p>
+            <p className="text-zinc-500 text-xs mt-1">{error}</p>
           </div>
         ) : filteredOrders.length === 0 ? (
-          <div className="text-center py-20 bg-white border border-[var(--border-default)] rounded-xl shadow-sm">
-            <div className="w-20 h-20 bg-[var(--bg-sunken)] rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag size={32} className="text-zinc-300" />
+          <div className="text-center py-16 bg-white border border-[var(--border-default)] rounded-md shadow-sm">
+            <div className="w-16 h-16 bg-zinc-100 rounded-md flex items-center justify-center mx-auto mb-4">
+              <ShoppingBag size={28} className="text-zinc-400" />
             </div>
-            <h3 className="text-xl font-black text-black uppercase tracking-tight">
+            <h3 className="text-base font-bold text-black tracking-tight">
               No orders found
             </h3>
-            <p className="text-zinc-500 text-sm mt-2 max-w-xs mx-auto">
+            <p className="text-zinc-500 text-xs mt-1 max-w-xs mx-auto">
               You haven&apos;t placed any orders in this category yet.
             </p>
             <Link
               href="/products"
-              className="mt-8 inline-block px-8 py-3 bg-black text-white rounded-full font-black text-xs uppercase tracking-widest hover:bg-[var(--brand-accent)] transition-colors shadow-lg"
+              className="mt-6 inline-block px-6 py-2.5 bg-black text-white rounded-md font-bold text-xs hover:bg-zinc-800 transition-colors shadow-sm"
             >
               Start Shopping
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6">
+          <div className="grid gap-5">
             {filteredOrders.map((order) => {
               const status = normalizeStatus(order.status);
               const stepIndex = getTimelineStepIndex(order.status);
@@ -485,74 +489,72 @@ export default function OrdersPage() {
                 <Link
                   key={order.id}
                   href={`/customer/orders/${order.id}`}
-                  className="group block bg-white border border-[var(--border-default)] rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:border-black/5 transition-all relative cursor-pointer"
+                  className="group block bg-white border border-[var(--border-default)] rounded-md overflow-hidden shadow-sm hover:border-zinc-300 transition-all relative cursor-pointer"
                 >
-                  {/* ABSOLUTE PRICE AND STATUS FOR TOP RIGHT POS */}
-                  <div className="absolute top-6 right-6 sm:top-8 sm:right-8 flex flex-col items-end gap-2 z-20 text-right">
-                    <p className="text-2xl sm:text-3xl font-black text-black tracking-tighter leading-none">
-                      ₹{Number(order.totalAmount || 0).toLocaleString()}
+                  {/* Price and Status Header */}
+                  <div className="absolute top-5 right-5 sm:top-6 sm:right-6 flex flex-col items-end gap-1.5 z-20 text-right">
+                    <p className="text-xl sm:text-2xl font-bold text-black tracking-tight leading-none">
+                      ₹{Number(order.totalAmount || 0).toLocaleString("en-IN")}
                     </p>
                     <span
-                      className={`inline-flex items-center px-3 py-1 sm:px-4 sm:py-1.5 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-widest border ${
+                      className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${
                         isCancelled(order.status)
-                          ? "bg-red-50 text-red-600 border-red-100"
+                          ? "bg-red-50 text-red-700 border-red-200"
                           : isDelivered(order.status)
-                            ? "bg-emerald-50 text-emerald-600 border-emerald-100"
-                            : "bg-[var(--bg-sunken)] text-black border-[var(--border-default)]"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-zinc-100 text-zinc-800 border-zinc-200"
                       }`}
                     >
                       {status.replaceAll("_", " ")}
                     </span>
                   </div>
 
-                  <div className="p-6 sm:p-8 space-y-10">
-                    {/* Products List - each product full size */}
-                    <div className="space-y-8 pr-0 sm:pr-32">
-                      {" "}
-                      {/* padding right to avoid overlap with absolute price */}
+                  <div className="p-5 sm:p-6 space-y-6">
+                    {/* Products List */}
+                    <div className="space-y-6 pr-0 sm:pr-36">
                       {order.items?.map((item, itemIdx) => (
                         <div
                           key={itemIdx}
-                          className="flex flex-col sm:flex-row sm:items-start gap-6 group/item"
+                          className="flex flex-col sm:flex-row sm:items-start gap-4 group/item"
                         >
-                          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-[var(--bg-sunken)] shrink-0 border border-[var(--border-default)]">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-md overflow-hidden bg-zinc-50 shrink-0 border border-[var(--border-default)]">
                             <img
                               src={
                                 item.product?.imageUrl ||
                                 "/placeholder-product-1.jpg"
                               }
                               alt="Product"
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover/item:scale-110"
+                              className="w-full h-full object-cover"
                             />
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1.5">
-                              <span className="px-2 py-0.5 bg-[var(--brand-accent-soft)] text-[8px] font-black text-[var(--brand-accent)] uppercase tracking-widest rounded">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="px-2 py-0.5 bg-zinc-100 border border-zinc-200 text-[10px] font-semibold text-zinc-700 rounded-md">
                                 Assured
                               </span>
-                              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                              <span className="text-xs font-medium text-zinc-500">
                                 Vendor:{" "}
-                                <span className="text-black">
+                                <span className="text-black font-semibold">
                                   {order.vendor?.businessName ||
                                     "Verified Vendor"}
                                 </span>
                               </span>
                             </div>
-                            <h3 className="text-xl sm:text-2xl font-black text-black leading-tight tracking-tight uppercase mb-2 max-w-[80%] sm:max-w-none">
+                            <h3 className="text-base sm:text-lg font-bold text-black leading-snug tracking-tight mb-1 max-w-[85%] sm:max-w-none">
                               {item.product?.name || "Product Name"}
                             </h3>
 
-                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
-                              <span className="text-xs font-medium text-[var(--brand-accent)] uppercase tracking-widest">
-                                Order ID: {order.id.slice(-12).toUpperCase()}
+                            <div className="flex flex-wrap items-center gap-3 mb-1.5">
+                              <span className="text-xs font-semibold text-zinc-700">
+                                Order ID: #{order.id.slice(-12).toUpperCase()}
                               </span>
-                              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
-                                <Clock3 size={12} className="text-zinc-300" />
+                              <span className="text-xs font-medium text-zinc-500 flex items-center gap-1">
+                                <Clock3 size={13} className="text-zinc-400" />
                                 {formatDate(order.createdAt)}
                               </span>
                             </div>
 
-                            <span className="text-xs font-bold text-zinc-400 uppercase">
+                            <span className="text-xs font-semibold text-zinc-600">
                               Qty: {item.quantity}
                             </span>
                           </div>
@@ -560,16 +562,16 @@ export default function OrdersPage() {
                       ))}
                     </div>
 
+                    {/* Active Track Progress Timeline */}
                     {shouldShowTimeline(order.status) && (
-                      <div className="rounded-xl bg-black p-6 sm:p-8 overflow-hidden">
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--brand-accent)] mb-6">
+                      <div className="rounded-md bg-zinc-900 p-5 sm:p-6 overflow-hidden text-white border border-zinc-800">
+                        <p className="text-xs font-bold uppercase tracking-wider text-white mb-5">
                           Track Progress
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-8 relative">
-                          {/* Mobile Vertical Connector Line (placed behind circles) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-y-6 relative">
                           <div className="sm:hidden absolute left-[11px] top-2 bottom-2 w-[2px] bg-zinc-800 z-0">
                             <div
-                              className="w-full bg-[var(--brand-accent)] transition-all duration-1000"
+                              className="w-full bg-white transition-all duration-1000"
                               style={{
                                 height: `${Math.max(0, Math.min(100, ((stepIndex - 1) / (TIMELINE_STEPS.length - 1)) * 100))}%`,
                               }}
@@ -584,33 +586,32 @@ export default function OrdersPage() {
                                 key={step}
                                 className="relative group/step z-10"
                               >
-                                {/* Desktop Horizontal Connector Line */}
                                 {index < TIMELINE_STEPS.length - 1 && (
-                                  <div className="hidden sm:block absolute top-[12px] left-6 w-full h-[2px] bg-zinc-800 z-0">
+                                  <div className="hidden sm:block absolute top-[11px] left-5 w-full h-[2px] bg-zinc-800 z-0">
                                     <div
-                                      className={`h-full bg-[var(--brand-accent)] transition-all duration-1000 ${index + 1 < stepIndex ? "w-full" : "w-0"}`}
+                                      className={`h-full bg-white transition-all duration-1000 ${index + 1 < stepIndex ? "w-full" : "w-0"}`}
                                     />
                                   </div>
                                 )}
-                                <div className="flex sm:flex-col items-center gap-4 sm:gap-4 relative z-10">
+                                <div className="flex sm:flex-col items-center gap-3 sm:gap-3 relative z-10">
                                   <div
-                                    className={`w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500 shrink-0 ${
+                                    className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all shrink-0 ${
                                       completed
-                                        ? "bg-[var(--brand-accent)] border-[var(--brand-accent)] shadow-[0_0_15px_rgba(255,0,0,0.3)]"
-                                        : "bg-black border-zinc-800"
+                                        ? "bg-white border-white text-black"
+                                        : "bg-zinc-900 border-zinc-700"
                                     }`}
                                   >
                                     {completed && (
                                       <CheckCircle2
-                                        size={14}
-                                        className="text-white"
+                                        size={12}
+                                        className="text-black"
                                       />
                                     )}
                                   </div>
                                   <span
-                                    className={`text-[12px] sm:text-sm font-black uppercase tracking-tighter sm:text-center transition-colors ${
-                                      completed ? "text-white" : "text-zinc-600"
-                                    } ${isCurrent ? "text-[var(--brand-accent)]" : ""}`}
+                                    className={`text-xs font-bold sm:text-center transition-colors ${
+                                      completed ? "text-white" : "text-zinc-500"
+                                    } ${isCurrent ? "text-white" : ""}`}
                                   >
                                     {step}
                                   </span>
@@ -622,7 +623,8 @@ export default function OrdersPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between border-t border-[var(--border-default)] mt-4 pt-6">
+                    {/* Bottom Action Footer */}
+                    <div className="flex items-center justify-between border-t border-[var(--border-default)] pt-4">
                       <div className="flex items-center gap-3">
                         {canResumePayment && (
                           <button
@@ -631,12 +633,12 @@ export default function OrdersPage() {
                               void handleCompletePayment(order, event);
                             }}
                             disabled={Boolean(payingOrderId)}
-                            className="inline-flex items-center gap-2 h-10 px-5 rounded-full bg-[var(--brand-accent)] text-white text-[10px] font-black uppercase tracking-widest hover:bg-black disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-black text-white text-xs font-bold hover:bg-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm cursor-pointer"
                           >
                             {isPayingThisOrder ? (
-                              <Loader2 size={14} className="animate-spin" />
+                              <Loader2 size={13} className="animate-spin" />
                             ) : (
-                              <CreditCard size={14} />
+                              <CreditCard size={13} />
                             )}
                             {isPayingThisOrder
                               ? "Opening Payment..."
@@ -644,16 +646,16 @@ export default function OrdersPage() {
                           </button>
                         )}
                         {paymentErrors[order.id] && (
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-red-500">
+                          <p className="text-xs font-medium text-red-600">
                             {paymentErrors[order.id]}
                           </p>
                         )}
                       </div>
-                      <div className="group flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-black group-hover:text-[var(--brand-accent)] transition-colors">
+                      <div className="group flex items-center gap-1.5 text-xs font-bold text-black group-hover:text-zinc-600 transition-colors">
                         View Detailed Order Summary
                         <ArrowRight
-                          size={16}
-                          className="group-hover:translate-x-1 transition-transform"
+                          size={14}
+                          className="group-hover:translate-x-0.5 transition-transform"
                         />
                       </div>
                     </div>

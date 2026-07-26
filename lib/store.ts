@@ -170,6 +170,12 @@ const getCartItemsFromPayload = (payload: ApiCartResponse): ApiCartItem[] => {
   return [];
 };
 
+const syncedGuestUserIds = new Set<string>();
+
+export const clearCartSyncTracking = () => {
+  syncedGuestUserIds.clear();
+};
+
 const toStoreCartItem = (
   item: ApiCartItem,
   fallback?: CartItem,
@@ -182,7 +188,11 @@ const toStoreCartItem = (
 
   const safeQuantity = Math.max(
     1,
-    Number(item.quantity || fallback?.quantity || 1),
+    Number(
+      item.quantity !== undefined && item.quantity !== null
+        ? item.quantity
+        : (fallback?.quantity || 1),
+    ),
   );
   const safePrice = Number(
     item.price ??
@@ -371,223 +381,250 @@ interface NotificationStore {
 }
 
 // Cart Store
-export const useCartStore = create<CartStore>((set, get) => ({
-  items: [],
-  isLoading: false,
-  fetchCart: async () => {
-    const user = useAuthStore.getState().user;
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isLoading: false,
+      fetchCart: async () => {
+        const user = useAuthStore.getState().user;
 
-    if (!user || !isCustomerRole(user.role)) {
-      set({ items: [], isLoading: false });
-      return;
-    }
+        if (!user || !isCustomerRole(user.role)) {
+          // Keep local items for guest users
+          set({ isLoading: false });
+          return;
+        }
 
-    set({ isLoading: true });
+        const localItems = get().items;
+        set({ isLoading: true });
 
-    try {
-      const response = await authFetch(
-        `${CART_API_BASE_URL}/cart?userId=${user.id}`,
-        {
-          method: "GET",
-        },
-      );
+        try {
+          // Sync local guest items to backend ONCE per login session
+          if (!syncedGuestUserIds.has(user.id)) {
+            syncedGuestUserIds.add(user.id);
 
-      if (!response.ok) {
-        return;
-      }
-
-      const payload: ApiCartResponse = await response.json().catch(() => ({}));
-      const apiItems = getCartItemsFromPayload(payload);
-      const currentItems = get().items;
-      const mergedItems = mergeCartItemsFromApi(apiItems, currentItems);
-      const enrichedItems = await enrichCartItemsWithProducts(mergedItems);
-      set({ items: enrichedItems });
-    } catch {
-      // Keep existing local state when network call fails.
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-  addItem: async (item) => {
-    const user = useAuthStore.getState().user;
-
-    if (!user || !isCustomerRole(user.role)) {
-      if (typeof window !== "undefined") {
-        const returnUrl = window.location.pathname + window.location.search;
-        // Preserve existing toast but redirect user to login so they can add after auth
-        useUIStore
-          .getState()
-          .showToast("Please sign in to add items to your bag", "info");
-        window.location.href = `/login?returnUrl=${encodeURIComponent(returnUrl)}`;
-        return;
-      }
-
-      warnCustomerOnlyCart();
-      return;
-    }
-
-    try {
-      const response = await authFetch(`${CART_API_BASE_URL}/cart/items`, {
-        method: "POST",
-        body: JSON.stringify({
-          userId: user.id,
-          productId: item.productId,
-          quantity: item.quantity,
-        }),
-      });
-
-      if (response.ok) {
-        const payload: ApiCartResponse = await response
-          .json()
-          .catch(() => ({}));
-        const apiItems = getCartItemsFromPayload(payload);
-        const currentItems = get().items;
-        set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
-        return;
-      }
-    } catch {
-      // Fallback to local update below.
-    }
-
-    set((state) => {
-      const existing = state.items.find((i) => i.productId === item.productId);
-      if (existing) {
-        return {
-          items: state.items.map((i) =>
-            i.productId === item.productId
-              ? { ...i, quantity: i.quantity + item.quantity }
-              : i,
-          ),
-        };
-      }
-      return { items: [...state.items, item] };
-    });
-  },
-  removeItem: async (productId) => {
-    const user = useAuthStore.getState().user;
-
-    if (user && isCustomerRole(user.role)) {
-      try {
-        const response = await authFetch(
-          `${CART_API_BASE_URL}/cart/items/${productId}?userId=${user.id}`,
-          {
-            method: "DELETE",
-          },
-        );
-
-        if (response.ok) {
-          if (response.status !== 204) {
-            const payload: ApiCartResponse = await response
-              .json()
-              .catch(() => ({}));
-            const apiItems = getCartItemsFromPayload(payload);
-            const currentItems = get().items;
-            set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
-            return;
+            if (localItems.length > 0) {
+              await Promise.all(
+                localItems.map(async (item) => {
+                  try {
+                    await authFetch(`${CART_API_BASE_URL}/cart/items`, {
+                      method: "POST",
+                      body: JSON.stringify({
+                        userId: user.id,
+                        productId: item.productId,
+                        quantity: item.quantity,
+                      }),
+                    });
+                  } catch {
+                    // Ignore sync error per item
+                  }
+                }),
+              );
+            }
           }
 
-          set((state) => ({
-            items: state.items.filter((i) => i.productId !== productId),
-          }));
-          return;
-        }
-      } catch {
-        // Fallback to local update below.
-      }
-    }
-
-    set((state) => ({
-      items: state.items.filter((i) => i.productId !== productId),
-    }));
-  },
-  updateQuantity: async (productId, quantity) => {
-    if (quantity < 1) {
-      await get().removeItem(productId);
-      return;
-    }
-
-    const user = useAuthStore.getState().user;
-    const currentItem = get().items.find((i) => i.productId === productId);
-
-    if (user && isCustomerRole(user.role)) {
-      try {
-        const patchResponse = await authFetch(
-          `${CART_API_BASE_URL}/cart/items/${productId}?userId=${user.id}`,
-          {
-            method: "PATCH",
-            body: JSON.stringify({ quantity }),
-          },
-        );
-
-        if (patchResponse.ok) {
-          const payload: ApiCartResponse = await patchResponse
-            .json()
-            .catch(() => ({}));
-          const apiItems = getCartItemsFromPayload(payload);
-          const currentItems = get().items;
-          set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
-          return;
-        }
-
-        const delta = quantity - (currentItem?.quantity || 0);
-        if (delta > 0) {
-          const addResponse = await authFetch(
-            `${CART_API_BASE_URL}/cart/items`,
+          const response = await authFetch(
+            `${CART_API_BASE_URL}/cart?userId=${user.id}`,
             {
-              method: "POST",
-              body: JSON.stringify({
-                userId: user.id,
-                productId,
-                quantity: delta,
-              }),
+              method: "GET",
             },
           );
 
-          if (addResponse.ok) {
-            const payload: ApiCartResponse = await addResponse
-              .json()
-              .catch(() => ({}));
-            const apiItems = getCartItemsFromPayload(payload);
-            const currentItems = get().items;
-            set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
+          if (!response.ok) {
             return;
           }
+
+          const payload: ApiCartResponse = await response.json().catch(() => ({}));
+          const apiItems = getCartItemsFromPayload(payload);
+          const currentItems = get().items;
+          const mergedItems = mergeCartItemsFromApi(apiItems, currentItems);
+          const enrichedItems = await enrichCartItemsWithProducts(mergedItems);
+          set({ items: enrichedItems });
+        } catch {
+          // Keep existing local state when network call fails.
+        } finally {
+          set({ isLoading: false });
         }
-      } catch {
-        // Fallback to local update below.
-      }
-    }
+      },
+      addItem: async (item) => {
+        const user = useAuthStore.getState().user;
 
-    set((state) => ({
-      items: state.items.map((i) =>
-        i.productId === productId ? { ...i, quantity } : i,
-      ),
-    }));
-  },
-  clearCart: async () => {
-    const user = useAuthStore.getState().user;
+        // If authenticated customer, sync directly with server API as source of truth
+        if (user && isCustomerRole(user.role)) {
+          try {
+            const response = await authFetch(`${CART_API_BASE_URL}/cart/items`, {
+              method: "POST",
+              body: JSON.stringify({
+                userId: user.id,
+                productId: item.productId,
+                quantity: item.quantity,
+              }),
+            });
 
-    if (user && isCustomerRole(user.role)) {
-      try {
-        await authFetch(`${CART_API_BASE_URL}/cart?userId=${user.id}`, {
-          method: "DELETE",
+            if (response.ok) {
+              const payload: ApiCartResponse = await response
+                .json()
+                .catch(() => ({}));
+              const apiItems = getCartItemsFromPayload(payload);
+              const currentItems = get().items;
+              const mergedItems = mergeCartItemsFromApi(apiItems, currentItems);
+              const enrichedItems = await enrichCartItemsWithProducts(mergedItems);
+              set({ items: enrichedItems });
+              useUIStore.getState().showToast("Item added to bag", "success");
+              return;
+            }
+          } catch {
+            // Fallback to local update below if network fails
+          }
+        }
+
+        // Guest user update
+        set((state) => {
+          const existing = state.items.find((i) => i.productId === item.productId);
+          if (existing) {
+            return {
+              items: state.items.map((i) =>
+                i.productId === item.productId
+                  ? { ...i, quantity: i.quantity + item.quantity }
+                  : i,
+              ),
+            };
+          }
+          return { items: [...state.items, item] };
         });
-      } catch {
-        // Ignore errors and clear local cache.
-      }
-    }
 
-    set({ items: [] });
-  },
-  getTotalPrice: () => {
-    const items = get().items;
-    return items.reduce((total, item) => total + item.price * item.quantity, 0);
-  },
-  getTotalItems: () => {
-    const items = get().items;
-    return items.reduce((total, item) => total + item.quantity, 0);
-  },
-}));
+        useUIStore.getState().showToast("Item added to bag", "success");
+      },
+      removeItem: async (productId) => {
+        const user = useAuthStore.getState().user;
+
+        if (user && isCustomerRole(user.role)) {
+          try {
+            const response = await authFetch(
+              `${CART_API_BASE_URL}/cart/items/${productId}?userId=${user.id}`,
+              {
+                method: "DELETE",
+              },
+            );
+
+            if (response.ok) {
+              if (response.status !== 204) {
+                const payload: ApiCartResponse = await response
+                  .json()
+                  .catch(() => ({}));
+                const apiItems = getCartItemsFromPayload(payload);
+                const currentItems = get().items;
+                set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
+                return;
+              }
+
+              set((state) => ({
+                items: state.items.filter((i) => i.productId !== productId),
+              }));
+              return;
+            }
+          } catch {
+            // Fallback to local update below.
+          }
+        }
+
+        set((state) => ({
+          items: state.items.filter((i) => i.productId !== productId),
+        }));
+      },
+      updateQuantity: async (productId, quantity) => {
+        if (quantity < 1) {
+          await get().removeItem(productId);
+          return;
+        }
+
+        const user = useAuthStore.getState().user;
+        const currentItem = get().items.find((i) => i.productId === productId);
+
+        if (user && isCustomerRole(user.role)) {
+          try {
+            const patchResponse = await authFetch(
+              `${CART_API_BASE_URL}/cart/items/${productId}?userId=${user.id}`,
+              {
+                method: "PATCH",
+                body: JSON.stringify({ quantity }),
+              },
+            );
+
+            if (patchResponse.ok) {
+              const payload: ApiCartResponse = await patchResponse
+                .json()
+                .catch(() => ({}));
+              const apiItems = getCartItemsFromPayload(payload);
+              const currentItems = get().items;
+              set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
+              return;
+            }
+
+            const delta = quantity - (currentItem?.quantity || 0);
+            if (delta > 0) {
+              const addResponse = await authFetch(
+                `${CART_API_BASE_URL}/cart/items`,
+                {
+                  method: "POST",
+                  body: JSON.stringify({
+                    userId: user.id,
+                    productId,
+                    quantity: delta,
+                  }),
+                },
+              );
+
+              if (addResponse.ok) {
+                const payload: ApiCartResponse = await addResponse
+                  .json()
+                  .catch(() => ({}));
+                const apiItems = getCartItemsFromPayload(payload);
+                const currentItems = get().items;
+                set({ items: mergeCartItemsFromApi(apiItems, currentItems) });
+                return;
+              }
+            }
+          } catch {
+            // Fallback to local update below.
+          }
+        }
+
+        set((state) => ({
+          items: state.items.map((i) =>
+            i.productId === productId ? { ...i, quantity } : i,
+          ),
+        }));
+      },
+      clearCart: async () => {
+        const user = useAuthStore.getState().user;
+
+        if (user && isCustomerRole(user.role)) {
+          try {
+            await authFetch(`${CART_API_BASE_URL}/cart?userId=${user.id}`, {
+              method: "DELETE",
+            });
+          } catch {
+            // Ignore errors and clear local cache.
+          }
+        }
+
+        set({ items: [] });
+      },
+      getTotalPrice: () => {
+        const items = get().items;
+        return items.reduce((total, item) => total + item.price * item.quantity, 0);
+      },
+      getTotalItems: () => {
+        const items = get().items;
+        return items.reduce((total, item) => total + item.quantity, 0);
+      },
+    }),
+    {
+      name: "cart-storage",
+    },
+  ),
+);
 
 // UI Store
 export const useUIStore = create<UIStore>((set) => ({

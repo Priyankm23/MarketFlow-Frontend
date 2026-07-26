@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
+import { pingBackend } from "@/lib/ping-backend";
 
 const protectedPrefixes: string[] = [
   "/customer",
@@ -16,6 +17,7 @@ const publicExclusions = [
   "/vendor/apply",
   "/vendor/learn-more",
   "/delivery/apply",
+  "/customer/cart",
 ];
 
 // Prevent multiple session restoration attempts during SPA navigation
@@ -84,6 +86,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Immediately ping backend server on Render to awaken cold start
+  useEffect(() => {
+    pingBackend();
+  }, []);
+
 
   // Check if current page requires authentication
   const requiresAuth = protectedPrefixes.some((prefix) =>

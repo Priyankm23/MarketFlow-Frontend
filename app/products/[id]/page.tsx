@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Navbar } from "@/components/navbar";
 import { ProductCard } from "@/components/product-card";
+import { Footer } from "@/components/footer";
 import {
   Dialog,
   DialogContent,
@@ -699,6 +700,13 @@ export default function ProductDetailPage() {
     }
 
     handleAddToCart();
+
+    const user = useAuthStore.getState().user;
+    if (!user) {
+      router.push(`/login?returnUrl=${encodeURIComponent("/customer/checkout")}`);
+      return;
+    }
+
     router.push("/customer/checkout");
   };
 
@@ -932,32 +940,19 @@ export default function ProductDetailPage() {
           </div>
         ) : product ? (
           <div className="space-y-12">
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,56%)_minmax(0,44%)] gap-10 items-start">
-              <div className="space-y-6">
-                <div className="relative aspect-square overflow-hidden rounded-xl border border-[var(--border-default)] bg-white shadow-sm group">
-                  <Image
-                    src={activeImage}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                    priority
-                  />
-                  {product.stock < 5 && product.stock > 0 && (
-                    <div className="absolute top-4 left-4 z-10 px-3 py-1 bg-[var(--destructive)] text-[10px] font-black text-white uppercase tracking-tighter rounded-full shadow-lg">
-                      Low Stock
-                    </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="flex flex-col-reverse sm:flex-row gap-4 items-start w-full">
+                {/* Left Side Vertical Thumbnails (Amazon Style) */}
+                <div className="flex sm:flex-col gap-2.5 overflow-x-auto sm:overflow-y-auto max-h-[560px] w-full sm:w-auto shrink-0 pb-2 sm:pb-0 scrollbar-hide">
                   {galleryImages.map((img, index) => (
                     <button
                       key={`${img}-${index}`}
                       onClick={() => setSelectedImageIndex(index)}
-                      className={`relative aspect-square overflow-hidden rounded-xl border-2 transition-all ${
+                      onMouseEnter={() => setSelectedImageIndex(index)}
+                      className={`relative w-14 h-14 sm:w-16 sm:h-16 shrink-0 overflow-hidden rounded-md border-2 transition-all ${
                         selectedImageIndex === index
-                          ? "border-[var(--brand-accent)] shadow-md scale-[0.98]"
-                          : "border-transparent hover:border-black/10"
+                          ? "border-[var(--brand-accent)] ring-2 ring-[var(--brand-accent)]/20 shadow-sm scale-95 opacity-100"
+                          : "border-[var(--border-default)] hover:border-black/30 opacity-70 hover:opacity-100"
                       }`}
                     >
                       <Image
@@ -969,10 +964,26 @@ export default function ProductDetailPage() {
                     </button>
                   ))}
                 </div>
+
+                {/* Main Product Display Image (Direct display without card wrapper) */}
+                <div className="relative aspect-square w-full max-w-[560px] overflow-hidden group flex-1">
+                  <Image
+                    src={activeImage}
+                    alt={product.name}
+                    fill
+                    className="object-contain transition-transform duration-700 group-hover:scale-105"
+                    priority
+                  />
+                  {product.stock < 5 && product.stock > 0 && (
+                    <div className="absolute top-3 left-3 z-10 px-2.5 py-0.5 bg-[var(--destructive)] text-[9px] font-black text-white uppercase tracking-tighter rounded shadow">
+                      Low Stock
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-6">
-                <section className="space-y-3 rounded-xl border border-[var(--border-default)] bg-white p-6">
+                <section className="space-y-3 rounded-md border border-[var(--border-default)] bg-white p-6">
                   <h1 className="text-3xl sm:text-[2rem] font-black text-black leading-tight tracking-tight">
                     {product.name}
                   </h1>
@@ -1010,54 +1021,49 @@ export default function ProductDetailPage() {
                     )}
                   </div>
 
-                  <div className="space-y-2 pt-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                      Quantity
-                    </label>
-                    <select
-                      value={quantity}
-                      onChange={(e) => setQuantity(Number(e.target.value))}
-                      className="w-full h-12 rounded-lg border border-[var(--border-default)] bg-white px-4 text-base font-semibold outline-none"
-                      disabled={product.stock === 0}
-                    >
-                      {[...Array(Math.min(30, product.stock || 1))].map(
-                        (_, i) => (
-                          <option key={i + 1} value={i + 1}>
-                            {i + 1}
-                          </option>
-                        ),
-                      )}
-                    </select>
-                  </div>
+                  {/* Quantity and Compact Action Buttons */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-3">
+                    <div className="flex items-center gap-2 shrink-0 bg-zinc-50 border border-[var(--border-default)] rounded-lg px-3 py-1 h-11">
+                      <label className="text-[11px] font-black uppercase tracking-wider text-[var(--text-muted)] shrink-0">
+                        Qty:
+                      </label>
+                      <select
+                        value={quantity}
+                        onChange={(e) => setQuantity(Number(e.target.value))}
+                        className="h-full bg-transparent text-sm font-bold outline-none cursor-pointer text-black"
+                        disabled={product.stock === 0}
+                      >
+                        {[...Array(Math.min(30, product.stock || 1))].map(
+                          (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </div>
 
-                  <div className="grid grid-cols-1 gap-3 pt-2">
-                    <button
-                      onClick={handleAddToCart}
-                      disabled={product.stock === 0}
-                      className={`w-full h-12 flex items-center justify-center gap-2 text-white rounded-full font-bold text-base transition-colors disabled:opacity-30 ${
-                        isBuyNowHovered
-                          ? "bg-black hover:bg-black"
-                          : "bg-[var(--brand-accent)] hover:bg-[var(--brand-accent)]"
-                      }`}
-                    >
-                      <ShoppingCart size={18} />
-                      Add to cart
-                    </button>
-                    <button
-                      onClick={handleBuyNow}
-                      onMouseEnter={() => setIsBuyNowHovered(true)}
-                      onMouseLeave={() => setIsBuyNowHovered(false)}
-                      onFocus={() => setIsBuyNowHovered(true)}
-                      onBlur={() => setIsBuyNowHovered(false)}
-                      disabled={product.stock === 0}
-                      className="w-full h-12 flex items-center justify-center gap-2 bg-black text-white rounded-full font-bold text-base hover:bg-[var(--brand-accent)] transition-colors disabled:opacity-30"
-                    >
-                      Buy Now
-                    </button>
+                    <div className="flex-1 grid grid-cols-2 gap-3">
+                      <button
+                        onClick={handleAddToCart}
+                        disabled={product.stock === 0}
+                        className="h-11 flex items-center justify-center gap-2 bg-[var(--brand-accent)] hover:bg-red-700 text-white rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                      >
+                        <ShoppingCart size={16} />
+                        Add to Cart
+                      </button>
+                      <button
+                        onClick={handleBuyNow}
+                        disabled={product.stock === 0}
+                        className="h-11 flex items-center justify-center gap-2 bg-black hover:bg-zinc-800 text-white rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-30"
+                      >
+                        Buy Now
+                      </button>
+                    </div>
                   </div>
                 </section>
 
-                <section className="rounded-xl border border-[var(--border-default)] bg-white p-6 space-y-4">
+                <section className="rounded-md border border-[var(--border-default)] bg-white p-6 space-y-4">
                   <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wide text-black">
                     <BadgePercent
                       size={16}
@@ -1096,7 +1102,7 @@ export default function ProductDetailPage() {
                   </ul>
                 </section>
 
-                <section className="rounded-xl border border-[var(--border-default)] bg-white p-6 space-y-5">
+                <section className="rounded-md border border-[var(--border-default)] bg-white p-6 space-y-5">
                   <h2 className="text-xl font-black text-black tracking-tight">
                     Product details
                   </h2>
@@ -1114,18 +1120,18 @@ export default function ProductDetailPage() {
                     <h3 className="text-sm font-black uppercase tracking-wider text-[var(--text-muted)]">
                       Product specifications
                     </h3>
-                    <div className="border border-[var(--border-default)] rounded-lg overflow-hidden">
+                    <div className="border border-[var(--border-default)] rounded-lg overflow-hidden divide-y divide-[var(--border-default)]">
                       {product.specifications.map((spec, i) => (
                         <div
                           key={i}
                           className={`grid grid-cols-2 gap-3 px-4 py-3 text-sm ${
-                            i % 2 === 0 ? "bg-white" : "bg-[var(--secondary)]"
+                            i % 2 === 0 ? "bg-white" : "bg-zinc-50/70"
                           }`}
                         >
-                          <span className="font-semibold text-[var(--text-muted)] uppercase tracking-wide text-xs">
+                          <span className="font-bold text-[var(--text-muted)] uppercase tracking-wider text-[11px]">
                             {spec.label}
                           </span>
-                          <span className="font-semibold text-black">
+                          <span className="font-bold text-black text-xs sm:text-sm">
                             {spec.value}
                           </span>
                         </div>
@@ -1136,7 +1142,7 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            <section className="rounded-xl border border-[var(--border-default)] bg-white p-6 sm:p-8 space-y-8">
+            <section className="rounded-md border border-[var(--border-default)] bg-white p-6 sm:p-8 space-y-8">
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-black text-black tracking-tight">
                   Customer reviews and comments
@@ -1276,18 +1282,18 @@ export default function ProductDetailPage() {
                 </div>
 
                 {vendorProductsLoading ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((key) => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                    {[1, 2, 3, 4, 5, 6].map((key) => (
                       <div
                         key={key}
-                        className="h-56 rounded-xl bg-[var(--secondary)] animate-pulse"
+                        className="h-44 rounded-xl bg-[var(--secondary)] animate-pulse"
                       />
                     ))}
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-y-8 gap-x-6">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
                     {vendorProducts.map((vp) => (
-                      <ProductCard key={vp.id} product={vp} />
+                      <ProductCard key={vp.id} product={vp} compact />
                     ))}
                   </div>
                 )}
@@ -1415,6 +1421,8 @@ export default function ProductDetailPage() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <Footer />
     </div>
   );
 }

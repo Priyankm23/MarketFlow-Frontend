@@ -4,13 +4,25 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { Bike, FileText, MapPin, Bell, User, Loader2, Mail, Phone, Shield, LogOut, CheckCircle2 } from "lucide-react";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger 
+import {
+  Bike,
+  FileText,
+  MapPin,
+  Bell,
+  User,
+  Loader2,
+  Mail,
+  Phone,
+  Shield,
+  LogOut,
+  CheckCircle2,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
 } from "@/components/ui/sheet";
 import { authFetch } from "@/lib/auth-fetch";
 import { API_BASE_URL } from "@/lib/config";
@@ -50,7 +62,7 @@ const navItems = [
   },
   {
     href: "/delivery/terms",
-    label: "Terms",
+    label: "Terms & Agreement",
     icon: FileText,
   },
 ];
@@ -66,7 +78,7 @@ export function DeliveryHeader({ title, subtitle }: DeliveryHeaderProps) {
     setLoading(true);
     try {
       const res = await authFetch(`${API_BASE_URL}/delivery/profile`, {
-        credentials: "include"
+        credentials: "include",
       });
       if (res.ok) {
         const payload = await res.json();
@@ -82,110 +94,134 @@ export function DeliveryHeader({ title, subtitle }: DeliveryHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-white/90 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-[var(--border-default)] bg-white/95 backdrop-blur-md antialiased">
       <div className="mx-auto max-w-6xl px-4 py-3 sm:px-6 md:px-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <Sheet>
               <SheetTrigger asChild>
-                <button 
+                <button
                   onClick={fetchProfile}
-                  className="h-9 w-9 rounded-full bg-slate-950 flex items-center justify-center text-white shadow-lg ring-2 ring-white active:scale-95 transition-transform"
+                  className="h-9 w-9 rounded-md bg-black flex items-center justify-center text-white shadow-sm hover:bg-zinc-800 transition-colors cursor-pointer"
                 >
                   <User size={18} />
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[320px] sm:w-[400px] p-0 border-r border-border">
-                <SheetHeader className="p-6 bg-slate-950 text-white relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 to-transparent opacity-50" />
+              <SheetContent
+                side="left"
+                className="w-[320px] sm:w-[400px] p-0 border-r border-[var(--border-default)]"
+              >
+                <SheetHeader className="p-6 bg-black text-white relative overflow-hidden">
                   <div className="relative z-10 text-left">
-                    <SheetTitle className="text-white font-black text-xl tracking-tight text-left">Partner Profile</SheetTitle>
-                    <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Verified Delivery Network</p>
+                    <SheetTitle className="text-white font-bold text-xl tracking-tight text-left">
+                      Partner Profile
+                    </SheetTitle>
+                    <p className="text-zinc-400 text-xs font-medium mt-1">
+                      Verified Delivery Network
+                    </p>
                   </div>
                 </SheetHeader>
 
                 <div className="p-6">
                   {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-3 text-slate-400">
-                      <Loader2 className="animate-spin" size={32} />
-                      <p className="text-[10px] font-bold uppercase tracking-widest">Fetching Details...</p>
+                    <div className="flex flex-col items-center justify-center py-16 gap-3 text-zinc-400">
+                      <Loader2 className="animate-spin text-black" size={28} />
+                      <p className="text-xs font-medium">Fetching profile...</p>
                     </div>
                   ) : profile ? (
-                    <div className="space-y-8">
+                    <div className="space-y-6">
                       <div className="flex items-center gap-4">
-                        <div className="h-16 w-16 rounded-[1.25rem] bg-orange-600 flex items-center justify-center text-white shadow-xl shadow-orange-200">
-                          <User size={32} />
+                        <div className="h-14 w-14 rounded-md bg-black flex items-center justify-center text-white shadow-sm shrink-0">
+                          <User size={28} />
                         </div>
                         <div>
-                          <h2 className="text-lg font-black text-slate-900 tracking-tight">{profile.user.name}</h2>
+                          <h2 className="text-base font-bold text-black tracking-tight">
+                            {profile.user.name}
+                          </h2>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Active Partner</span>
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="text-xs font-semibold text-emerald-600">
+                              Active Partner
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="space-y-4">
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4 group transition-colors hover:bg-white hover:border-orange-100">
-                          <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-orange-600 transition-colors">
-                            <Mail size={18} />
+                      <div className="space-y-3">
+                        <div className="bg-zinc-50 rounded-md p-4 border border-zinc-200 flex items-center gap-3.5">
+                          <div className="h-9 w-9 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-black shrink-0">
+                            <Mail size={16} />
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Email Address</p>
-                            <p className="text-sm font-bold text-slate-900 truncate max-w-[180px]">{profile.user.email}</p>
-                          </div>
-                        </div>
-
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4 group transition-colors hover:bg-white hover:border-orange-100">
-                          <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-orange-600 transition-colors">
-                            <Phone size={18} />
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phone Number</p>
-                            <p className="text-sm font-bold text-slate-900">{profile.user.phone || "Not provided"}</p>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-medium text-zinc-500">
+                              Email Address
+                            </p>
+                            <p className="text-xs font-bold text-black truncate max-w-[180px]">
+                              {profile.user.email}
+                            </p>
                           </div>
                         </div>
 
-                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 flex items-center gap-4 group transition-colors hover:bg-white hover:border-orange-100">
-                          <div className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-orange-600 transition-colors">
-                            <Shield size={18} />
+                        <div className="bg-zinc-50 rounded-md p-4 border border-zinc-200 flex items-center gap-3.5">
+                          <div className="h-9 w-9 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-black shrink-0">
+                            <Phone size={16} />
                           </div>
                           <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Access Role</p>
-                            <p className="text-sm font-bold text-slate-900 capitalize">{profile.user.role.replaceAll("_", " ")}</p>
+                            <p className="text-[11px] font-medium text-zinc-500">
+                              Phone Number
+                            </p>
+                            <p className="text-xs font-bold text-black">
+                              {profile.user.phone || "Not provided"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="bg-zinc-50 rounded-md p-4 border border-zinc-200 flex items-center gap-3.5">
+                          <div className="h-9 w-9 rounded-md bg-white border border-zinc-200 flex items-center justify-center text-black shrink-0">
+                            <Shield size={16} />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-medium text-zinc-500">
+                              Access Role
+                            </p>
+                            <p className="text-xs font-bold text-black capitalize">
+                              {profile.user.role.replaceAll("_", " ")}
+                            </p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="pt-8 border-t border-slate-100">
-                        <button 
+                      <div className="pt-6 border-t border-[var(--border-default)]">
+                        <button
                           onClick={() => {
                             logout();
                             window.location.href = "/login";
                           }}
-                          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-slate-50 text-slate-400 font-black text-xs uppercase tracking-widest hover:bg-rose-50 hover:text-rose-600 hover:border-rose-100 border border-transparent transition-all active:scale-95"
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-md bg-white border border-[var(--border-default)] text-red-600 font-bold text-xs hover:bg-red-50 hover:border-red-200 transition-colors cursor-pointer"
                         >
-                          <LogOut size={16} /> Secure Sign Out
+                          <LogOut size={15} /> Secure Sign Out
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="py-20 text-center text-slate-400">
-                      <p className="text-sm font-bold">Failed to load profile</p>
+                    <div className="py-16 text-center text-zinc-400">
+                      <p className="text-xs font-medium">
+                        Failed to load partner profile
+                      </p>
                     </div>
                   )}
                 </div>
               </SheetContent>
             </Sheet>
 
-            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full bg-orange-50 text-[10px] font-bold text-orange-600 uppercase tracking-widest border border-orange-100">
+            <span className="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-md bg-zinc-100 text-[10px] sm:text-xs font-bold text-zinc-800 border border-zinc-200">
               Partner Hub
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="h-9 w-9 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-orange-50 hover:text-orange-600 transition-colors border border-slate-100 shadow-sm">
-              <Bell size={18} />
+            <button className="h-9 w-9 rounded-md bg-white flex items-center justify-center text-black hover:bg-zinc-100 transition-colors border border-[var(--border-default)] shadow-sm cursor-pointer">
+              <Bell size={17} />
             </button>
             <Link href="/delivery/dashboard" className="flex items-center gap-2">
               <Image
@@ -200,31 +236,32 @@ export function DeliveryHeader({ title, subtitle }: DeliveryHeaderProps) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="shrink-0">
-            <h1 className="font-body text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+        {/* Header Title & Navigation Tabs */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-black">
               {title}
             </h1>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-0.5">{subtitle}</p>
+            <p className="text-xs text-zinc-500 font-medium mt-0.5">
+              {subtitle}
+            </p>
           </div>
 
-          <nav className="flex items-center gap-2 overflow-x-auto pb-2 -mb-2 sm:pb-0 sm:mb-0 scrollbar-hide flex-nowrap snap-x snap-mandatory">
+          <nav className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
             {navItems.map((item) => {
+              const active = pathname === item.href;
               const Icon = item.icon;
-              const active =
-                pathname === item.href || pathname?.startsWith(`${item.href}/`);
-
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 text-xs font-extrabold whitespace-nowrap transition-all active:scale-95 snap-center ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
                     active
-                      ? "bg-orange-600 text-white shadow-xl shadow-orange-200"
-                      : "bg-white text-slate-500 border border-slate-200 hover:border-orange-200 hover:text-orange-600"
+                      ? "bg-black text-white shadow-sm"
+                      : "bg-white border border-[var(--border-default)] text-zinc-600 hover:text-black hover:bg-zinc-50"
                   }`}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon size={14} />
                   {item.label}
                 </Link>
               );

@@ -122,12 +122,12 @@ type DashboardData = {
 
 // --- HELPERS ---
 
-const statusTone: Record<DeliveryTask["status"], string> = {
-  assigned: "bg-orange-50 text-orange-700 border border-orange-100",
-  picked_up: "bg-blue-50 text-blue-700 border border-blue-100",
-  in_transit: "bg-emerald-50 text-emerald-700 border border-emerald-100",
-  packed: "bg-orange-50 text-orange-700 border border-orange-100",
-  delivered: "bg-emerald-50 text-emerald-700 border border-emerald-100",
+const STATUS_COLORS: Record<string, string> = {
+  assigned: "bg-zinc-100 text-black border border-zinc-200",
+  picked_up: "bg-black text-white border border-black",
+  delivered: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  cancelled: "bg-red-50 text-red-700 border border-red-200",
+  packed: "bg-zinc-100 text-black border border-zinc-200",
 };
 
 const statusLabel: Record<DeliveryTask["status"], string> = {
@@ -221,16 +221,16 @@ function MapPreview({
 
     const pickupIcon = L.divIcon({
       className: 'custom-div-icon',
-      html: `<div style="background-color: #ea580c; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(234,88,12,0.5)"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6]
+      html: `<div style="background-color: #000000; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
     });
 
     const dropIcon = L.divIcon({
       className: 'custom-div-icon',
-      html: `<div style="background-color: #ef4444; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 10px rgba(239,68,68,0.5)"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6]
+      html: `<div style="background-color: #10b981; width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.4)"></div>`,
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
     });
 
     L.marker(pickup, { icon: pickupIcon }).addTo(map);
@@ -238,16 +238,21 @@ function MapPreview({
 
     const routePoints = [pickup, drop];
     const polyline = L.polyline(routePoints, {
-      color: "#ea580c",
+      color: "#000000",
       weight: 4,
-      dashArray: "8, 12",
+      dashArray: "6, 8",
       lineCap: "round",
-      opacity: 0.6,
+      opacity: 0.8,
     }).addTo(map);
 
     map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
 
+    const resizeTimer = setTimeout(() => {
+      map.invalidateSize();
+    }, 150);
+
     return () => {
+      clearTimeout(resizeTimer);
       map.remove();
     };
   }, [mapLoaded, pickup, drop]);
@@ -507,76 +512,67 @@ export default function DeliveryDashboardPage() {
   const isJustAssigned = !currentDeliveries.find(t => t.id === activeTask?.id);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-body pb-24 md:pb-8" style={{ fontFamily: "var(--font-dm-sans)" }}>
+    <div className="min-h-screen bg-[var(--bg-base)] text-black antialiased pb-24 md:pb-8">
       <DeliveryHeader title="Active Workspace" subtitle="Deliveries & performance tracking." />
 
       <div className="mx-auto max-w-2xl px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* COMPACT LIGHT-THEMED SUMMARY CARD */}
-        <section className="bg-white rounded-[2rem] p-6 sm:p-8 shadow-xl shadow-slate-200 border border-slate-100 text-slate-900 relative overflow-hidden group">
-          {/* Light architectural orange corner */}
-          <div className="absolute right-0 top-0 w-32 h-32 bg-orange-50 rounded-bl-[6rem] z-0 border-l border-b border-orange-100/50" />
-          
-          <div className="absolute right-6 top-6 z-20">
-             <div className="h-10 w-10 rounded-xl bg-orange-100/50 flex items-center justify-center">
-                <Zap size={20} className="text-orange-600 fill-orange-600/10" />
-             </div>
+        {/* SUMMARY CARD */}
+        <section className="bg-white rounded-md p-6 sm:p-8 shadow-sm border border-[var(--border-default)] text-black relative overflow-hidden group">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-black animate-pulse" />
+              <p className="text-xs font-bold text-black uppercase tracking-wider">Live Performance</p>
+            </div>
+            <div className="h-9 w-9 rounded-md bg-zinc-100 flex items-center justify-center text-black">
+              <Zap size={18} />
+            </div>
           </div>
-          
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
-              <p className="text-[9px] font-black uppercase tracking-[0.4em] text-orange-600/60">Live Performance</p>
-            </div>
-            
-            <div className="flex items-center gap-6">
-               <div className="flex items-baseline gap-2">
-                 <span className="text-6xl sm:text-7xl font-black tracking-tighter text-slate-950">
-                   ₹{(dashboardData?.performance.ordersCompletedToday ?? 0) * 40}
-                 </span>
-                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-400">Earned</p>
-               </div>
 
-               <div className="h-10 w-px bg-slate-100" />
-
-               <div className="flex items-baseline gap-2">
-                 <span className="text-6xl sm:text-7xl font-black tracking-tighter text-orange-600">
-                   {dashboardData?.performance.ordersCompletedToday ?? 0}
-                 </span>
-                 <div className="flex flex-col -space-y-0.5">
-                    <p className="text-xs font-black uppercase tracking-tight text-slate-900">Orders</p>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Done</p>
-                 </div>
-               </div>
+          <div className="flex items-center gap-6">
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl sm:text-5xl font-bold tracking-tight text-black">
+                ₹{(dashboardData?.performance.ordersCompletedToday ?? 0) * 40}
+              </span>
+              <p className="text-xs font-bold text-zinc-500">Earned Today</p>
             </div>
 
-            <div className="mt-8 flex items-center gap-4">
-               <div className="flex-1 space-y-2">
-                  <div className="flex items-center justify-between px-1">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Daily Target</p>
-                     <p className="text-[10px] font-black text-orange-600">
-                        {dashboardData ? Math.round((dashboardData.earnings.today / (dashboardData.earnings.dailyTarget || 1)) * 100) : 0}%
-                     </p>
-                  </div>
-                  <div className="h-1 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
-                     <div 
-                        className="h-full bg-orange-500 transition-all duration-1000" 
-                        style={{ width: `${dashboardData ? Math.min(100, (dashboardData.earnings.today / (dashboardData.earnings.dailyTarget || 1)) * 100) : 0}%` }}
-                     />
-                  </div>
-               </div>
-               <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100">
-                  <TrendingUp size={12} className="text-emerald-600" />
-                  <span className="text-[9px] font-black text-emerald-700">+{dashboardData?.earnings.growthPercentage ?? 0}%</span>
-               </div>
+            <div className="h-8 w-px bg-zinc-200" />
+
+            <div className="flex items-baseline gap-2">
+              <span className="text-4xl sm:text-5xl font-bold tracking-tight text-black">
+                {dashboardData?.performance.ordersCompletedToday ?? 0}
+              </span>
+              <p className="text-xs font-bold text-zinc-500">Orders Done</p>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center gap-4">
+            <div className="flex-1 space-y-1.5">
+              <div className="flex items-center justify-between px-0.5">
+                <p className="text-xs font-semibold text-zinc-500">Daily Target</p>
+                <p className="text-xs font-bold text-black">
+                  {dashboardData ? Math.round((dashboardData.earnings.today / (dashboardData.earnings.dailyTarget || 1)) * 100) : 0}%
+                </p>
+              </div>
+              <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden border border-zinc-200">
+                <div 
+                  className="h-full bg-black transition-all duration-1000" 
+                  style={{ width: `${dashboardData ? Math.min(100, (dashboardData.earnings.today / (dashboardData.earnings.dailyTarget || 1)) * 100) : 0}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+              <TrendingUp size={12} className="text-emerald-700" />
+              <span className="text-xs font-bold text-emerald-700">+{dashboardData?.earnings.growthPercentage ?? 0}%</span>
             </div>
           </div>
         </section>
 
         {/* LOADING & ERROR STATES */}
         {loading && (
-          <div className="flex flex-col items-center py-10 text-slate-400">
-            <Loader2 className="animate-spin mb-3 text-orange-600" size={28} />
-            <p className="text-[10px] font-bold uppercase tracking-widest">Scanning Assignments...</p>
+          <div className="flex flex-col items-center py-10 text-zinc-500">
+            <Loader2 className="animate-spin mb-3 text-black" size={24} />
+            <p className="text-xs font-semibold">Scanning assignments...</p>
           </div>
         )}
 
@@ -775,64 +771,66 @@ export default function DeliveryDashboardPage() {
         )}
 
         {/* UPCOMING QUEUE */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">Assignment Queue</h2>
-            <span className="bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase tracking-widest">
+        <section className="space-y-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-base font-bold text-black tracking-tight">Assignment Queue</h2>
+            <span className="bg-zinc-100 text-black px-2.5 py-0.5 rounded-md text-xs font-bold border border-zinc-200">
               {assignedTasks.filter(t => t.id !== activeTask?.id).length} Orders
             </span>
           </div>
           {assignedTasks.filter(t => t.id !== activeTask?.id).length === 0 && (
-            <div className="bg-white rounded-3xl sm:rounded-[2.5rem] p-10 sm:p-12 text-center border border-dashed border-slate-200 shadow-sm mx-0.5">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 rounded-2xl sm:rounded-[2rem] flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-slate-100 shadow-inner">
-                <CheckCircle2 size={32} className="text-slate-200 sm:scale-125" />
+            <div className="bg-white rounded-md p-8 text-center border border-[var(--border-default)] shadow-sm space-y-3">
+              <div className="w-12 h-12 bg-zinc-100 rounded-md flex items-center justify-center mx-auto text-zinc-400">
+                <CheckCircle2 size={24} />
               </div>
-              <p className="text-sm sm:text-base font-black text-slate-900">Queue is Clear</p>
-              <p className="text-[10px] sm:text-xs text-slate-400 mt-1.5 sm:mt-2 max-w-[200px] sm:max-w-[220px] mx-auto font-medium leading-relaxed italic text-center">New orders will appear here automatically.</p>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-black">Queue is Clear</p>
+                <p className="text-xs text-zinc-500 font-medium">New delivery orders will appear here automatically.</p>
+              </div>
             </div>
           )}
-          <div className="grid grid-cols-1 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 gap-3">
             {assignedTasks.filter(t => t.id !== activeTask?.id).map(task => (
-              <div key={task.id} className="bg-white rounded-2xl sm:rounded-[2rem] p-4 sm:p-6 border border-border shadow-sm flex flex-col gap-3 sm:gap-4 hover:shadow-md transition-all border-l-4 border-l-orange-500 mx-0.5">
-                <div className="flex items-center gap-4 sm:gap-6">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-[1.25rem] bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600 shrink-0">
-                    <ShoppingBag size={24} className="sm:scale-125" />
+              <div key={task.id} className="bg-white rounded-md p-5 border border-[var(--border-default)] shadow-sm flex flex-col gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-md bg-zinc-100 border border-zinc-200 flex items-center justify-center text-black shrink-0">
+                    <ShoppingBag size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs sm:text-sm font-black text-slate-950 truncate tracking-tight">{task.vendorName}</p>
-                      <div className="flex flex-col items-end gap-1 shrink-0">
-                        <p className="text-[10px] sm:text-xs font-black text-orange-600 tracking-tighter bg-orange-50 px-2 py-0.5 rounded-lg">Fee ₹40</p>
-                        <p className="text-[8px] sm:text-[9px] font-bold text-slate-400 uppercase tracking-widest">Order ₹{task.amount}</p>
+                      <p className="text-xs font-bold text-black truncate tracking-tight">{task.vendorName}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-black bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded-md">Fee ₹40</span>
+                        <span className="text-xs font-medium text-zinc-500">Order ₹{task.amount}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-400">
-                      <MapPin size={10} className="sm:scale-110" />
-                      <p className="text-[9px] sm:text-[11px] font-bold truncate uppercase tracking-tight">{task.deliveryAddress}</p>
+                    <div className="flex items-center gap-1.5 text-zinc-500">
+                      <MapPin size={12} className="text-black" />
+                      <p className="text-xs font-medium truncate">{task.deliveryAddress}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-3">
                   <button 
                     onClick={() => handleAssignmentResponse(task, false)}
                     disabled={!!respondingTaskId}
-                    className="flex-1 bg-white border border-rose-200 text-rose-600 px-3 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all active:scale-95 disabled:opacity-50"
+                    className="flex-1 bg-white border border-red-200 text-red-600 px-4 py-2 rounded-md text-xs font-bold hover:bg-red-50 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     Reject
                   </button>
                   <button 
                     onClick={() => handleAssignmentResponse(task, true)}
                     disabled={!!respondingTaskId}
-                    className="flex-1 bg-orange-600 text-white px-3 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest shadow-lg shadow-orange-100 hover:bg-orange-700 transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 bg-black text-white px-4 py-2 rounded-md text-xs font-bold hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
-                    {respondingTaskId === task.id ? <Loader2 size={12} className="animate-spin" /> : "Accept"}
+                    {respondingTaskId === task.id ? <Loader2 size={14} className="animate-spin" /> : "Accept"}
                   </button>
                 </div>
 
                 {taskMessageById[task.id] && (
-                  <div className={`p-2.5 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center border ${
-                    taskMessageById[task.id].kind === "error" ? "bg-rose-50 border-rose-100 text-rose-700" : "bg-emerald-50 border-emerald-100 text-emerald-700"
+                  <div className={`p-2.5 rounded-md text-xs font-medium border ${
+                    taskMessageById[task.id].kind === "error" ? "bg-red-50 border-red-200 text-red-700" : "bg-emerald-50 border-emerald-200 text-emerald-700"
                   }`}>
                     {taskMessageById[task.id].text}
                   </div>
@@ -844,15 +842,18 @@ export default function DeliveryDashboardPage() {
 
         {/* PERFORMANCE TIPS */}
         {!loading && (
-          <section className="bg-orange-600 rounded-[1.75rem] sm:rounded-[2.5rem] p-6 sm:p-8 text-white shadow-xl shadow-orange-100 relative overflow-hidden mx-0.5">
-             <div className="absolute top-0 right-0 -mr-6 -mt-6 w-24 h-24 sm:w-32 sm:h-32 bg-white/10 rounded-full blur-2xl" />
-             <div className="relative z-10 flex items-start gap-4 sm:gap-5">
-                <div className="bg-white/20 p-2 sm:p-3 rounded-xl sm:rounded-2xl"><Target size={20} className="text-white sm:scale-125" /></div>
-                <div>
-                   <p className="text-[9px] sm:text-xs font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-orange-200 mb-0.5 sm:mb-1">Partner Mastery</p>
-                   <p className="text-xs sm:text-sm font-bold leading-relaxed">Completing more orders today will unlock premium "Fast-Track" status for tomorrow.</p>
-                </div>
-             </div>
+          <section className="bg-black rounded-md p-6 text-white shadow-sm flex items-start gap-4 border border-black">
+            <div className="w-10 h-10 rounded-md bg-zinc-800 flex items-center justify-center text-white shrink-0">
+              <Target size={20} />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-0.5">
+                Partner Milestone
+              </p>
+              <p className="text-xs font-medium leading-relaxed text-zinc-200">
+                Completing more orders today unlocks priority pickup dispatch for tomorrow.
+              </p>
+            </div>
           </section>
         )}
       </div>

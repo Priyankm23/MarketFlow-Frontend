@@ -1,22 +1,23 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react";
 import { useAuthStore } from "@/lib/store";
 import { fetchVendorProfile } from "@/lib/vendor-profile";
 
-// No client-side role selection required; server determines user role
-
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl") || searchParams.get("redirect");
+
   const user = useAuthStore((state) => state.user);
   const login = useAuthStore((state) => state.login);
 
@@ -25,16 +26,21 @@ export default function LoginPage() {
       return;
     }
 
+    const actualRole = user.role.toLowerCase();
+    if (actualRole === "customer" || actualRole === "user") {
+      router.replace(returnUrl || "/products");
+      return;
+    }
+
     const dashboardMap: Record<string, string> = {
-      customer: "/products",
       vendor: "/vendor/dashboard",
       delivery_partner: "/delivery/dashboard",
       delivery: "/delivery/dashboard",
       admin: "/admin/dashboard",
     };
 
-    router.replace(dashboardMap[user.role.toLowerCase()] || "/products");
-  }, [router, user]);
+    router.replace(dashboardMap[actualRole] || "/products");
+  }, [router, user, returnUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,19 +48,8 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const user = await login(email, password);
-
-      // Override or fallback role
-      const actualRole = user.role.toLowerCase();
-
-      // Redirect based on actual role
-      const dashboardMap: Record<string, string> = {
-        customer: "/products",
-        vendor: "/vendor/dashboard",
-        delivery_partner: "/delivery/dashboard",
-        delivery: "/delivery/dashboard",
-        admin: "/admin/dashboard",
-      };
+      const loggedUser = await login(email, password);
+      const actualRole = loggedUser.role.toLowerCase();
 
       if (actualRole === "vendor") {
         const vendorProfile = await fetchVendorProfile().catch(() => null);
@@ -62,6 +57,17 @@ export default function LoginPage() {
         router.push(hasVendorProfile ? "/vendor/dashboard" : "/vendor/apply");
         return;
       }
+
+      if (actualRole === "customer" || actualRole === "user") {
+        router.push(returnUrl || "/products");
+        return;
+      }
+
+      const dashboardMap: Record<string, string> = {
+        delivery_partner: "/delivery/dashboard",
+        delivery: "/delivery/dashboard",
+        admin: "/admin/dashboard",
+      };
 
       router.push(dashboardMap[actualRole] || "/products");
     } catch (err: any) {
@@ -216,5 +222,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center text-sm font-bold">Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
